@@ -11,7 +11,8 @@ public class playerMovement : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Movement")]
-    public float moveSpeed = 5f;
+    public float moveForce = 10f; // Siła poruszania się
+    public float maxSpeed = 5f; // Maksymalna prędkość
     public float jumpForce = 5f;
     public float gravity = -9.81f;
 
@@ -50,7 +51,7 @@ public class playerMovement : MonoBehaviour
             isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
         }
 
-        // Ruch (używa transform.forward który zmienia się z rotacją gracza)
+        // Ruch
         HandleMovement();
 
         // Skok
@@ -64,6 +65,7 @@ public class playerMovement : MonoBehaviour
         {
             ResetPosition();
         }
+
         // Kucanie
         crouch();
     }
@@ -78,16 +80,36 @@ public class playerMovement : MonoBehaviour
         if (Input.GetKey(rightKey)) horizontal = 1f;
         if (Input.GetKey(leftKey)) horizontal = -1f;
 
-        // Ruch względem rotacji gracza (gracz już jest obrócony przez kamerę)
-        Vector3 move = transform.right * horizontal + transform.forward * vertical;
-        move = move.normalized * moveSpeed;
-        move.y = rb.linearVelocity.y;
+        // Ruch względem rotacji gracza
+        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
+        moveDirection = moveDirection.normalized;
 
-        rb.linearVelocity = move;
+        // Dodaj siłę w kierunku ruchu
+        rb.AddForce(moveDirection * moveForce, ForceMode.Force);
+
+        // Ogranicz prędkość do maksymalnej
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        if (horizontalVelocity.magnitude > maxSpeed)
+        {
+            horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
+            rb.linearVelocity = new Vector3(horizontalVelocity.x, rb.linearVelocity.y, horizontalVelocity.z);
+        }
+
+        // Opcjonalnie: dodaj tarcie, żeby gracz się zatrzymywał gdy nie naciska klawiszy
+        if (moveDirection == Vector3.zero && isGrounded)
+        {
+            // Tarcie na ziemi
+            rb.linearVelocity = new Vector3(
+                rb.linearVelocity.x * 0.95f,
+                rb.linearVelocity.y,
+                rb.linearVelocity.z * 0.95f
+            );
+        }
     }
 
     void Jump()
     {
+        // Zresetuj prędkość pionową przed skokiem
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
@@ -108,11 +130,12 @@ public class playerMovement : MonoBehaviour
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
     }
+
     void crouch()
     {
         if (Input.GetKeyDown(crouchKey))
         {
-            // Zmniejsz wysokość gracza (przykładowo)
+            // Zmniejsz wysokość gracza
             transform.localScale = new Vector3(1f, 0.5f, 1f);
         }
         else if (Input.GetKeyUp(crouchKey))

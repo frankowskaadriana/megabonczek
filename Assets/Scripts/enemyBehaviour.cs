@@ -1,158 +1,251 @@
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections;
 
 public class enemyBehaviour : MonoBehaviour
 {
     [Header("Enemy Settings")]
-    public float moveForce = 5f; // Si³a poruszania siê w stronê gracza
-    public float maxSpeed = 2f; // Maksymalna prêdkoœæ
-    public float RotationSpeed = 5f; // Prêdkoœæ obracania siê w stronê gracza
-    public float climbForce = 5f; // Si³a wspinania siê w górê
-    public float waitTimeToClimb = 2f; // Czas oczekiwania przed rozpoczêciem wspinaczki
+    public float moveSpeed = 3.5f;
+    public float rotationSpeed = 5f;
 
     [Header("Push Settings")]
-    public float pushForce = 10f; // Si³a odpychania
-    public float timeToPush = 2f; // Czas po jakim wróg zostanie odepchniêty (w sekundach)
+    public float pushForce = 10f;
+    public float timeToPush = 2f;
 
-    private Rigidbody rb;
-    private bool isClimbing = false;
-    private float collisionTimer = 0f; // Timer licz¹cy czas kolizji
-    private GameObject currentCollidingEnemy = null; // Przeciwnik, z którym jest kolizja
+    [Header("NavMesh Settings")]
+    public float stoppingDistance = 1.5f;
+
+    private NavMeshAgent agent;
+    private Transform player;
+    private float collisionTimer = 0f;
+    private GameObject currentCollidingEnemy = null;
+
+    // Cache dla wydajnoœci
+    private WaitForSeconds updateDelay;
+    private bool isPushing = false;
+
+    void Awake()
+    {
+        // Inicjalizacja w Awake dla lepszej wydajnoœci
+        updateDelay = new WaitForSeconds(0.25f); // Rzadziej aktualizuj cel
+    }
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
+        InitializeNavMeshAgent();
+        FindPlayer();
 
-        // Jeœli nie ma Rigidbody, dodaj go
-        if (rb == null)
+        // Rozpocznij coroutine do aktualizacji celu
+        StartCoroutine(UpdateTargetRoutine());
+    }
+
+    void InitializeNavMeshAgent()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        if (agent == null)
         {
-            rb = gameObject.AddComponent<Rigidbody>();
+            agent = gameObject.AddComponent<NavMeshAgent>();
         }
 
-        // ZamroŸ rotacjê, ¿eby wróg nie przewraca³ siê podczas ruchu
-        rb.constraints = RigidbodyConstraints.FreezeRotationX |
-                         RigidbodyConstraints.FreezeRotationZ;
+        agent.speed = moveSpeed;
+        agent.angularSpeed = rotationSpeed * 20f;
+        agent.stoppingDistance = stoppingDistance;
+        agent.autoBraking = true;
+        agent.autoRepath = true;
+        agent.updateRotation = false; // Wy³¹cz automatyczn¹ rotacjê NavMeshAgent
+        agent.updateUpAxis = false;
+    }
+
+    void FindPlayer()
+    {
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            player = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning("Player not found! Make sure Player has tag 'Player'");
+        }
     }
 
     void Update()
     {
-        MoveToPlayer();
+        if (!IsValid()) return;
+
+        UpdateDestination();
+        RotateTowardsPlayer();
     }
 
-    void MoveToPlayer()
+    bool IsValid()
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
+        return agent != null && player != null && agent.isActiveAndEnabled && !isPushing;
+    }
+
+    void UpdateDestination()
+    {
+        // Ustaw cel tylko jeœli agent jest na NavMesh
+        if (agent.isOnNavMesh)
         {
-            Vector3 direction = (player.transform.position - transform.position).normalized;
+            agent.SetDestination(player.position);
+        }
+    }
 
-            // Dodaj si³ê w kierunku gracza
-            rb.AddForce(direction * moveForce, ForceMode.Force);
+    void RotateTowardsPlayer()
+    {
+        // Obracanie w stronê gracza (tylko oœ Y)
+        Vector3 direction = player.position - transform.position;
+        direction.y = 0; // Ignoruj oœ Y, obracaj tylko w poziomie
 
-            // Ogranicz prêdkoœæ do maksymalnej
-            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            if (horizontalVelocity.magnitude > maxSpeed)
-            {
-                horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
-                rb.linearVelocity = new Vector3(horizontalVelocity.x, rb.linearVelocity.y, horizontalVelocity.z);
-            }
-
-            // Obrót w stronê gracza
+        if (direction != Vector3.zero)
+        {
             Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, RotationSpeed * Time.deltaTime);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
 
-    void ClimbVerticallyOverTime()
+    IEnumerator UpdateTargetRoutine()
     {
-        // Dodaj si³ê do góry
-        rb.AddForce(Vector3.up * climbForce, ForceMode.Force);
-
-        // Opcjonalnie: ogranicz prêdkoœæ wspinaczki
-        if (rb.linearVelocity.y > maxSpeed)
+        while (true)
         {
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, maxSpeed, rb.linearVelocity.z);
+            if (agent != null && player != null && agent.isActiveAndEnabled && !isPushing)
+            {
+                if (agent.isOnNavMesh)
+                {
+                    agent.SetDestination(player.position);
+                }
+            }
+            yield return updateDelay;
         }
     }
 
-    // Kolizja rozpoczêta
+    // Kolizja zoptymalizowana
     void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Enemy"))
+        if (!isPushing && collision.gameObject.CompareTag("Enemy"))
         {
             currentCollidingEnemy = collision.gameObject;
-            collisionTimer = 0f; // Resetuj timer
+            collisionTimer = 0f;
             StartCoroutine(PushCoroutine());
         }
     }
 
-    // Kolizja trwa
     void OnCollisionStay(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Enemy"))
+        if (!isPushing && collision.gameObject.CompareTag("Enemy") && currentCollidingEnemy != null)
         {
             collisionTimer += Time.deltaTime;
         }
     }
 
-    // Kolizja zakoñczona
     void OnCollisionExit(Collision collision)
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            currentCollidingEnemy = null;
-            collisionTimer = 0f;
-            StopCoroutine(PushCoroutine());
+            ResetCollisionState();
         }
     }
 
-    // Coroutine do odpychania
+    void ResetCollisionState()
+    {
+        currentCollidingEnemy = null;
+        collisionTimer = 0f;
+        isPushing = false;
+        StopCoroutine(PushCoroutine());
+    }
+
     IEnumerator PushCoroutine()
     {
         while (collisionTimer < timeToPush && currentCollidingEnemy != null)
         {
-            yield return null; // Czekaj
+            yield return null;
         }
 
-        // Jeœli min¹³ czas i nadal jest kolizja, odepchnij
-        if (collisionTimer >= timeToPush && currentCollidingEnemy != null)
+        if (collisionTimer >= timeToPush && currentCollidingEnemy != null && !isPushing)
         {
             PushAway(currentCollidingEnemy);
         }
     }
 
-    // Odpychanie w losow¹ stronê
     void PushAway(GameObject otherEnemy)
     {
-        // Losowy kierunek (poziomy)
-        Vector3 randomDirection = new Vector3(
-            Random.Range(-1f, 1f),
-            0f,
-            Random.Range(-1f, 1f)
-        ).normalized;
+        isPushing = true;
 
-        // Dodaj si³ê odpychaj¹c¹ do obu przeciwników
-        Rigidbody otherRb = otherEnemy.GetComponent<Rigidbody>();
+        Vector3 randomDirection = GetRandomDirection();
 
-        if (otherRb != null)
-        {
-            otherRb.AddForce(randomDirection * pushForce, ForceMode.Impulse);
-        }
+        // Odepchnij obu wrogów
+        PushEnemy(otherEnemy, randomDirection);
+        PushEnemy(gameObject, -randomDirection);
 
-        // Odepchnij równie¿ tego przeciwnika w przeciwn¹ stronê
-        rb.AddForce(-randomDirection * pushForce, ForceMode.Impulse);
+        ResetCollisionState();
 
-        // Resetuj timer po odepchniêciu
-        collisionTimer = 0f;
-        currentCollidingEnemy = null;
-
-        Debug.Log($"{gameObject.name} zosta³ odepchniêty od {otherEnemy.name}");
+        // Przywróæ agentów po odepchniêciu
+        StartCoroutine(RestoreAgentAfterPush(otherEnemy));
     }
 
-    // Opcjonalnie: metoda do resetowania pozycji (np. po spadniêciu)
-    void ResetEnemy()
+    Vector3 GetRandomDirection()
     {
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
+        return new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized;
+    }
+
+    void PushEnemy(GameObject enemy, Vector3 direction)
+    {
+        NavMeshAgent enemyAgent = enemy.GetComponent<NavMeshAgent>();
+        if (enemyAgent != null)
+        {
+            enemyAgent.enabled = false;
+            Rigidbody rb = enemy.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = enemy.AddComponent<Rigidbody>();
+                rb.useGravity = true;
+            }
+            rb.isKinematic = false;
+            rb.linearVelocity = Vector3.zero;
+            rb.AddForce(direction * pushForce, ForceMode.Impulse);
+        }
+    }
+
+    IEnumerator RestoreAgentAfterPush(GameObject otherEnemy)
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        RestoreAgentComponent(gameObject);
+        RestoreAgentComponent(otherEnemy);
+
+        isPushing = false;
+    }
+
+    void RestoreAgentComponent(GameObject enemy)
+    {
+        if (enemy == null) return;
+
+        NavMeshAgent navAgent = enemy.GetComponent<NavMeshAgent>();
+        Rigidbody rb = enemy.GetComponent<Rigidbody>();
+
+        if (navAgent != null)
+        {
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                Destroy(rb); // Usuñ Rigidbody po odepchniêciu
+            }
+            navAgent.enabled = true;
+            navAgent.ResetPath();
+        }
+    }
+
+    // Metoda do wizualizacji w edytorze
+    void OnDrawGizmosSelected()
+    {
+        if (agent != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, agent.stoppingDistance);
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, 1f);
+        }
     }
 }

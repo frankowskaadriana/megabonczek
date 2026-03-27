@@ -8,6 +8,7 @@ public class playerMovement : MonoBehaviour
     public KeyCode leftKey = KeyCode.A;
     public KeyCode rightKey = KeyCode.D;
     public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Movement")]
     public float moveSpeed = 5f;
@@ -63,6 +64,8 @@ public class playerMovement : MonoBehaviour
         {
             ResetPosition();
         }
+        // Kucanie
+        crouch();
     }
 
     void HandleMovement()
@@ -103,6 +106,19 @@ public class playerMovement : MonoBehaviour
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
+        }
+    }
+    void crouch()
+    {
+        if (Input.GetKeyDown(crouchKey))
+        {
+            // Zmniejsz wysokość gracza (przykładowo)
+            transform.localScale = new Vector3(1f, 0.5f, 1f);
+        }
+        else if (Input.GetKeyUp(crouchKey))
+        {
+            // Przywróć normalną wysokość
+            transform.localScale = new Vector3(1f, 1f, 1f);
         }
     }
 }

@@ -18,24 +18,64 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float HealValue = 30f;
     public float LifeStealValue = 0.2f;
 
+    [Header("References")]
+    public PlayerHealth playerHealthReference; // Przeci¹gnij obiekt z PlayerHealth w Inspektorze
+
     private bool isSpinOnCooldown = false;
     private bool isSpinning = false;
     private float currentCooldown = 0f;
     private GameObject currentSpinHitBox;
 
+    private bool isBerserkActive = false;
+    private float berserkCooldown = 0f;
+    private bool isBerserkOnCooldown = false;
+    private PlayerHealth playerHealth;
+
     void Start()
     {
-        // Ukryj hitbox na starcie
         if (SpinHitBox != null)
         {
             SpinHitBox.SetActive(false);
             currentSpinHitBox = SpinHitBox;
         }
+
+        // Najpierw sprawdŸ referencjê z Inspektora
+        if (playerHealthReference != null)
+        {
+            playerHealth = playerHealthReference;
+        }
+        else
+        {
+            // Jeœli nie ma referencji, spróbuj znaleŸæ na tym samym obiekcie
+            playerHealth = GetComponent<PlayerHealth>();
+
+            // Jeœli nadal nie ma, szukaj w rodzicu lub dziecku
+            if (playerHealth == null)
+                playerHealth = GetComponentInParent<PlayerHealth>();
+            if (playerHealth == null)
+                playerHealth = GetComponentInChildren<PlayerHealth>();
+
+            // Jeœli nadal nie ma, spróbuj znaleŸæ po tagu
+            if (playerHealth == null)
+            {
+                GameObject player = GameObject.FindWithTag("Player");
+                if (player != null)
+                    playerHealth = player.GetComponent<PlayerHealth>();
+            }
+        }
+
+        if (playerHealth == null)
+        {
+            Debug.LogError("PlayerHealth component not found! Berserk will not work! Please assign playerHealthReference in Inspector.");
+        }
+        else
+        {
+            Debug.Log("PlayerHealth found! Berserk ready to use.");
+        }
     }
 
     void Update()
     {
-        // Obs³uga cooldownu
         if (isSpinOnCooldown)
         {
             currentCooldown -= Time.deltaTime;
@@ -46,10 +86,34 @@ public class AbilitiesMountainMan : MonoBehaviour
             }
         }
 
-        // Sprawdzanie inputu dla ataku wiruj¹cego
+        if (isBerserkOnCooldown)
+        {
+            berserkCooldown -= Time.deltaTime;
+            if (berserkCooldown <= 0)
+            {
+                isBerserkOnCooldown = false;
+                Debug.Log("Berserk is ready again!");
+            }
+        }
+
         if (Input.GetKeyDown(SpinKey) && !isSpinOnCooldown && !isSpinning)
         {
             StartCoroutine(PerformSpin());
+        }
+
+        // Berserk na klawisz Q
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            Debug.Log("Q pressed - Berserk attempt");
+            if (!isBerserkOnCooldown && !isBerserkActive)
+            {
+                StartCoroutine(ActivateBerserk());
+            }
+            else
+            {
+                if (isBerserkOnCooldown) Debug.Log("Berserk on cooldown!");
+                if (isBerserkActive) Debug.Log("Berserk already active!");
+            }
         }
     }
 
@@ -57,28 +121,22 @@ public class AbilitiesMountainMan : MonoBehaviour
     {
         isSpinning = true;
 
-        // Aktywuj hitbox
         if (currentSpinHitBox != null)
         {
             currentSpinHitBox.SetActive(true);
             Debug.Log("Spin attack activated!");
         }
 
-        // Zadaj obra¿enia natychmiast po aktywacji
         DealSpinDamage();
 
-        // Czekaj przez czas trwania ataku
         yield return new WaitForSeconds(SpinTime);
 
-        // Dezaktywuj hitbox
         if (currentSpinHitBox != null)
         {
             currentSpinHitBox.SetActive(false);
         }
 
         isSpinning = false;
-
-        // Rozpocznij cooldown
         isSpinOnCooldown = true;
         currentCooldown = cooldown;
         Debug.Log($"Spin ability on cooldown for {cooldown} seconds");
@@ -86,27 +144,39 @@ public class AbilitiesMountainMan : MonoBehaviour
 
     void DealSpinDamage()
     {
-        // ZnajdŸ wszystkie obiekty w zasiêgu wiruj¹cego ataku
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, SpinRange);
 
         foreach (var hitCollider in hitColliders)
         {
-            // SprawdŸ czy trafiony obiekt to wróg (ma komponent enemyHealth)
             enemyHealth enemy = hitCollider.GetComponent<enemyHealth>();
             if (enemy != null)
             {
-                // Zadaj obra¿enia wrogowi
-                enemy.health -= damage;
+                float finalDamage = damage;
 
-                // Aktualizuj tekst zdrowia jeœli istnieje
+                if (isBerserkActive)
+                {
+                    finalDamage *= 2f;
+                    enemy.health -= finalDamage;
+
+                    if (playerHealth != null)
+                    {
+                        playerHealth.HeathValue += finalDamage * LifeStealValue;
+                        playerHealth.HeathValue = Mathf.Min(playerHealth.HeathValue, 100f);
+                    }
+                    Debug.Log($"Berserk bonus! Double damage + life steal!");
+                }
+                else
+                {
+                    enemy.health -= finalDamage;
+                }
+
                 if (enemy.healthText != null)
                 {
                     enemy.healthText.text = enemy.health.ToString();
                 }
 
-                Debug.Log($"Spin hit {hitCollider.name} for {damage} damage!");
+                Debug.Log($"Spin hit {hitCollider.name} for {finalDamage} damage!");
 
-                // SprawdŸ czy wróg nie ¿yje
                 if (enemy.health <= 0)
                 {
                     Destroy(enemy.gameObject);
@@ -116,31 +186,57 @@ public class AbilitiesMountainMan : MonoBehaviour
         }
     }
 
-    // Metoda do wizualizacji zasiêgu ataku w edytorze
+    IEnumerator ActivateBerserk()
+    {
+        Debug.Log("Activating Berserk!");
+        isBerserkActive = true;
+
+        // Lecz gracza
+        if (playerHealth != null)
+        {
+            playerHealth.HeathValue += HealValue;
+            playerHealth.HeathValue = Mathf.Min(playerHealth.HeathValue, 100f);
+            playerHealth.isInvincible = true;
+            Debug.Log($"Berserk healed for {HealValue}! Current health: {playerHealth.HeathValue}");
+            Debug.Log("BERSERK ACTIVATED! You cannot die for " + Duration + " seconds!");
+        }
+        else
+        {
+            Debug.LogError("PlayerHealth is null! Cannot activate Berserk!");
+        }
+
+        yield return new WaitForSeconds(Duration);
+
+        isBerserkActive = false;
+        isBerserkOnCooldown = true;
+        berserkCooldown = ultCd;
+
+        if (playerHealth != null)
+        {
+            playerHealth.isInvincible = false;
+        }
+
+        Debug.Log("Berserk ended! Cooldown: " + ultCd + " seconds");
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, SpinRange);
     }
 
-    // Publiczna metoda do sprawdzenia czy umiejêtnoœæ jest dostêpna
     public bool IsSpinAvailable()
     {
         return !isSpinOnCooldown && !isSpinning;
     }
 
-    // Publiczna metoda do uzyskania aktualnego cooldownu
     public float GetCurrentCooldown()
     {
         return currentCooldown;
     }
-    void Berserk()
+
+    public bool IsBerserkActive()
     {
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            //Dodaj logikê do zwiêkszenia odpornoœci, leczenia i kradzie¿y ¿ycia
-            // Aktywuj tryb Berserk
-            //StartCoroutine(ActivateBerserk());
-        }
+        return isBerserkActive;
     }
 }

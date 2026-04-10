@@ -1,4 +1,8 @@
 <!-- UNITY CODE ASSIST INSTRUCTIONS START -->
-- Project name: megabonczek
+- Project name: 2
 - Unity version: Unity 6000.3.11f1
+- Active game object:
+  - Name: MountainMan
+  - Tag: Player
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

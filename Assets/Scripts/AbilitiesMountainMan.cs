@@ -19,7 +19,13 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float LifeStealValue = 0.2f;
 
     [Header("References")]
-    public PlayerHealth playerHealthReference; // Przeci¹gnij obiekt z PlayerHealth w Inspektorze
+    public PlayerHealth playerHealthReference;
+
+    [Header("Visual Effects")]
+    public Material berserkMaterial; // Podepnij czerwony materia³
+    public MeshRenderer capsuleRenderer; // Renderer kapsu³ki
+    private Material originalMaterial; // Zapamiêtaj oryginalny materia³
+    private Color originalColor; // Zapamiêtaj oryginalny kolor
 
     private bool isSpinOnCooldown = false;
     private bool isSpinning = false;
@@ -39,6 +45,21 @@ public class AbilitiesMountainMan : MonoBehaviour
             currentSpinHitBox = SpinHitBox;
         }
 
+        // ZnajdŸ renderer kapsu³ki jeœli nie podpiêty
+        if (capsuleRenderer == null)
+        {
+            capsuleRenderer = GetComponent<MeshRenderer>();
+            if (capsuleRenderer == null)
+                capsuleRenderer = GetComponentInChildren<MeshRenderer>();
+        }
+
+        // Zapamiêtaj oryginalny kolor
+        if (capsuleRenderer != null)
+        {
+            originalMaterial = capsuleRenderer.material;
+            originalColor = capsuleRenderer.material.color;
+        }
+
         // Najpierw sprawdŸ referencjê z Inspektora
         if (playerHealthReference != null)
         {
@@ -46,16 +67,11 @@ public class AbilitiesMountainMan : MonoBehaviour
         }
         else
         {
-            // Jeœli nie ma referencji, spróbuj znaleŸæ na tym samym obiekcie
             playerHealth = GetComponent<PlayerHealth>();
-
-            // Jeœli nadal nie ma, szukaj w rodzicu lub dziecku
             if (playerHealth == null)
                 playerHealth = GetComponentInParent<PlayerHealth>();
             if (playerHealth == null)
                 playerHealth = GetComponentInChildren<PlayerHealth>();
-
-            // Jeœli nadal nie ma, spróbuj znaleŸæ po tagu
             if (playerHealth == null)
             {
                 GameObject player = GameObject.FindWithTag("Player");
@@ -191,6 +207,9 @@ public class AbilitiesMountainMan : MonoBehaviour
         Debug.Log("Activating Berserk!");
         isBerserkActive = true;
 
+        // ZMIANA KOLORU NA CZERWONY
+        ChangeColorToRed();
+
         // Lecz gracza
         if (playerHealth != null)
         {
@@ -211,12 +230,53 @@ public class AbilitiesMountainMan : MonoBehaviour
         isBerserkOnCooldown = true;
         berserkCooldown = ultCd;
 
+        // PRZYWRÓÆ ORYGINALNY KOLOR
+        RestoreOriginalColor();
+
         if (playerHealth != null)
         {
             playerHealth.isInvincible = false;
         }
 
         Debug.Log("Berserk ended! Cooldown: " + ultCd + " seconds");
+    }
+
+    void ChangeColorToRed()
+    {
+        if (capsuleRenderer != null)
+        {
+            if (berserkMaterial != null)
+            {
+                capsuleRenderer.material = berserkMaterial;
+                Debug.Log("Changed to Berserk material (RED)!");
+            }
+            else
+            {
+                capsuleRenderer.material.color = Color.red;
+                Debug.Log("Changed color to RED!");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("No MeshRenderer found! Cannot change color.");
+        }
+    }
+
+    void RestoreOriginalColor()
+    {
+        if (capsuleRenderer != null)
+        {
+            if (originalMaterial != null)
+            {
+                capsuleRenderer.material = originalMaterial;
+                Debug.Log("Restored original material!");
+            }
+            else
+            {
+                capsuleRenderer.material.color = originalColor;
+                Debug.Log("Restored original color!");
+            }
+        }
     }
 
     private void OnDrawGizmosSelected()

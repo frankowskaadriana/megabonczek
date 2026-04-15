@@ -1096,6 +1096,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 794241199}
   - {fileID: 261151468}
   m_Father: {fileID: 1291531065}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1122,6 +1123,9 @@ MonoBehaviour:
   ResistValue: 0.5
   HealValue: 30
   LifeStealValue: 0.2
+  playerHealthReference: {fileID: 1291531067}
+  berserkMaterial: {fileID: 0}
+  capsuleRenderer: {fileID: 0}
 --- !u!1 &184445152
 GameObject:
   m_ObjectHideFlags: 0
@@ -1506,6 +1510,9 @@ MonoBehaviour:
   ResistValue: 0.5
   HealValue: 30
   LifeStealValue: 0.2
+  playerHealthReference: {fileID: 0}
+  berserkMaterial: {fileID: 0}
+  capsuleRenderer: {fileID: 0}
 --- !u!1 &560340466
 GameObject:
   m_ObjectHideFlags: 0
@@ -1515,6 +1522,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 560340467}
+  - component: {fileID: 560340468}
   m_Layer: 0
   m_Name: Enemy spawner
   m_TagString: Untagged
@@ -1537,6 +1545,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &560340468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560340466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  currentLevel: 1
+  enemiesToKill: 5
+  enemiesKilled: 0
+  enemyPrefab: {fileID: 0}
+  spawnPoints: []
+  levelText: {fileID: 0}
+  enemiesLeftText: {fileID: 0}
+  levelUpPanel: {fileID: 0}
+  damageButton: {fileID: 0}
+  healthButton: {fileID: 0}
+  spinButton: {fileID: 0}
+  playerHealth: {fileID: 0}
+  abilities: {fileID: 0}
+  damageUpgradeLevel: 0
+  healthUpgradeLevel: 0
+  spinUpgradeLevel: 0
 --- !u!1 &563687925
 GameObject:
   m_ObjectHideFlags: 0
@@ -1668,6 +1704,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   moveSpeed: 3.5
   stoppingDistance: 1.5
+  updateInterval: 0.5
 --- !u!114 &563687932
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1683,6 +1720,7 @@ MonoBehaviour:
   Player: {fileID: 1291531060}
   health: 100
   healthText: {fileID: 992521167}
+  levelSystem: {fileID: 0}
 --- !u!195 &563687933
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1931,12 +1969,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 794241198}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.005, y: 0.182, z: 0.577}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.005, y: 0.18200004, z: 0.577}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1291531065}
+  m_Father: {fileID: 168664447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &794241200
 MonoBehaviour:
@@ -2740,6 +2778,7 @@ GameObject:
   - component: {fileID: 1291531061}
   - component: {fileID: 1291531066}
   - component: {fileID: 1291531067}
+  - component: {fileID: 1291531068}
   m_Layer: 0
   m_Name: MountainMan
   m_TagString: Player
@@ -2867,9 +2906,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1633459821}
-  - {fileID: 794241199}
   - {fileID: 168664447}
+  - {fileID: 1633459821}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1291531066
@@ -2911,8 +2949,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59117ead08e725440b991d68bd9eaa45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  maxHealth: 100
   HeathValue: 100
   damageAmount: 20
+  isInvincible: 0
+  healthFill: {fileID: 1245077733}
+  healthText: {fileID: 1999696999}
+  healthTextLegacy: {fileID: 0}
+--- !u!114 &1291531068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291531060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6527e544b0624d74d9a881aa813ca331, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilitiesMountainMan
+  damage: 20
+  cooldown: 3
+  SpinRange: 3
+  SpinTime: 1
+  SpinKey: 101
+  SpinHitBox: {fileID: 0}
+  ultCd: 10
+  Duration: 5
+  ResistValue: 0.5
+  HealValue: 30
+  LifeStealValue: 0.2
+  playerHealthReference: {fileID: 0}
+  berserkMaterial: {fileID: 0}
+  capsuleRenderer: {fileID: 0}
 --- !u!1 &1306251892
 GameObject:
   m_ObjectHideFlags: 0
@@ -2923,6 +2992,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1306251893}
   - component: {fileID: 1306251894}
+  - component: {fileID: 1306251895}
   m_Layer: 0
   m_Name: StartGameLogic
   m_TagString: Untagged
@@ -2957,6 +3027,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6168a10a1124e04f891f81c86121df9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+--- !u!114 &1306251895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1306251892}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
+  currentLevel: 1
+  enemiesToKill: 5
+  enemiesKilled: 0
+  enemyPrefab: {fileID: 0}
+  spawnPoints: []
+  levelText: {fileID: 0}
+  enemiesLeftText: {fileID: 0}
+  levelUpPanel: {fileID: 0}
+  damageButton: {fileID: 0}
+  healthButton: {fileID: 0}
+  spinButton: {fileID: 0}
+  playerHealth: {fileID: 0}
+  abilities: {fileID: 0}
+  damageUpgradeLevel: 0
+  healthUpgradeLevel: 0
+  spinUpgradeLevel: 0
 --- !u!1 &1520272285
 GameObject:
   m_ObjectHideFlags: 0

@@ -4,26 +4,56 @@ using System.Collections;
 public class enemyHealth : MonoBehaviour
 {
     public GameObject Player;
-    public float health = 100f; // Enemy's health
-    public TMPro.TextMeshPro healthText; // Reference to the TextMeshPro component for displaying health
+    public float health = 100f;
+    public TMPro.TextMeshPro healthText;
 
-    private bool canTakeSpinDamage = true; // Flaga kontroluj¹ca cooldown obra¿eñ od spinu
+    public LevelSystem levelSystem; // DODANE: referencja do LevelSystem
+
+    private bool canTakeSpinDamage = true;
+    private float maxHealth; // DODANE: do pasków zdrowia
 
     void Start()
     {
-        healthText.text = health.ToString(); // Initialize the health text with the current health value
+        maxHealth = health;
+
+        // DODANE: automatyczne znalezienie LevelSystem jeœli nie podpiête
+        if (levelSystem == null)
+        {
+            levelSystem = FindFirstObjectByType<LevelSystem>();
+        }
+
+        // DODANE: zwiêkszanie zdrowia z poziomem
+        if (levelSystem != null)
+        {
+            health = 50f + (levelSystem.currentLevel - 1) * 10f;
+            maxHealth = health;
+        }
+
+        if (healthText != null)
+        {
+            healthText.text = Mathf.Round(health).ToString();
+        }
+
+        // DODANE: automatyczne znalezienie Player jeœli nie podpiêty
+        if (Player == null)
+        {
+            Player = GameObject.FindWithTag("Player");
+        }
     }
 
     void Update()
     {
-        TextFacePlayer();
+        if (Player != null && healthText != null)
+        {
+            TextFacePlayer();
+        }
     }
 
     void TextFacePlayer()
     {
         Vector3 direction = Player.transform.position - healthText.transform.position;
         Quaternion rotation = Quaternion.LookRotation(direction);
-        healthText.transform.rotation = rotation * Quaternion.Euler(0, 180, 0); // Odwróæ o 180 stopni
+        healthText.transform.rotation = rotation * Quaternion.Euler(0, 180, 0);
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -31,40 +61,54 @@ public class enemyHealth : MonoBehaviour
         // Obs³uga trafienia pociskiem
         if (collision.gameObject.CompareTag("Bullet"))
         {
-            health -= 10f; // Zmniejsz zdrowie o 10
-            healthText.text = health.ToString(); // Aktualizuj tekst zdrowia
-            Destroy(collision.gameObject); // Zniszcz pocisk po trafieniu
-
-            // SprawdŸ czy wróg nie ¿yje
-            if (health <= 0)
-            {
-                Destroy(gameObject); // Zniszcz wroga, gdy zdrowie spadnie do 0 lub poni¿ej
-            }
+            TakeDamage(10f);
+            Destroy(collision.gameObject);
         }
 
         // Obs³uga trafienia atakiem wiruj¹cym
         if (collision.gameObject.CompareTag("SpinHitBox") && canTakeSpinDamage)
         {
             Debug.Log("Spin hitbox collision detected");
-            health -= 20f; // Zmniejsz zdrowie o 20 dla ataku wiruj¹cego
-            healthText.text = health.ToString(); // Aktualizuj tekst zdrowia
-
-            // Rozpocznij cooldown dla obra¿eñ od spinu
+            TakeDamage(20f);
             StartCoroutine(SpinDamageCooldown());
-
-            // SprawdŸ czy wróg nie ¿yje
-            if (health <= 0)
-            {
-                Destroy(gameObject); // Zniszcz wroga, gdy zdrowie spadnie do 0 lub poni¿ej
-            }
         }
     }
 
-    // Coroutine do obs³ugi cooldowna obra¿eñ od spinu
+    // DODANE: wspólna metoda do zadawania obra¿eñ
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+
+        if (healthText != null)
+        {
+            healthText.text = Mathf.Round(health).ToString();
+        }
+
+        Debug.Log($"Enemy took {damage} damage! Health: {health}");
+
+        if (health <= 0)
+        {
+            Die();
+        }
+    }
+
+    // DODANE: metoda œmierci z powiadomieniem LevelSystem
+    void Die()
+    {
+        Debug.Log("Enemy died!");
+
+        if (levelSystem != null)
+        {
+            levelSystem.EnemyDied();
+        }
+
+        Destroy(gameObject);
+    }
+
     IEnumerator SpinDamageCooldown()
     {
-        canTakeSpinDamage = false; // Zablokuj mo¿liwoœæ zadawania obra¿eñ od spinu
-        yield return new WaitForSeconds(0.5f); // Odczekaj 0.5 sekundy
-        canTakeSpinDamage = true; // Odblokuj mo¿liwoœæ zadawania obra¿eñ od spinu
+        canTakeSpinDamage = false;
+        yield return new WaitForSeconds(0.5f);
+        canTakeSpinDamage = true;
     }
 }

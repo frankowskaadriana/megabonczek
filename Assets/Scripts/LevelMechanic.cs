@@ -1,157 +1,182 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
-using System.Collections;
 
-public class LevelSystem : MonoBehaviour
+public class LevelMechanic : MonoBehaviour
 {
     [Header("Level Settings")]
     public int currentLevel = 1;
-    public int enemiesToKill = 5;
-    public int enemiesKilled = 0;
+    public int currentExp = 0;
+    public int expToNextLevel = 100;
 
-    [Header("Enemy Settings")]
-    public GameObject enemyPrefab;
-    public Transform[] spawnPoints;
+    [Header("Experience Settings")]
+    public float expMultiplier = 1.5f;
+
+    [Header("Upgrade Levels")]
+    public int damageUpgradeLevel = 0;
+    public int healthUpgradeLevel = 0;
+    public int rangeUpgradeLevel = 0;
+
+    [Header("Upgrade Values")]
+    public float damageMultiplier = 1f;
+    public float healthMultiplier = 1f;
+    public float rangeMultiplier = 1f;
+
+    [Header("Upgrade Increments")]
+    public float damageIncreasePerLevel = 0.2f;
+    public float healthIncreasePerLevel = 0.25f;
+    public float rangeIncreasePerLevel = 0.15f;
 
     [Header("UI")]
     public TextMeshProUGUI levelText;
-    public TextMeshProUGUI enemiesLeftText;
-    public GameObject levelUpPanel; // Panel z wyborem ulepszeñ
-    public Button damageButton;     // Przycisk obra¿enia
-    public Button healthButton;     // Przycisk zdrowie
-    public Button spinButton;       // Przycisk ulepszenie spina
+    public TextMeshProUGUI expText;
+    public GameObject levelUpPanel;
+
+    [Header("Keybindings")]
+    public KeyCode damageKey = KeyCode.Alpha1;
+    public KeyCode healthKey = KeyCode.Alpha2;
+    public KeyCode rangeKey = KeyCode.Alpha3;
+
+    [Header("Upgrade Info Texts")]
+    public TextMeshProUGUI damageUpgradeInfo;
+    public TextMeshProUGUI healthUpgradeInfo;
+    public TextMeshProUGUI rangeUpgradeInfo;
 
     [Header("Player References")]
     public PlayerHealth playerHealth;
     public AbilitiesMountainMan abilities;
 
-    [Header("Upgrades")]
-    public int damageUpgradeLevel = 0;
-    public int healthUpgradeLevel = 0;
-    public int spinUpgradeLevel = 0;
-
-    private bool isRespawning = false;
-    private int enemiesAlive = 0;
+    private bool isLevelingUp = false;
+    private bool isPanelActive = false;
 
     void Start()
     {
+        // ZnajdŸ referencje jeœli nie podpiête
+        if (playerHealth == null)
+            playerHealth = GetComponent<PlayerHealth>();
+
+        if (abilities == null)
+            abilities = GetComponent<AbilitiesMountainMan>();
+
+        // Aktualizuj mno¿niki
+        if (abilities != null)
+        {
+            abilities.damageMultiplier = damageMultiplier;
+            abilities.rangeMultiplier = rangeMultiplier;
+            abilities.UpdateDamage();
+            abilities.UpdateRange();
+        }
+
+        if (playerHealth != null)
+        {
+            playerHealth.healthMultiplier = healthMultiplier;
+            playerHealth.UpdateMaxHealth();
+        }
+
         UpdateUI();
-        StartCoroutine(SpawnEnemies());
 
-        // Podepnij przyciski
-        if (damageButton != null)
-            damageButton.onClick.AddListener(() => UpgradeDamage());
-        if (healthButton != null)
-            healthButton.onClick.AddListener(() => UpgradeHealth());
-        if (spinButton != null)
-            spinButton.onClick.AddListener(() => UpgradeSpin());
-
-        // Ukryj panel na start
         if (levelUpPanel != null)
             levelUpPanel.SetActive(false);
+
+        UpdateUpgradeInfo();
+
+        Debug.Log("LevelMechanic zainicjalizowany!");
     }
 
     void Update()
     {
-        if (enemiesAlive <= 0 && !isRespawning && enemiesKilled >= enemiesToKill)
+        if (isPanelActive)
         {
+            if (Input.GetKeyDown(damageKey))
+                UpgradeDamage();
+            else if (Input.GetKeyDown(healthKey))
+                UpgradeHealth();
+            else if (Input.GetKeyDown(rangeKey))
+                UpgradeRange();
+        }
+    }
+
+    public void AddExp(int amount)
+    {
+        if (isLevelingUp) return;
+
+        currentExp += amount;
+        Debug.Log($"Zdobyto {amount} EXP! £¹cznie: {currentExp}/{expToNextLevel}");
+
+        UpdateUI();
+
+        while (currentExp >= expToNextLevel && !isLevelingUp)
+        {
+            currentExp -= expToNextLevel;
             LevelUp();
         }
     }
 
-    IEnumerator SpawnEnemies()
-    {
-        isRespawning = true;
-        enemiesAlive = enemiesToKill;
-        UpdateUI();
-
-        for (int i = 0; i < enemiesToKill; i++)
-        {
-            Vector3 spawnPos = GetSpawnPosition();
-            GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-            enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
-            if (enemyScript != null)
-            {
-                enemyScript.levelSystem = this;
-            }
-            yield return new WaitForSeconds(0.3f);
-        }
-
-        isRespawning = false;
-    }
-
-    Vector3 GetSpawnPosition()
-    {
-        if (spawnPoints.Length > 0)
-        {
-            return spawnPoints[Random.Range(0, spawnPoints.Length)].position;
-        }
-        else
-        {
-            return transform.position + new Vector3(Random.Range(-7f, 7f), 0, Random.Range(-7f, 7f));
-        }
-    }
-
-    public void EnemyDied()
-    {
-        enemiesAlive--;
-        enemiesKilled++;
-        UpdateUI();
-    }
-
     void LevelUp()
     {
+        isLevelingUp = true;
         currentLevel++;
-        enemiesToKill += 2;
-        enemiesKilled = 0;
+        expToNextLevel = Mathf.RoundToInt(expToNextLevel * expMultiplier);
+
+        Debug.Log($"LEVEL UP! Teraz poziom: {currentLevel}");
+
         UpdateUI();
 
-        // Poka¿ panel wyboru ulepszeñ
         if (levelUpPanel != null)
         {
             levelUpPanel.SetActive(true);
-            Time.timeScale = 0f; // Zatrzymaj grê
+            Time.timeScale = 0f;
+            isPanelActive = true;
+            Debug.Log("Panel ulepszeñ aktywny. Naciœnij 1, 2 lub 3!");
         }
+
+        isLevelingUp = false;
     }
 
     void UpgradeDamage()
     {
         damageUpgradeLevel++;
-        // Zwiêksz obra¿enia spina
+        damageMultiplier = 1f + (damageUpgradeLevel * damageIncreasePerLevel);
+
         if (abilities != null)
         {
-            abilities.damage += 10f;
-            Debug.Log($"Damage upgraded! Now: {abilities.damage}");
+            abilities.damageMultiplier = damageMultiplier;
+            abilities.UpdateDamage();
         }
+
+        Debug.Log($"Obra¿enia ulepszone! Poziom: {damageUpgradeLevel}, Mno¿nik: {damageMultiplier}x");
+        UpdateUpgradeInfo();
         CloseLevelUpPanel();
     }
 
     void UpgradeHealth()
     {
         healthUpgradeLevel++;
-        // Zwiêksz maksymalne zdrowie i ulecz gracza
+        healthMultiplier = 1f + (healthUpgradeLevel * healthIncreasePerLevel);
+
         if (playerHealth != null)
         {
-            playerHealth.maxHealth += 25f;
-            playerHealth.HeathValue = playerHealth.maxHealth;
-            playerHealth.UpdateHealthUI();
-            Debug.Log($"Health upgraded! Max health: {playerHealth.maxHealth}");
+            playerHealth.healthMultiplier = healthMultiplier;
+            playerHealth.UpdateMaxHealth();
         }
+
+        Debug.Log($"Zdrowie ulepszone! Poziom: {healthUpgradeLevel}, Mno¿nik: {healthMultiplier}x");
+        UpdateUpgradeInfo();
         CloseLevelUpPanel();
     }
 
-    void UpgradeSpin()
+    void UpgradeRange()
     {
-        spinUpgradeLevel++;
-        // Ulepszenie spina
+        rangeUpgradeLevel++;
+        rangeMultiplier = 1f + (rangeUpgradeLevel * rangeIncreasePerLevel);
+
         if (abilities != null)
         {
-            abilities.SpinRange += 1f;
-            abilities.cooldown -= 0.5f;
-            abilities.damage += 5f;
-            Debug.Log($"Spin upgraded! Range: {abilities.SpinRange}, Cooldown: {abilities.cooldown}");
+            abilities.rangeMultiplier = rangeMultiplier;
+            abilities.UpdateRange();
         }
+
+        Debug.Log($"Zasiêg ulepszony! Poziom: {rangeUpgradeLevel}, Mno¿nik: {rangeMultiplier}x");
+        UpdateUpgradeInfo();
         CloseLevelUpPanel();
     }
 
@@ -160,19 +185,29 @@ public class LevelSystem : MonoBehaviour
         if (levelUpPanel != null)
         {
             levelUpPanel.SetActive(false);
-            Time.timeScale = 1f; // Odpal grê
+            Time.timeScale = 1f;
+            isPanelActive = false;
         }
-
-        // Rozpocznij nowy poziom
-        StartCoroutine(SpawnEnemies());
     }
 
     void UpdateUI()
     {
         if (levelText != null)
-            levelText.text = $"Level: {currentLevel}";
+            levelText.text = $"Poziom: {currentLevel}";
 
-        if (enemiesLeftText != null)
-            enemiesLeftText.text = $"Enemies: {enemiesAlive}";
+        if (expText != null)
+            expText.text = $"EXP: {currentExp}/{expToNextLevel}";
+    }
+
+    void UpdateUpgradeInfo()
+    {
+        if (damageUpgradeInfo != null)
+            damageUpgradeInfo.text = $"Obra¿enia [1]\nPoziom: {damageUpgradeLevel}\nMno¿nik: {damageMultiplier:F1}x";
+
+        if (healthUpgradeInfo != null)
+            healthUpgradeInfo.text = $"Zdrowie [2]\nPoziom: {healthUpgradeLevel}\nMno¿nik: {healthMultiplier:F1}x";
+
+        if (rangeUpgradeInfo != null)
+            rangeUpgradeInfo.text = $"Zasiêg [3]\nPoziom: {rangeUpgradeLevel}\nMno¿nik: {rangeMultiplier:F1}x";
     }
 }

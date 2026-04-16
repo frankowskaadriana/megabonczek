@@ -4,9 +4,17 @@ using TMPro;
 
 public class PlayerHealth : MonoBehaviour
 {
-    [Header("PlayerHealth")]
-    public float maxHealth = 100f;
-    public float HeathValue = 100f;
+    [Header("Base Values")]
+    public float baseMaxHealth = 100f;
+
+    [Header("Current Values")]
+    public float maxHealth;
+    public float HeathValue;
+
+    [Header("Multipliers (from Level System)")]
+    public float healthMultiplier = 1f;
+
+    [Header("Damage Settings")]
     public float damageAmount = 20f;
     public bool isInvincible = false;
 
@@ -17,9 +25,10 @@ public class PlayerHealth : MonoBehaviour
 
     void Start()
     {
-        maxHealth = HeathValue;
+        UpdateMaxHealth();
+        HeathValue = maxHealth;
         UpdateHealthUI();
-        Debug.Log("PlayerHealth started with " + HeathValue + " health");
+        Debug.Log($"PlayerHealth started with {HeathValue}/{maxHealth} health");
     }
 
     void Update()
@@ -30,9 +39,23 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    public void UpdateMaxHealth()
+    {
+        maxHealth = baseMaxHealth * healthMultiplier;
+
+        // Jeœli obecne zdrowie przekracza nowe maksimum, dostosuj je
+        if (HeathValue > maxHealth)
+        {
+            HeathValue = maxHealth;
+        }
+
+        UpdateHealthUI();
+        Debug.Log($"Maksymalne zdrowie zaktualizowane: {baseMaxHealth} * {healthMultiplier} = {maxHealth}");
+    }
+
     public void TakeDamage(float damage)
     {
-        Debug.Log("TakeDamage called. Damage: " + damage + ", isInvincible: " + isInvincible);
+        Debug.Log($"TakeDamage called. Damage: {damage}, isInvincible: {isInvincible}");
 
         if (isInvincible)
         {
@@ -42,7 +65,7 @@ public class PlayerHealth : MonoBehaviour
 
         HeathValue -= damage;
         HeathValue = Mathf.Clamp(HeathValue, 0f, maxHealth);
-        Debug.Log("Health now: " + HeathValue);
+        Debug.Log($"Health now: {HeathValue}/{maxHealth}");
 
         UpdateHealthUI();
 
@@ -57,7 +80,7 @@ public class PlayerHealth : MonoBehaviour
         HeathValue += amount;
         HeathValue = Mathf.Clamp(HeathValue, 0f, maxHealth);
         UpdateHealthUI();
-        Debug.Log("Healed for " + amount + "! Health now: " + HeathValue);
+        Debug.Log($"Healed for {amount}! Health now: {HeathValue}/{maxHealth}");
     }
 
     public void UpdateHealthUI()
@@ -69,12 +92,12 @@ public class PlayerHealth : MonoBehaviour
 
         if (healthText != null)
         {
-            healthText.text = Mathf.Round(HeathValue) + " / " + maxHealth;
+            healthText.text = Mathf.Round(HeathValue) + " / " + Mathf.Round(maxHealth);
         }
 
         if (healthTextLegacy != null)
         {
-            healthTextLegacy.text = Mathf.Round(HeathValue) + " / " + maxHealth;
+            healthTextLegacy.text = Mathf.Round(HeathValue) + " / " + Mathf.Round(maxHealth);
         }
     }
 
@@ -88,7 +111,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            Debug.Log("Hit by enemy! Taking " + damageAmount + " damage");
+            Debug.Log($"Hit by enemy! Taking {damageAmount} damage");
             TakeDamage(damageAmount);
         }
     }

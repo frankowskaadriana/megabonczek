@@ -46,10 +46,6 @@ public class LevelSystem : MonoBehaviour
         if (cameraController == null)
         {
             cameraController = FindFirstObjectByType<CameraController>();
-            if (cameraController == null && Camera.main != null)
-            {
-                cameraController = Camera.main.gameObject.AddComponent<CameraController>();
-            }
         }
 
         ShowCharacterSelection();
@@ -71,10 +67,8 @@ public class LevelSystem : MonoBehaviour
 
     void Update()
     {
-        // Sprawdzanie klawiszy - dziala nawet przy Time.timeScale = 0
         if (!gameStarted)
         {
-            // Sprawdzanie klawiszy numerycznych
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
                 Debug.Log("Wcisnieto klawisz 1 - wybor Gorala");
@@ -86,7 +80,6 @@ public class LevelSystem : MonoBehaviour
                 SelectAngel();
             }
 
-            // Dodatkowo sprawdz klawisze na numpadzie
             if (Input.GetKeyDown(KeyCode.Keypad1))
             {
                 Debug.Log("Wcisnieto klawisz numpad 1 - wybor Gorala");
@@ -177,7 +170,6 @@ public class LevelSystem : MonoBehaviour
             movement = currentPlayer.AddComponent<PlayerMovement>();
         }
 
-        // Ustaw predkosc w zaleznosci od postaci
         if (currentPlayer.name.ToLower().Contains("angel"))
         {
             movement.maxSpeed = 6f;
@@ -187,12 +179,7 @@ public class LevelSystem : MonoBehaviour
             movement.maxSpeed = 5f;
         }
 
-        // Podepnij kamere do nowej postaci
-        if (cameraController != null)
-        {
-            cameraController.target = currentPlayer.transform;
-            Debug.Log("Kamera podpieta do postaci");
-        }
+        // NIE ustawiamy cameraController.target - kamera sama znajdzie gracza po tagu
 
         playerHealth = currentPlayer.GetComponent<PlayerHealth>();
         if (playerHealth != null)
@@ -200,7 +187,6 @@ public class LevelSystem : MonoBehaviour
             playerHealth.SetBaseHealth(baseHealth, currentLevel);
         }
 
-        // Podepnij umiejetnosci
         AbilitiesMountainMan abilities = currentPlayer.GetComponent<AbilitiesMountainMan>();
         if (abilities != null && weaponUpgrade != null)
         {

@@ -1113,29 +1113,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6527e544b0624d74d9a881aa813ca331, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  baseDamage: 20
-  baseSpinRange: 3
-  currentDamage: 0
-  currentSpinRange: 0
-  damageMultiplier: 1
-  rangeMultiplier: 1
-  cooldown: 3
-  SpinTime: 1
-  SpinKey: 101
-  SpinHitBox: {fileID: 1685222871}
-  slashBaseDamage: 15
-  slashBaseRange: 2
-  autoAttackInterval: 2
-  slashDuration: 0.2
-  slashHitBox: {fileID: 854664208}
-  ultCd: 10
-  Duration: 5
-  ResistValue: 0.5
-  HealValue: 30
-  LifeStealValue: 0.2
-  playerHealthReference: {fileID: 1291531067}
-  berserkMaterial: {fileID: 0}
-  capsuleRenderer: {fileID: 0}
+  attackDamage: 50
+  attackRange: 1.5
+  attackAngle: 90
+  attackRate: 0.8
+  specialDamage: 80
+  specialCooldown: 20
+  specialRotations: 1
+  healValue: 30
+  specialRange: 3
+  ultimateDuration: 10
+  ultimateRadius: 1.25
+  ultimateDamage: 50
+  indicatorMaterial: {fileID: 0}
+  gradientTexture: {fileID: 0}
+  playerHealth: {fileID: 0}
+  weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &184445152
 GameObject:
   m_ObjectHideFlags: 0
@@ -1510,87 +1503,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6527e544b0624d74d9a881aa813ca331, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  baseDamage: 20
-  baseSpinRange: 3
-  currentDamage: 0
-  currentSpinRange: 0
-  damageMultiplier: 1
-  rangeMultiplier: 1
-  cooldown: 3
-  SpinTime: 1
-  SpinKey: 101
-  SpinHitBox: {fileID: 1520272285}
-  slashBaseDamage: 15
-  slashBaseRange: 2
-  autoAttackInterval: 2
-  slashDuration: 0.2
-  slashHitBox: {fileID: 0}
-  ultCd: 10
-  Duration: 5
-  ResistValue: 0.5
-  HealValue: 30
-  LifeStealValue: 0.2
-  playerHealthReference: {fileID: 0}
-  berserkMaterial: {fileID: 0}
-  capsuleRenderer: {fileID: 0}
---- !u!1 &560340466
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 560340467}
-  - component: {fileID: 560340468}
-  m_Layer: 0
-  m_Name: Enemy spawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &560340467
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 560340466}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.2466, y: 0.06116, z: -0.14845}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &560340468
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 560340466}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e5a3891718715f4891fd1b86c5c8b11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
-  enemyPrefab: {fileID: 563687925}
-  maxEnemies: 50
-  spawnRadius: 8
-  minSpawnDistance: 5
-  spawnInterval: 1.5
-  enemiesPerSpawn: 1
-  waveMode: 0
-  enemiesPerWave: 10
-  timeBetweenWaves: 5
-  scaleWithTime: 1
-  maxSpawnInterval: 0.3
-  scaleTime: 300
-  showSpawnRadius: 1
-  spawnAreaColor: {r: 1, g: 0, b: 0, a: 0.3}
+  attackDamage: 50
+  attackRange: 1.5
+  attackAngle: 90
+  attackRate: 0.8
+  specialDamage: 80
+  specialCooldown: 20
+  specialRotations: 1
+  healValue: 30
+  specialRange: 3
+  ultimateDuration: 10
+  ultimateRadius: 1.25
+  ultimateDamage: 50
+  indicatorMaterial: {fileID: 0}
+  gradientTexture: {fileID: 0}
+  playerHealth: {fileID: 0}
+  weaponUpgrade: {fileID: 0}
 --- !u!1 &563687925
 GameObject:
   m_ObjectHideFlags: 0
@@ -1605,7 +1533,6 @@ GameObject:
   - component: {fileID: 563687932}
   - component: {fileID: 563687933}
   - component: {fileID: 563687934}
-  - component: {fileID: 563687935}
   - component: {fileID: 563687937}
   - component: {fileID: 563687936}
   m_Layer: 0
@@ -1632,7 +1559,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: -110.276, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -10.705, y: 0.89116}
+  m_AnchoredPosition: {x: -10.705, y: -2.155}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!65 &563687927
@@ -1684,8 +1611,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   health: 100
-  expReward: 20
+  levelSystem: {fileID: 1291531069}
   healthText: {fileID: 992521169}
+  bloodEffect: {fileID: 0}
 --- !u!195 &563687933
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1735,21 +1663,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 10
   m_CollisionDetection: 0
---- !u!114 &563687935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 563687925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a73a688ab8186f445a8760cfed1f0644, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  health: 50
-  expReward: 20
-  healthText: {fileID: 0}
 --- !u!33 &563687936
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -3058,6 +2971,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 2050543775}
   - {fileID: 168664447}
   - {fileID: 1633459821}
   m_Father: {fileID: 0}
@@ -3101,15 +3015,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59117ead08e725440b991d68bd9eaa45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  baseMaxHealth: 100
   maxHealth: 100
   HeathValue: 100
-  healthMultiplier: 1
-  damageAmount: 20
-  isInvincible: 0
   healthFill: {fileID: 1245077733}
   healthText: {fileID: 1999696999}
-  healthTextLegacy: {fileID: 0}
 --- !u!114 &1291531068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3122,29 +3031,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6527e544b0624d74d9a881aa813ca331, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AbilitiesMountainMan
-  baseDamage: 20
-  baseSpinRange: 3
-  currentDamage: 0
-  currentSpinRange: 0
-  damageMultiplier: 1
-  rangeMultiplier: 1
-  cooldown: 3
-  SpinTime: 1
-  SpinKey: 101
-  SpinHitBox: {fileID: 1685222871}
-  slashBaseDamage: 15
-  slashBaseRange: 2
-  autoAttackInterval: 2
-  slashDuration: 0.2
-  slashHitBox: {fileID: 0}
-  ultCd: 10
-  Duration: 5
-  ResistValue: 0.5
-  HealValue: 30
-  LifeStealValue: 0.2
-  playerHealthReference: {fileID: 1291531067}
-  berserkMaterial: {fileID: 0}
-  capsuleRenderer: {fileID: 0}
+  attackDamage: 50
+  attackRange: 1.5
+  attackAngle: 90
+  attackRate: 0.8
+  specialDamage: 80
+  specialCooldown: 20
+  specialRotations: 1
+  healValue: 30
+  specialRange: 3
+  ultimateDuration: 10
+  ultimateRadius: 1.25
+  ultimateDamage: 50
+  indicatorMaterial: {fileID: 0}
+  gradientTexture: {fileID: 0}
+  playerHealth: {fileID: 1291531067}
+  weaponUpgrade: {fileID: 2050543776}
 --- !u!114 &1291531069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3158,29 +3060,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
   currentLevel: 1
-  currentExp: 0
-  expToNextLevel: 100
-  expMultiplier: 1.5
-  damageUpgradeLevel: 0
-  healthUpgradeLevel: 0
-  rangeUpgradeLevel: 0
-  damageMultiplier: 1
-  healthMultiplier: 1
-  rangeMultiplier: 1
-  damageIncreasePerLevel: 0.2
-  healthIncreasePerLevel: 0.25
-  rangeIncreasePerLevel: 0.15
+  enemiesToKill: 5
+  enemyPrefab: {fileID: 563687925}
   levelText: {fileID: 0}
-  expText: {fileID: 0}
+  enemiesLeftText: {fileID: 0}
   levelUpPanel: {fileID: 0}
-  damageKey: 49
-  healthKey: 50
-  rangeKey: 51
-  damageUpgradeInfo: {fileID: 0}
-  healthUpgradeInfo: {fileID: 0}
-  rangeUpgradeInfo: {fileID: 0}
   playerHealth: {fileID: 1291531067}
-  abilities: {fileID: 1291531068}
+  weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &1306251892
 GameObject:
   m_ObjectHideFlags: 0
@@ -3191,7 +3077,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1306251893}
   - component: {fileID: 1306251894}
-  - component: {fileID: 1306251895}
   m_Layer: 0
   m_Name: StartGameLogic
   m_TagString: Untagged
@@ -3226,42 +3111,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6168a10a1124e04f891f81c86121df9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
---- !u!114 &1306251895
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1306251892}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
-  currentLevel: 1
-  currentExp: 0
-  expToNextLevel: 100
-  expMultiplier: 1.5
-  damageUpgradeLevel: 0
-  healthUpgradeLevel: 0
-  rangeUpgradeLevel: 0
-  damageMultiplier: 1
-  healthMultiplier: 1
-  rangeMultiplier: 1
-  damageIncreasePerLevel: 0.2
-  healthIncreasePerLevel: 0.25
-  rangeIncreasePerLevel: 0.15
-  levelText: {fileID: 0}
-  expText: {fileID: 0}
-  levelUpPanel: {fileID: 0}
-  damageKey: 49
-  healthKey: 50
-  rangeKey: 51
-  damageUpgradeInfo: {fileID: 0}
-  healthUpgradeInfo: {fileID: 0}
-  rangeUpgradeInfo: {fileID: 0}
-  playerHealth: {fileID: 0}
-  abilities: {fileID: 0}
 --- !u!1 &1520272285
 GameObject:
   m_ObjectHideFlags: 0
@@ -3875,6 +3724,62 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1999696997}
   m_CullTransparentMesh: 1
+--- !u!1 &2050543774
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2050543775}
+  - component: {fileID: 2050543776}
+  m_Layer: 0
+  m_Name: WeaponUpgradeSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2050543775
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2050543774}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -3.84145, y: -0.86977005, z: 0.54263}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1291531065}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2050543776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2050543774}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b74b2a6253c715a428d1226a926f301d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeSystem
+  currentDamage: 50
+  currentRange: 1.5
+  currentSwingAngle: 90
+  currentSpecialCooldown: 20
+  currentSpecialDamage: 80
+  currentSpecialRotations: 1
+  hasBleed: 0
+  bleedDuration: 2
+  bleedDamage: 3
+  currentUltimateDuration: 10
+  currentUltimateRadius: 1.25
+  currentUltimateDamage: 50
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3885,7 +3790,6 @@ SceneRoots:
   - {fileID: 1291531065}
   - {fileID: 52752803}
   - {fileID: 35802899}
-  - {fileID: 560340467}
   - {fileID: 135385439}
   - {fileID: 1959003151}
   - {fileID: 1933771303}

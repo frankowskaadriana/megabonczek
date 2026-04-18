@@ -1,372 +1,473 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using System.Collections;
 
 public class AbilitiesMountainMan : MonoBehaviour
 {
-    [Header("Spin - Base Values")]
-    public float baseDamage = 20f;
-    public float baseSpinRange = 3f;
+    [Header("Podstawowy Atak (Automatyczna Ciupaga)")]
+    public float attackDamage = 50f;
+    public float attackRange = 1.5f;
+    public float attackAngle = 90f;
+    public float attackRate = 0.8f;
 
-    [Header("Spin - Current Values")]
-    public float currentDamage;
-    public float currentSpinRange;
+    [Header("Gniew Tatr (Q)")]
+    public float specialDamage = 80f;
+    public float specialCooldown = 20f;
+    public int specialRotations = 1;
+    public float healValue = 30f;
+    public float specialRange = 3f;
 
-    [Header("Multipliers (from Level System)")]
-    public float damageMultiplier = 1f;
-    public float rangeMultiplier = 1f;
+    [Header("Orli Grom (R)")]
+    public float ultimateDuration = 10f;
+    public float ultimateRadius = 1.25f;
+    public float ultimateDamage = 50f;
 
-    [Header("Spin Settings")]
-    public float cooldown = 3f;
-    public float SpinTime = 1f;
-    public KeyCode SpinKey = KeyCode.E;
-    public GameObject SpinHitBox;
-
-    [Header("Sword Slash - Auto Attack")]
-    public float slashBaseDamage = 15f;
-    public float slashBaseRange = 2f;
-    public float autoAttackInterval = 2f; // Atak automatycznie co 2 sekundy
-    public float slashDuration = 0.2f;
-    public GameObject slashHitBox; // Podepnij hitbox zamachu
-
-    [Header("Berserk")]
-    public float ultCd = 10f;
-    public float Duration = 5f;
-    public float ResistValue = 0.5f;
-    public float HealValue = 30f;
-    public float LifeStealValue = 0.2f;
+    [Header("Wizualizacje")]
+    public Material indicatorMaterial;
+    public Texture2D gradientTexture; // Opcjonalna tekstura dla gradientu
 
     [Header("References")]
-    public PlayerHealth playerHealthReference;
+    public PlayerHealth playerHealth;
+    public WeaponUpgradeSystem weaponUpgrade;
 
-    [Header("Visual Effects")]
-    public Material berserkMaterial;
-    public MeshRenderer capsuleRenderer;
-    private Material originalMaterial;
-    private Color originalColor;
+    private float attackTimer = 0f;
+    private bool isSpecialOnCooldown = false;
+    private bool isUltimateOnCooldown = false;
+    private float specialCooldownTimer = 0f;
+    private float ultimateCooldownTimer = 0f;
+    private float lastAttackTime = 0f;
+    private bool isAttacking = false;
 
-    // Spin
-    private bool isSpinOnCooldown = false;
-    private bool isSpinning = false;
-    private float currentCooldown = 0f;
-    private GameObject currentSpinHitBox;
-
-    // Slash (Auto Attack)
-    private float currentSlashDamage;
-    private float currentSlashRange;
-    private bool isSlashing = false;
-    private float autoAttackTimer = 0f;
-
-    // Berserk
-    private bool isBerserkActive = false;
-    private float berserkCooldown = 0f;
-    private bool isBerserkOnCooldown = false;
-    private PlayerHealth playerHealth;
+    // LineRenderer dla wska≈∫nik√≥w
+    private LineRenderer attackLine;
+    private LineRenderer specialLine;
+    private LineRenderer ultimateLine;
+    private MeshRenderer attackMesh; // Do wype≈Çnienia sto≈ºka
 
     void Start()
     {
-        // Inicjalizacja
-        currentDamage = baseDamage;
-        currentSpinRange = baseSpinRange;
-        currentSlashDamage = slashBaseDamage;
-        currentSlashRange = slashBaseRange;
-
-        // Ustaw timer na pierwszy atak
-        autoAttackTimer = autoAttackInterval;
-
-        // Spin hitbox
-        if (SpinHitBox != null)
+        if (weaponUpgrade != null)
         {
-            SpinHitBox.SetActive(false);
-            currentSpinHitBox = SpinHitBox;
+            attackDamage = weaponUpgrade.currentDamage;
+            attackRange = weaponUpgrade.currentRange;
+            attackAngle = weaponUpgrade.currentSwingAngle;
+            specialDamage = weaponUpgrade.currentSpecialDamage;
+            specialCooldown = weaponUpgrade.currentSpecialCooldown;
+            specialRotations = weaponUpgrade.currentSpecialRotations;
+            ultimateDuration = weaponUpgrade.currentUltimateDuration;
+            ultimateRadius = weaponUpgrade.currentUltimateRadius;
+            ultimateDamage = weaponUpgrade.currentUltimateDamage;
         }
 
-        // Slash hitbox
-        if (slashHitBox != null)
+        CreateIndicators();
+    }
+
+    void CreateIndicators()
+    {
+        // === WSKA≈πNIK ATAKU (sto≈ºek z wype≈Çnieniem) ===
+        GameObject attackObj = new GameObject("AttackIndicator");
+        attackObj.transform.SetParent(transform);
+        attackObj.transform.localPosition = new Vector3(0, 0.02f, 0);
+        attackObj.transform.localRotation = Quaternion.identity;
+
+        // Dodaj MeshRenderer dla wype≈Çnienia
+        MeshFilter mf = attackObj.AddComponent<MeshFilter>();
+        attackMesh = attackObj.AddComponent<MeshRenderer>();
+        attackMesh.material = new Material(Shader.Find("Sprites/Default"));
+        attackMesh.material.color = new Color(1f, 0f, 0f, 0f); // Przezroczysty na start
+
+        // Stw√≥rz mesh dla wype≈Çnienia sto≈ºka
+        CreateFillMesh(mf);
+
+        // Dodaj LineRenderer dla krawƒôdzi (≈Çadniejszy)
+        attackLine = attackObj.AddComponent<LineRenderer>();
+        SetupLineRenderer(attackLine, new Color(1f, 0.2f, 0.2f, 0.9f), 0.05f);
+        UpdateAttackLine();
+
+        // === WSKA≈πNIK SPECJALNY (ko≈Ço) ===
+        GameObject specialObj = new GameObject("SpecialIndicator");
+        specialObj.transform.SetParent(transform);
+        specialObj.transform.localPosition = new Vector3(0, 0.02f, 0);
+        specialLine = specialObj.AddComponent<LineRenderer>();
+        SetupLineRenderer(specialLine, new Color(1f, 0.8f, 0f, 0.7f), 0.08f);
+        specialLine.loop = true;
+        UpdateCircleLine(specialLine, specialRange);
+        specialObj.SetActive(false);
+
+        // === WSKA≈πNIK ULTIMATE (ko≈Ço z wype≈Çnieniem) ===
+        GameObject ultimateObj = new GameObject("UltimateIndicator");
+        ultimateObj.transform.SetParent(transform);
+        ultimateObj.transform.localPosition = new Vector3(0, 0.01f, 0);
+        ultimateLine = ultimateObj.AddComponent<LineRenderer>();
+        SetupLineRenderer(ultimateLine, new Color(0.3f, 0.6f, 1f, 0.7f), 0.08f);
+        ultimateLine.loop = true;
+        UpdateCircleLine(ultimateLine, ultimateRadius);
+        ultimateObj.SetActive(false);
+    }
+
+    void CreateFillMesh(MeshFilter mf)
+    {
+        Vector3 center = Vector3.zero;
+        Vector3 forward = Vector3.forward;
+        float halfAngle = attackAngle / 2f;
+
+        int segments = 30;
+        Vector3[] vertices = new Vector3[segments + 2];
+        int[] triangles = new int[segments * 3];
+
+        vertices[0] = center;
+
+        for (int i = 0; i <= segments; i++)
         {
-            slashHitBox.SetActive(false);
+            float t = (float)i / segments;
+            float angle = -halfAngle + (attackAngle * t);
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
+            vertices[i + 1] = dir * attackRange;
         }
 
-        // Visual effects
-        if (capsuleRenderer == null)
+        for (int i = 0; i < segments; i++)
         {
-            capsuleRenderer = GetComponent<MeshRenderer>();
-            if (capsuleRenderer == null)
-                capsuleRenderer = GetComponentInChildren<MeshRenderer>();
+            triangles[i * 3] = 0;
+            triangles[i * 3 + 1] = i + 1;
+            triangles[i * 3 + 2] = i + 2;
         }
 
-        if (capsuleRenderer != null)
-        {
-            originalMaterial = capsuleRenderer.material;
-            originalColor = capsuleRenderer.material.color;
-        }
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mf.mesh = mesh;
+    }
 
-        // Player health
-        if (playerHealthReference != null)
-        {
-            playerHealth = playerHealthReference;
-        }
+    void SetupLineRenderer(LineRenderer lr, Color color, float width)
+    {
+        lr.startWidth = width;
+        lr.endWidth = width;
+        lr.useWorldSpace = false;
+
+        // ≈Åadniejszy materia≈Ç dla linii
+        if (indicatorMaterial != null)
+            lr.material = indicatorMaterial;
         else
+            lr.material = new Material(Shader.Find("Sprites/Default"));
+
+        lr.startColor = color;
+        lr.endColor = color;
+    }
+
+    void UpdateAttackLine()
+    {
+        if (attackLine == null) return;
+
+        Vector3 center = Vector3.zero;
+        Vector3 forward = Vector3.forward;
+        float halfAngle = attackAngle / 2f;
+
+        int segments = 30;
+        int totalPoints = segments + 3;
+        attackLine.positionCount = totalPoints;
+
+        int pointIndex = 0;
+
+        // Lewa krawƒôd≈∫
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        attackLine.SetPosition(pointIndex++, center);
+        attackLine.SetPosition(pointIndex++, center + leftDir * attackRange);
+
+        // ≈Åuk
+        Vector3 prevPoint = center + leftDir * attackRange;
+        for (int i = 1; i <= segments; i++)
         {
-            playerHealth = GetComponent<PlayerHealth>();
-            if (playerHealth == null)
-                playerHealth = GetComponentInParent<PlayerHealth>();
-            if (playerHealth == null)
-                playerHealth = GetComponentInChildren<PlayerHealth>();
-            if (playerHealth == null)
-            {
-                GameObject player = GameObject.FindWithTag("Player");
-                if (player != null)
-                    playerHealth = player.GetComponent<PlayerHealth>();
-            }
+            float t = (float)i / segments;
+            float angle = -halfAngle + (attackAngle * t);
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
+            Vector3 point = center + dir * attackRange;
+            attackLine.SetPosition(pointIndex++, point);
+            attackLine.SetPosition(pointIndex++, prevPoint);
+            prevPoint = point;
         }
 
-        if (playerHealth == null)
+        // Prawa krawƒôd≈∫
+        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
+        attackLine.SetPosition(pointIndex++, center);
+        attackLine.SetPosition(pointIndex++, center + rightDir * attackRange);
+    }
+
+    void UpdateCircleLine(LineRenderer lr, float radius)
+    {
+        if (lr == null) return;
+
+        int segments = 60;
+        lr.positionCount = segments;
+
+        for (int i = 0; i < segments; i++)
         {
-            Debug.LogError("PlayerHealth component not found!");
+            float angle = 2f * Mathf.PI * i / segments;
+            float x = Mathf.Sin(angle) * radius;
+            float z = Mathf.Cos(angle) * radius;
+            lr.SetPosition(i, new Vector3(x, 0f, z));
         }
     }
 
     void Update()
     {
-        // Cooldown spina
-        if (isSpinOnCooldown)
+        // Automatyczny atak
+        attackTimer += Time.deltaTime;
+        if (attackTimer >= attackRate)
         {
-            currentCooldown -= Time.deltaTime;
-            if (currentCooldown <= 0)
-                isSpinOnCooldown = false;
+            attackTimer = 0f;
+            PerformBasicAttack();
+            lastAttackTime = Time.time;
+            StartCoroutine(AttackFlash());
         }
 
-        // Cooldown berserka
-        if (isBerserkOnCooldown)
+        // Aktualizuj wizualizacjƒô sto≈ºka podczas ataku
+        if (attackMesh != null)
         {
-            berserkCooldown -= Time.deltaTime;
-            if (berserkCooldown <= 0)
-                isBerserkOnCooldown = false;
-        }
-
-        // AUTOMATYCZNY ZAMACH CO 2 SEKUNDY
-        if (!isSlashing && !isSpinning)
-        {
-            autoAttackTimer -= Time.deltaTime;
-            if (autoAttackTimer <= 0f)
+            if (Time.time - lastAttackTime < 0.2f)
             {
-                StartCoroutine(PerformSlash());
-                autoAttackTimer = autoAttackInterval; // Reset timera
-            }
-        }
+                // Wype≈Çnienie na czerwono podczas ataku
+                attackMesh.material.color = new Color(1f, 0f, 0f, 0.5f);
 
-        // Spin - klawisz E
-        if (Input.GetKeyDown(SpinKey) && !isSpinOnCooldown && !isSpinning)
-        {
-            StartCoroutine(PerformSpin());
-        }
-
-        // Berserk - klawisz Q
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            if (!isBerserkOnCooldown && !isBerserkActive)
-            {
-                StartCoroutine(ActivateBerserk());
-            }
-        }
-    }
-
-    // ==================== AUTOMATYCZNY ZAMACH MIECZEM ====================
-    IEnumerator PerformSlash()
-    {
-        isSlashing = true;
-
-        // Aktywuj hitbox
-        if (slashHitBox != null)
-        {
-            slashHitBox.SetActive(true);
-            Debug.Log($"Automatyczny zamach! Obraøenia: {currentSlashDamage}, ZasiÍg: {currentSlashRange}");
-        }
-
-        // Zadaj obraøenia
-        DealSlashDamage();
-
-        // Poczekaj chwilÍ
-        yield return new WaitForSeconds(slashDuration);
-
-        // Dezaktywuj hitbox
-        if (slashHitBox != null)
-        {
-            slashHitBox.SetActive(false);
-        }
-
-        isSlashing = false;
-    }
-
-    void DealSlashDamage()
-    {
-        // Uøyj hitboxa do zadawania obraøeÒ
-        if (slashHitBox != null)
-        {
-            Collider[] hitColliders = Physics.OverlapSphere(slashHitBox.transform.position, currentSlashRange);
-
-            foreach (var hitCollider in hitColliders)
-            {
-                enemyHealth enemy = hitCollider.GetComponent<enemyHealth>();
-                if (enemy != null)
+                // Grubsza linia podczas ataku
+                if (attackLine != null)
                 {
-                    float finalDamage = currentSlashDamage;
+                    attackLine.startWidth = 0.1f;
+                    attackLine.endWidth = 0.1f;
+                    attackLine.startColor = new Color(1f, 0.5f, 0.5f, 1f);
+                    attackLine.endColor = new Color(1f, 0.5f, 0.5f, 1f);
+                }
+            }
+            else
+            {
+                // Normalny stan - delikatne wype≈Çnienie
+                attackMesh.material.color = new Color(1f, 0f, 0f, 0.15f);
 
-                    if (isBerserkActive)
+                if (attackLine != null)
+                {
+                    attackLine.startWidth = 0.05f;
+                    attackLine.endWidth = 0.05f;
+                    attackLine.startColor = new Color(1f, 0.2f, 0.2f, 0.8f);
+                    attackLine.endColor = new Color(1f, 0.2f, 0.2f, 0.8f);
+                }
+            }
+        }
+
+        // Cooldowny
+        if (isSpecialOnCooldown)
+        {
+            specialCooldownTimer -= Time.deltaTime;
+            if (specialCooldownTimer <= 0)
+            {
+                isSpecialOnCooldown = false;
+                if (specialLine != null) specialLine.gameObject.SetActive(false);
+            }
+            else
+            {
+                // Miganie podczas cooldownu
+                if (specialLine != null)
+                {
+                    float alpha = 0.3f + Mathf.PingPong(Time.time * 3f, 0.7f);
+                    Color c = new Color(1f, 0.8f, 0f, alpha);
+                    specialLine.startColor = c;
+                    specialLine.endColor = c;
+                }
+            }
+        }
+
+        if (isUltimateOnCooldown)
+        {
+            ultimateCooldownTimer -= Time.deltaTime;
+            if (ultimateCooldownTimer <= 0)
+            {
+                isUltimateOnCooldown = false;
+                if (ultimateLine != null) ultimateLine.gameObject.SetActive(false);
+            }
+            else
+            {
+                // Miganie podczas cooldownu
+                if (ultimateLine != null)
+                {
+                    float alpha = 0.3f + Mathf.PingPong(Time.time * 3f, 0.7f);
+                    Color c = new Color(0.3f, 0.6f, 1f, alpha);
+                    ultimateLine.startColor = c;
+                    ultimateLine.endColor = c;
+                }
+            }
+        }
+
+        // Umiejƒôtno≈õci
+        if (Input.GetKeyDown(KeyCode.Q) && !isSpecialOnCooldown)
+        {
+            StartCoroutine(PerformSpecial());
+            if (specialLine != null)
+            {
+                specialLine.gameObject.SetActive(true);
+                StartCoroutine(FlashLine(specialLine, Color.yellow, 0.3f));
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.R) && !isUltimateOnCooldown)
+        {
+            StartCoroutine(PerformUltimate());
+            if (ultimateLine != null)
+            {
+                ultimateLine.gameObject.SetActive(true);
+                StartCoroutine(FlashLine(ultimateLine, Color.cyan, 0.3f));
+            }
+        }
+    }
+
+    IEnumerator AttackFlash()
+    {
+        isAttacking = true;
+        yield return new WaitForSeconds(0.15f);
+        isAttacking = false;
+    }
+
+    IEnumerator FlashLine(LineRenderer lr, Color flashColor, float duration)
+    {
+        if (lr == null) yield break;
+
+        Color originalColor = lr.startColor;
+        float originalWidth = lr.startWidth;
+
+        lr.startColor = flashColor;
+        lr.endColor = flashColor;
+        lr.startWidth = originalWidth * 1.5f;
+        lr.endWidth = originalWidth * 1.5f;
+
+        yield return new WaitForSeconds(duration);
+
+        lr.startColor = originalColor;
+        lr.endColor = originalColor;
+        lr.startWidth = originalWidth;
+        lr.endWidth = originalWidth;
+    }
+
+    void PerformBasicAttack()
+    {
+        int hitCount = 0;
+        Collider[] hits = Physics.OverlapSphere(transform.position, attackRange);
+
+        foreach (var hit in hits)
+        {
+            if (hit.CompareTag("Enemy"))
+            {
+                Vector3 directionToEnemy = (hit.transform.position - transform.position).normalized;
+                float angle = Vector3.Angle(transform.forward, directionToEnemy);
+
+                if (angle <= attackAngle / 2)
+                {
+                    enemyHealth enemy = hit.GetComponent<enemyHealth>();
+                    if (enemy != null)
                     {
-                        finalDamage *= 2f;
-                        if (playerHealth != null)
-                            playerHealth.Heal(finalDamage * LifeStealValue);
+                        enemy.TakeDamage(attackDamage);
+                        hitCount++;
                     }
-
-                    enemy.TakeDamage(finalDamage);
-                    Debug.Log($"Zamach trafi≥ {enemy.name} za {finalDamage} obraøeÒ!");
                 }
             }
         }
-        else
-        {
-            // Alternatywa: sfera wokÛ≥ gracza jeúli brak hitboxa
-            Collider[] hitColliders = Physics.OverlapSphere(transform.position, currentSlashRange);
 
-            foreach (var hitCollider in hitColliders)
-            {
-                enemyHealth enemy = hitCollider.GetComponent<enemyHealth>();
-                if (enemy != null)
-                {
-                    float finalDamage = currentSlashDamage;
-
-                    if (isBerserkActive)
-                    {
-                        finalDamage *= 2f;
-                        if (playerHealth != null)
-                            playerHealth.Heal(finalDamage * LifeStealValue);
-                    }
-
-                    enemy.TakeDamage(finalDamage);
-                    Debug.Log($"Zamach trafi≥ {enemy.name} za {finalDamage} obraøeÒ!");
-                }
-            }
-        }
+        if (hitCount > 0)
+            Debug.Log($"‚öîÔ∏è Ciupaga! Trafiono: {hitCount} wrog√≥w");
     }
 
-    // ==================== SPIN ====================
-    IEnumerator PerformSpin()
+    IEnumerator PerformSpecial()
     {
-        isSpinning = true;
-        if (currentSpinHitBox != null)
-            currentSpinHitBox.SetActive(true);
-
-        DealSpinDamage();
-        yield return new WaitForSeconds(SpinTime);
-
-        if (currentSpinHitBox != null)
-            currentSpinHitBox.SetActive(false);
-
-        isSpinning = false;
-        isSpinOnCooldown = true;
-        currentCooldown = cooldown;
-    }
-
-    void DealSpinDamage()
-    {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, currentSpinRange);
-        foreach (var hitCollider in hitColliders)
-        {
-            enemyHealth enemy = hitCollider.GetComponent<enemyHealth>();
-            if (enemy != null)
-            {
-                float finalDamage = currentDamage;
-                if (isBerserkActive)
-                {
-                    finalDamage *= 2f;
-                    if (playerHealth != null)
-                        playerHealth.Heal(finalDamage * LifeStealValue);
-                }
-                enemy.TakeDamage(finalDamage);
-            }
-        }
-    }
-
-    // ==================== BERSERK ====================
-    IEnumerator ActivateBerserk()
-    {
-        isBerserkActive = true;
-        ChangeColorToRed();
+        isSpecialOnCooldown = true;
+        specialCooldownTimer = specialCooldown;
 
         if (playerHealth != null)
         {
-            playerHealth.Heal(HealValue);
-            playerHealth.isInvincible = true;
+            playerHealth.HeathValue += healValue;
+            playerHealth.HeathValue = Mathf.Min(playerHealth.HeathValue, playerHealth.maxHealth);
+            playerHealth.UpdateHealthUI();
         }
 
-        yield return new WaitForSeconds(Duration);
-
-        isBerserkActive = false;
-        isBerserkOnCooldown = true;
-        berserkCooldown = ultCd;
-        RestoreOriginalColor();
-
-        if (playerHealth != null)
-            playerHealth.isInvincible = false;
-    }
-
-    // ==================== UPDATE STATYSTYK ====================
-    public void UpdateDamage()
-    {
-        currentDamage = baseDamage * damageMultiplier;
-        currentSlashDamage = slashBaseDamage * damageMultiplier;
-        Debug.Log($"Obraøenia spina: {currentDamage}, Obraøenia zamachu: {currentSlashDamage}");
-    }
-
-    public void UpdateRange()
-    {
-        currentSpinRange = baseSpinRange * rangeMultiplier;
-        currentSlashRange = slashBaseRange * rangeMultiplier;
-
-        if (currentSpinHitBox != null)
+        for (int i = 0; i < specialRotations; i++)
         {
-            currentSpinHitBox.transform.localScale = Vector3.one * (currentSpinRange / baseSpinRange);
+            Collider[] enemies = Physics.OverlapSphere(transform.position, specialRange);
+            foreach (Collider enemy in enemies)
+            {
+                if (enemy.CompareTag("Enemy"))
+                {
+                    enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
+                    if (enemyScript != null)
+                        enemyScript.TakeDamage(specialDamage);
+                }
+            }
+            yield return new WaitForSeconds(0.3f);
         }
-
-        Debug.Log($"ZasiÍg spina: {currentSpinRange}, ZasiÍg zamachu: {currentSlashRange}");
     }
 
-    // ==================== WIZUALIZACJA ====================
-    void ChangeColorToRed()
+    IEnumerator PerformUltimate()
     {
-        if (capsuleRenderer != null)
+        isUltimateOnCooldown = true;
+        ultimateCooldownTimer = ultimateDuration;
+
+        float elapsed = 0f;
+        float tickTime = 0.2f;
+        float tickCounter = 0f;
+
+        while (elapsed < ultimateDuration)
         {
-            if (berserkMaterial != null)
-                capsuleRenderer.material = berserkMaterial;
-            else
-                capsuleRenderer.material.color = Color.red;
+            tickCounter += Time.deltaTime;
+
+            if (tickCounter >= tickTime)
+            {
+                tickCounter = 0f;
+
+                Collider[] enemies = Physics.OverlapSphere(transform.position, ultimateRadius);
+                foreach (Collider enemy in enemies)
+                {
+                    if (enemy.CompareTag("Enemy"))
+                    {
+                        enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
+                        if (enemyScript != null)
+                        {
+                            float damage = ultimateDamage * tickTime;
+                            enemyScript.TakeDamage(damage);
+                        }
+                    }
+                }
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
         }
     }
 
-    void RestoreOriginalColor()
+    void OnDrawGizmos()
     {
-        if (capsuleRenderer != null)
+        Vector3 center = transform.position;
+        Vector3 forward = transform.forward;
+        float halfAngle = attackAngle / 2f;
+
+        Gizmos.color = new Color(1f, 0f, 0f, 0.4f);
+
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
+
+        Gizmos.DrawRay(center, leftDir * attackRange);
+        Gizmos.DrawRay(center, rightDir * attackRange);
+
+        int segments = 20;
+        Vector3 prevPoint = center + leftDir * attackRange;
+
+        for (int i = 1; i <= segments; i++)
         {
-            if (originalMaterial != null)
-                capsuleRenderer.material = originalMaterial;
-            else
-                capsuleRenderer.material.color = originalColor;
+            float t = (float)i / segments;
+            float angle = -halfAngle + (attackAngle * t);
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
+            Vector3 point = center + dir * attackRange;
+            Gizmos.DrawLine(prevPoint, point);
+            prevPoint = point;
         }
+
+        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(center, specialRange);
+
+        Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
+        Gizmos.DrawWireSphere(center, ultimateRadius);
     }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, currentSpinRange);
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, currentSlashRange);
-    }
-
-    // ==================== GETTERY ====================
-    public bool IsSpinAvailable() => !isSpinOnCooldown && !isSpinning;
-    public float GetCurrentCooldown() => currentCooldown;
-    public bool IsBerserkActive() => isBerserkActive;
-    public bool IsSlashing() => isSlashing;
 }

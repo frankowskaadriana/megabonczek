@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class playerMovement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     [Header("Keybinds")]
     public KeyCode forwardKey = KeyCode.W;
@@ -11,8 +11,8 @@ public class playerMovement : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Movement")]
-    public float moveForce = 10f; // Siła poruszania się
-    public float maxSpeed = 5f; // Maksymalna prędkość
+    public float moveForce = 10f;
+    public float maxSpeed = 5f;
     public float jumpForce = 5f;
     public float gravity = -9.81f;
 
@@ -29,45 +29,35 @@ public class playerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
-        // Zapisz początkową pozycję
         startPosition = transform.position;
 
-        // Zamroź rotację (ale tylko X i Z, Y pozostaje odblokowane!)
         rb.constraints = RigidbodyConstraints.FreezeRotationX |
                          RigidbodyConstraints.FreezeRotationZ;
 
-        // Ustaw grawitację
         Physics.gravity = new Vector3(0, gravity, 0);
-
-        // Reset rotacji gracza
         transform.rotation = Quaternion.identity;
     }
 
     void Update()
     {
-        // Sprawdź czy gracz stoi na ziemi
         if (groundCheck != null)
         {
             isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
         }
 
-        // Ruch
         HandleMovement();
 
-        // Skok
         if (Input.GetKeyDown(jumpKey) && isGrounded)
         {
             Jump();
         }
 
-        // Reset pozycji jeśli spadł za mapę
         if (transform.position.y < -10f)
         {
             ResetPosition();
         }
 
-        // Kucanie
-        crouch();
+        HandleCrouch();
     }
 
     void HandleMovement()
@@ -80,14 +70,11 @@ public class playerMovement : MonoBehaviour
         if (Input.GetKey(rightKey)) horizontal = 1f;
         if (Input.GetKey(leftKey)) horizontal = -1f;
 
-        // Ruch względem rotacji gracza
         Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
         moveDirection = moveDirection.normalized;
 
-        // Dodaj siłę w kierunku ruchu
         rb.AddForce(moveDirection * moveForce, ForceMode.Force);
 
-        // Ogranicz prędkość do maksymalnej
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         if (horizontalVelocity.magnitude > maxSpeed)
         {
@@ -95,10 +82,8 @@ public class playerMovement : MonoBehaviour
             rb.linearVelocity = new Vector3(horizontalVelocity.x, rb.linearVelocity.y, horizontalVelocity.z);
         }
 
-        // Opcjonalnie: dodaj tarcie, żeby gracz się zatrzymywał gdy nie naciska klawiszy
         if (moveDirection == Vector3.zero && isGrounded)
         {
-            // Tarcie na ziemi
             rb.linearVelocity = new Vector3(
                 rb.linearVelocity.x * 0.95f,
                 rb.linearVelocity.y,
@@ -109,7 +94,6 @@ public class playerMovement : MonoBehaviour
 
     void Jump()
     {
-        // Zresetuj prędkość pionową przed skokiem
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
@@ -122,26 +106,24 @@ public class playerMovement : MonoBehaviour
         Debug.Log("Pozycja gracza zresetowana");
     }
 
+    void HandleCrouch()
+    {
+        if (Input.GetKeyDown(crouchKey))
+        {
+            transform.localScale = new Vector3(1f, 0.5f, 1f);
+        }
+        else if (Input.GetKeyUp(crouchKey))
+        {
+            transform.localScale = new Vector3(1f, 1f, 1f);
+        }
+    }
+
     void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
-        }
-    }
-
-    void crouch()
-    {
-        if (Input.GetKeyDown(crouchKey))
-        {
-            // Zmniejsz wysokość gracza
-            transform.localScale = new Vector3(1f, 0.5f, 1f);
-        }
-        else if (Input.GetKeyUp(crouchKey))
-        {
-            // Przywróć normalną wysokość
-            transform.localScale = new Vector3(1f, 1f, 1f);
         }
     }
 }

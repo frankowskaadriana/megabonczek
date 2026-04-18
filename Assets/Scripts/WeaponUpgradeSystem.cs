@@ -20,16 +20,17 @@ public class WeaponUpgradeSystem : MonoBehaviour
     public float currentUltimateRadius = 1.25f;
     public float currentUltimateDamage = 50f;
 
-    private int damageLevel = 0;
-    private int rangeLevel = 0;
-    private int swingLevel = 0;
-    private int specialCooldownLevel = 0;
-    private int specialDamageLevel = 0;
-    private int specialRotationsLevel = 0;
-    private int bleedLevel = 0;
-    private int ultimateDurationLevel = 0;
-    private int ultimateRadiusLevel = 0;
-    private int ultimateDamageLevel = 0;
+    // Publiczne pola dla poziomów ulepszeñ (dla dostêpu z innych skryptów)
+    public int damageLevel = 0;
+    public int rangeLevel = 0;
+    public int swingLevel = 0;
+    public int specialCooldownLevel = 0;
+    public int specialDamageLevel = 0;
+    public int specialRotationsLevel = 0;
+    public int bleedLevel = 0;
+    public int ultimateDurationLevel = 0;
+    public int ultimateRadiusLevel = 0;
+    public int ultimateDamageLevel = 0;
 
     public void UpgradeDamage()
     {

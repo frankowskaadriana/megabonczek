@@ -1,10 +1,17 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
-using System.Collections.Generic;
 
 public class LevelSystem : MonoBehaviour
 {
+    [Header("Character Selection")]
+    public GameObject mountainManPrefab;
+    public GameObject angelPrefab;
+    public Transform playerSpawnPoint;
+
+    [Header("Camera")]
+    public CameraController cameraController;
+
     [Header("Level Settings")]
     public int currentLevel = 1;
     public int enemiesToKill = 5;
@@ -15,15 +22,18 @@ public class LevelSystem : MonoBehaviour
     [Header("UI")]
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI enemiesLeftText;
-    public GameObject levelUpPanel;
+    public GameObject characterSelectPanel;
+    public TextMeshProUGUI characterSelectText;
 
     [Header("Player References")]
     public PlayerHealth playerHealth;
     public WeaponUpgradeSystem weaponUpgrade;
 
+    private GameObject currentPlayer;
     private int enemiesAlive = 0;
     private int enemiesKilled = 0;
     private bool isRespawning = false;
+    private bool gameStarted = false;
 
     void Start()
     {
@@ -33,16 +43,179 @@ public class LevelSystem : MonoBehaviour
             return;
         }
 
-        UpdateUI();
-        StartCoroutine(SpawnEnemies());
+        if (cameraController == null)
+        {
+            cameraController = FindFirstObjectByType<CameraController>();
+            if (cameraController == null && Camera.main != null)
+            {
+                cameraController = Camera.main.gameObject.AddComponent<CameraController>();
+            }
+        }
+
+        ShowCharacterSelection();
+    }
+
+    void ShowCharacterSelection()
+    {
+        if (characterSelectPanel != null)
+        {
+            characterSelectPanel.SetActive(true);
+            if (characterSelectText != null)
+            {
+                characterSelectText.text = "Wybierz postac:\n\n1 - Goral (Mountain Man)\n2 - Aniol (Angel)";
+            }
+        }
+        Time.timeScale = 0f;
+        Debug.Log("Wyswietlono panel wyboru postaci. Wcisnij 1 lub 2.");
     }
 
     void Update()
     {
+        // Sprawdzanie klawiszy - dziala nawet przy Time.timeScale = 0
+        if (!gameStarted)
+        {
+            // Sprawdzanie klawiszy numerycznych
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                Debug.Log("Wcisnieto klawisz 1 - wybor Gorala");
+                SelectMountainMan();
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                Debug.Log("Wcisnieto klawisz 2 - wybor Aniola");
+                SelectAngel();
+            }
+
+            // Dodatkowo sprawdz klawisze na numpadzie
+            if (Input.GetKeyDown(KeyCode.Keypad1))
+            {
+                Debug.Log("Wcisnieto klawisz numpad 1 - wybor Gorala");
+                SelectMountainMan();
+            }
+            else if (Input.GetKeyDown(KeyCode.Keypad2))
+            {
+                Debug.Log("Wcisnieto klawisz numpad 2 - wybor Aniola");
+                SelectAngel();
+            }
+
+            return;
+        }
+
         if (enemiesAlive <= 0 && !isRespawning && enemiesKilled >= enemiesToKill)
         {
             LevelUp();
         }
+    }
+
+    void SelectMountainMan()
+    {
+        Debug.Log("SelectMountainMan - rozpoczynam");
+
+        if (mountainManPrefab == null)
+        {
+            Debug.LogError("mountainManPrefab nie jest przypisany!");
+            return;
+        }
+
+        SpawnPlayer(mountainManPrefab, 100f);
+        gameStarted = true;
+
+        if (characterSelectPanel != null)
+        {
+            characterSelectPanel.SetActive(false);
+        }
+
+        Time.timeScale = 1f;
+        UpdateUI();
+        StartCoroutine(SpawnEnemies());
+
+        Debug.Log("Goral wybrany - gra rozpoczeta");
+    }
+
+    void SelectAngel()
+    {
+        Debug.Log("SelectAngel - rozpoczynam");
+
+        if (angelPrefab == null)
+        {
+            Debug.LogError("angelPrefab nie jest przypisany!");
+            return;
+        }
+
+        SpawnPlayer(angelPrefab, 40f);
+        gameStarted = true;
+
+        if (characterSelectPanel != null)
+        {
+            characterSelectPanel.SetActive(false);
+        }
+
+        Time.timeScale = 1f;
+        UpdateUI();
+        StartCoroutine(SpawnEnemies());
+
+        Debug.Log("Aniol wybrany - gra rozpoczeta");
+    }
+
+    void SpawnPlayer(GameObject playerPrefab, float baseHealth)
+    {
+        Debug.Log("SpawnPlayer - tworzenie postaci");
+
+        if (currentPlayer != null)
+        {
+            Destroy(currentPlayer);
+        }
+
+        Vector3 spawnPos = playerSpawnPoint != null ? playerSpawnPoint.position : Vector3.zero;
+        currentPlayer = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+        currentPlayer.tag = "Player";
+
+        // Dodaj komponent ruchu
+        PlayerMovement movement = currentPlayer.GetComponent<PlayerMovement>();
+        if (movement == null)
+        {
+            movement = currentPlayer.AddComponent<PlayerMovement>();
+        }
+
+        // Ustaw predkosc w zaleznosci od postaci
+        if (currentPlayer.name.ToLower().Contains("angel"))
+        {
+            movement.maxSpeed = 6f;
+        }
+        else
+        {
+            movement.maxSpeed = 5f;
+        }
+
+        // Podepnij kamere do nowej postaci
+        if (cameraController != null)
+        {
+            cameraController.target = currentPlayer.transform;
+            Debug.Log("Kamera podpieta do postaci");
+        }
+
+        playerHealth = currentPlayer.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerHealth.SetBaseHealth(baseHealth, currentLevel);
+        }
+
+        // Podepnij umiejetnosci
+        AbilitiesMountainMan abilities = currentPlayer.GetComponent<AbilitiesMountainMan>();
+        if (abilities != null && weaponUpgrade != null)
+        {
+            abilities.weaponUpgrade = weaponUpgrade;
+            abilities.playerHealth = playerHealth;
+        }
+
+        AngelAbilities angelAbilities = currentPlayer.GetComponent<AngelAbilities>();
+        if (angelAbilities != null && weaponUpgrade != null)
+        {
+            angelAbilities.weaponUpgrade = weaponUpgrade;
+            angelAbilities.playerHealth = playerHealth;
+        }
+
+        Debug.Log("Postac utworzona: " + currentPlayer.name);
     }
 
     IEnumerator SpawnEnemies()
@@ -54,11 +227,8 @@ public class LevelSystem : MonoBehaviour
         for (int i = 0; i < enemiesToKill; i++)
         {
             Vector3 spawnPos = transform.position + new Vector3(Random.Range(-5f, 5f), 0, Random.Range(-5f, 5f));
-
-            // Instantiate tworzy kopie - oryginalny prefab pozostaje nienaruszony
             GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-
-            enemy.name = string.Format("Enemy_{0}", i + 1);
+            enemy.name = "Enemy_" + (i + 1);
 
             enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
             if (enemyScript != null)
@@ -84,9 +254,14 @@ public class LevelSystem : MonoBehaviour
         enemiesKilled = 0;
         UpdateUI();
 
+        if (playerHealth != null)
+        {
+            playerHealth.LevelUpHealth();
+        }
+
         if (weaponUpgrade != null)
         {
-            int randomUpgrade = Random.Range(0, 6);
+            int randomUpgrade = Random.Range(0, 7);
             switch (randomUpgrade)
             {
                 case 0: weaponUpgrade.UpgradeDamage(); break;
@@ -95,6 +270,7 @@ public class LevelSystem : MonoBehaviour
                 case 3: weaponUpgrade.UpgradeSpecialCooldown(); break;
                 case 4: weaponUpgrade.UpgradeSpecialRotations(); break;
                 case 5: weaponUpgrade.UpgradeUltimateDamage(); break;
+                case 6: weaponUpgrade.UpgradeUltimateRadius(); break;
             }
         }
 
@@ -104,8 +280,8 @@ public class LevelSystem : MonoBehaviour
     void UpdateUI()
     {
         if (levelText != null)
-            levelText.text = string.Format("Level: {0}", currentLevel);
+            levelText.text = "Level: " + currentLevel;
         if (enemiesLeftText != null)
-            enemiesLeftText.text = string.Format("Enemies: {0}", enemiesAlive);
+            enemiesLeftText.text = "Enemies: " + enemiesAlive;
     }
 }

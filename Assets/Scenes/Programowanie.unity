@@ -452,6 +452,7 @@ GameObject:
   - component: {fileID: 52752800}
   - component: {fileID: 52752799}
   - component: {fileID: 52752798}
+  - component: {fileID: 52752804}
   m_Layer: 0
   m_Name: Seraphim
   m_TagString: Player
@@ -611,6 +612,38 @@ Transform:
   - {fileID: 1167528296}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &52752804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 52752797}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8fc6ebaab7e72a4aaeca0533fc370c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  maxHealth: 40
+  moveSpeed: 6
+  attackDamage: 30
+  attackRate: 0.6
+  attackRange: 10
+  projectileCount: 1
+  pierceCount: 0
+  canPierce: 0
+  lightBeamPrefab: {fileID: 0}
+  firePoint: {fileID: 663367817}
+  chargeDamage: 60
+  chargeCooldown: 15
+  chargeRange: 7.5
+  chargeSpeedBoost: 0.5
+  chargeDuration: 2
+  judgmentCastTime: 5
+  judgmentRadius: 25
+  judgmentStunDuration: 2
+  playerHealth: {fileID: 0}
+  weaponUpgrade: {fileID: 0}
 --- !u!1 &103952267
 GameObject:
   m_ObjectHideFlags: 0
@@ -1856,7 +1889,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 663367817}
-  - component: {fileID: 663367818}
   m_Layer: 0
   m_Name: shoot
   m_TagString: Untagged
@@ -1879,21 +1911,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 52752803}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &663367818
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 663367816}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a7f3663505a69141b6189516446225a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AutoShootEnemy
-  shootDelay: 2
-  bulletSpeed: 10
-  shootRange: 20
 --- !u!1 &794241198
 GameObject:
   m_ObjectHideFlags: 0
@@ -2461,6 +2478,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fc6ebaab7e72a4aaeca0533fc370c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  maxHealth: 40
+  moveSpeed: 6
+  attackDamage: 30
+  attackRate: 0.6
+  attackRange: 10
+  projectileCount: 1
+  pierceCount: 0
+  canPierce: 0
+  lightBeamPrefab: {fileID: 0}
+  firePoint: {fileID: 0}
+  chargeDamage: 60
+  chargeCooldown: 15
+  chargeRange: 7.5
+  chargeSpeedBoost: 0.5
+  chargeDuration: 2
+  judgmentCastTime: 5
+  judgmentRadius: 25
+  judgmentStunDuration: 2
+  playerHealth: {fileID: 0}
+  weaponUpgrade: {fileID: 0}
 --- !u!1 &1245077731
 GameObject:
   m_ObjectHideFlags: 0
@@ -3019,6 +3056,7 @@ MonoBehaviour:
   HeathValue: 100
   healthFill: {fileID: 1245077733}
   healthText: {fileID: 1999696999}
+  healthTextLegacy: {fileID: 0}
 --- !u!114 &1291531068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3059,12 +3097,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
+  mountainManPrefab: {fileID: 0}
+  angelPrefab: {fileID: 0}
+  playerSpawnPoint: {fileID: 0}
   currentLevel: 1
   enemiesToKill: 5
   enemyPrefab: {fileID: 563687925}
   levelText: {fileID: 0}
   enemiesLeftText: {fileID: 0}
-  levelUpPanel: {fileID: 0}
+  characterSelectPanel: {fileID: 0}
+  characterSelectText: {fileID: 0}
   playerHealth: {fileID: 1291531067}
   weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &1306251892
@@ -3780,6 +3822,16 @@ MonoBehaviour:
   currentUltimateDuration: 10
   currentUltimateRadius: 1.25
   currentUltimateDamage: 50
+  damageLevel: 0
+  rangeLevel: 0
+  swingLevel: 0
+  specialCooldownLevel: 0
+  specialDamageLevel: 0
+  specialRotationsLevel: 0
+  bleedLevel: 0
+  ultimateDurationLevel: 0
+  ultimateRadiusLevel: 0
+  ultimateDamageLevel: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

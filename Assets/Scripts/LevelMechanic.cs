@@ -22,6 +22,7 @@ public class LevelSystem : MonoBehaviour
     private int enemiesAlive = 0;
     private int enemiesKilled = 0;
     private bool isRespawning = false;
+    private bool gameStarted = false;
 
     void Start()
     {
@@ -32,11 +33,24 @@ public class LevelSystem : MonoBehaviour
         }
 
         UpdateUI();
-        StartCoroutine(SpawnEnemies());
+        // NIE zaczynamy spawnu - czekamy na wybor postaci
+        Debug.Log("Czekam na wybor postaci...");
+    }
+
+    public void StartGame()
+    {
+        if (!gameStarted)
+        {
+            gameStarted = true;
+            StartCoroutine(SpawnEnemies());
+            Debug.Log("Gra rozpoczeta! Spawnuje wrogow...");
+        }
     }
 
     void Update()
     {
+        if (!gameStarted) return;
+
         if (enemiesAlive <= 0 && !isRespawning && enemiesKilled >= enemiesToKill)
         {
             LevelUp();
@@ -67,6 +81,7 @@ public class LevelSystem : MonoBehaviour
 
     public void EnemyDied()
     {
+        if (!gameStarted) return;
         enemiesAlive--;
         enemiesKilled++;
         UpdateUI();
@@ -86,7 +101,7 @@ public class LevelSystem : MonoBehaviour
 
         if (weaponUpgrade != null)
         {
-            int randomUpgrade = Random.Range(0, 7);
+            int randomUpgrade = Random.Range(0, 5);
             switch (randomUpgrade)
             {
                 case 0: weaponUpgrade.UpgradeDamage(); break;
@@ -94,8 +109,6 @@ public class LevelSystem : MonoBehaviour
                 case 2: weaponUpgrade.UpgradeSpecialDamage(); break;
                 case 3: weaponUpgrade.UpgradeSpecialCooldown(); break;
                 case 4: weaponUpgrade.UpgradeSpecialRotations(); break;
-                case 5: weaponUpgrade.UpgradeUltimateDamage(); break;
-                case 6: weaponUpgrade.UpgradeUltimateRadius(); break;
             }
         }
 

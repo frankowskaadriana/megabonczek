@@ -133,10 +133,9 @@ public class AbilitiesMountainMan : MonoBehaviour
         }
     }
 
-    // GIZMO - pokazuje zasięgi w edytorze
-    void OnDrawGizmos()
+    void OnDrawGizmosSelected()
     {
-        // Zasięg ataku (czerwony stożek)
+        // Tylko gdy obiekt zaznaczony
         Vector3 center = transform.position;
         Vector3 forward = transform.forward;
         float halfAngle = attackAngle / 2f;
@@ -161,11 +160,9 @@ public class AbilitiesMountainMan : MonoBehaviour
             prevPoint = point;
         }
 
-        // Zasięg specjalny (żółte koło)
         Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
         Gizmos.DrawWireSphere(center, 3f);
 
-        // Zasięg ultimate (niebieskie koło)
         Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
         Gizmos.DrawWireSphere(center, ultimateRadius);
     }

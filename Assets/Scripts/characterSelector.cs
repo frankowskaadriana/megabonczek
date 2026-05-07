@@ -10,6 +10,9 @@ public class CharacterSelector : MonoBehaviour
     [Header("Kamera")]
     public CameraController cameraController;
 
+    [Header("Level System")]
+    public LevelSystem levelSystem;
+
     private GameObject currentCharacter;
     private bool hasSelected = false;
 
@@ -54,6 +57,13 @@ public class CharacterSelector : MonoBehaviour
             currentCharacter.AddComponent<PlayerHealth>();
 
         hasSelected = true;
-        Debug.Log("Aktywny: " + name + " - wybor zablokowany");
+
+        // Uruchom LevelSystem
+        if (levelSystem != null)
+        {
+            levelSystem.StartGame();
+        }
+
+        Debug.Log("Aktywny: " + name + " - rozpoczynam gre!");
     }
 }

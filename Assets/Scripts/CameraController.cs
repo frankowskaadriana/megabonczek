@@ -11,7 +11,7 @@ public class CameraController : MonoBehaviour
 
     private float currentX = 0f;
     private float currentY = 0f;
-    private Transform target; // teraz jest private
+    private Transform target;
 
     void Start()
     {
@@ -21,19 +21,11 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
-        // Szukaj gracza z tagiem "Player"
         if (target == null)
         {
             GameObject player = GameObject.FindWithTag("Player");
-            if (player != null)
-            {
-                target = player.transform;
-                Debug.Log("Znaleziono gracza: " + target.name);
-            }
-            else
-            {
-                return;
-            }
+            if (player != null) target = player.transform;
+            else return;
         }
 
         currentX += Input.GetAxis("Mouse X") * sensitivity;
@@ -50,7 +42,6 @@ public class CameraController : MonoBehaviour
         transform.LookAt(target.position + Vector3.up * (height / 2));
     }
 
-    // Publiczna metoda do recznego ustawienia targetu (opcjonalna)
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;

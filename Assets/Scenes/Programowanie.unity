@@ -333,13 +333,13 @@ MonoBehaviour:
   crouchKey: 306
   moveForce: 10
   maxSpeed: 5
-  jumpForce: 10
+  jumpForce: 5
   gravity: -9.81
-  groundCheck: {fileID: 1939083969}
+  groundCheck: {fileID: 0}
   groundDistance: 0.2
   groundMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
 --- !u!136 &35802896
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -507,13 +507,13 @@ MonoBehaviour:
   crouchKey: 306
   moveForce: 10
   maxSpeed: 5
-  jumpForce: 10
+  jumpForce: 5
   gravity: -9.81
-  groundCheck: {fileID: 973807260}
+  groundCheck: {fileID: 0}
   groundDistance: 0.2
   groundMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
 --- !u!136 &52752800
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -642,8 +642,8 @@ MonoBehaviour:
   judgmentCastTime: 5
   judgmentRadius: 25
   judgmentStunDuration: 2
-  playerHealth: {fileID: 0}
-  weaponUpgrade: {fileID: 0}
+  playerHealth: {fileID: 1834333398}
+  weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &103952267
 GameObject:
   m_ObjectHideFlags: 0
@@ -909,11 +909,11 @@ Transform:
   m_GameObject: {fileID: 105144806}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.27, z: -6.2299995}
+  m_LocalPosition: {x: 0, y: 3.24, z: -6.2299995}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 168664447}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &105144810
 MonoBehaviour:
@@ -971,7 +971,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b582ab182058664489c98cca64140631, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraController
-  target: {fileID: 1291531065}
   distance: 5
   height: 2
   sensitivity: 2
@@ -1131,7 +1130,6 @@ Transform:
   m_Children:
   - {fileID: 794241199}
   - {fileID: 261151468}
-  - {fileID: 105144809}
   m_Father: {fileID: 1291531065}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &168664448
@@ -1644,7 +1642,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   health: 100
-  levelSystem: {fileID: 1291531069}
+  levelSystem: {fileID: 0}
   healthText: {fileID: 992521169}
   bloodEffect: {fileID: 0}
 --- !u!195 &563687933
@@ -2876,45 +2874,15 @@ GameObject:
   - component: {fileID: 1291531064}
   - component: {fileID: 1291531063}
   - component: {fileID: 1291531062}
-  - component: {fileID: 1291531061}
   - component: {fileID: 1291531066}
-  - component: {fileID: 1291531067}
   - component: {fileID: 1291531068}
-  - component: {fileID: 1291531069}
   m_Layer: 0
   m_Name: MountainMan
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1291531061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291531060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f494383641814fc42a7996f8fcb0cc50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  forwardKey: 119
-  backKey: 115
-  leftKey: 97
-  rightKey: 100
-  jumpKey: 32
-  crouchKey: 306
-  moveForce: 10
-  maxSpeed: 5
-  jumpForce: 10
-  gravity: -9.81
-  groundCheck: {fileID: 1633459821}
-  groundDistance: 0.2
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 64
+  m_IsActive: 0
 --- !u!136 &1291531062
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3040,23 +3008,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &1291531067
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291531060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 59117ead08e725440b991d68bd9eaa45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  maxHealth: 100
-  HeathValue: 100
-  healthFill: {fileID: 1245077733}
-  healthText: {fileID: 1999696999}
-  healthTextLegacy: {fileID: 0}
 --- !u!114 &1291531068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3083,31 +3034,7 @@ MonoBehaviour:
   ultimateDamage: 50
   indicatorMaterial: {fileID: 0}
   gradientTexture: {fileID: 0}
-  playerHealth: {fileID: 1291531067}
-  weaponUpgrade: {fileID: 2050543776}
---- !u!114 &1291531069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291531060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
-  mountainManPrefab: {fileID: 0}
-  angelPrefab: {fileID: 0}
-  playerSpawnPoint: {fileID: 0}
-  currentLevel: 1
-  enemiesToKill: 5
-  enemyPrefab: {fileID: 563687925}
-  levelText: {fileID: 0}
-  enemiesLeftText: {fileID: 0}
-  characterSelectPanel: {fileID: 0}
-  characterSelectText: {fileID: 0}
-  playerHealth: {fileID: 1291531067}
+  playerHealth: {fileID: 1834333398}
   weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &1306251892
 GameObject:
@@ -3519,6 +3446,109 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1685222871}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1834333395
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1834333396}
+  - component: {fileID: 1834333399}
+  - component: {fileID: 1834333398}
+  - component: {fileID: 1834333397}
+  m_Layer: 0
+  m_Name: PlayerStats
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1834333396
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -10.705, y: 1.24913, z: -1.352}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1834333397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
+  mountainManPrefab: {fileID: 1291531060}
+  angelPrefab: {fileID: 52752797}
+  playerSpawnPoint: {fileID: 103952271}
+  cameraController: {fileID: 105144811}
+  currentLevel: 1
+  enemiesToKill: 5
+  enemyPrefab: {fileID: 563687925}
+  levelText: {fileID: 0}
+  enemiesLeftText: {fileID: 0}
+  characterSelectPanel: {fileID: 0}
+  characterSelectText: {fileID: 0}
+  playerHealth: {fileID: 1834333398}
+  weaponUpgrade: {fileID: 2050543776}
+--- !u!114 &1834333398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59117ead08e725440b991d68bd9eaa45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  maxHealth: 100
+  HeathValue: 100
+  healthFill: {fileID: 1245077733}
+  healthText: {fileID: 1999696999}
+  healthTextLegacy: {fileID: 0}
+--- !u!114 &1834333399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f494383641814fc42a7996f8fcb0cc50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  forwardKey: 119
+  backKey: 115
+  leftKey: 97
+  rightKey: 100
+  jumpKey: 32
+  crouchKey: 306
+  moveForce: 10
+  maxSpeed: 5
+  jumpForce: 5
+  gravity: -9.81
+  groundCheck: {fileID: 0}
+  groundDistance: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &1933771302
 GameObject:
   m_ObjectHideFlags: 0
@@ -3836,6 +3866,7 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 105144809}
   - {fileID: 563687926}
   - {fileID: 184445154}
   - {fileID: 103952271}
@@ -3848,3 +3879,4 @@ SceneRoots:
   - {fileID: 1306251893}
   - {fileID: 872996543}
   - {fileID: 237974121}
+  - {fileID: 1834333396}

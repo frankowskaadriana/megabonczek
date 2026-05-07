@@ -6,11 +6,10 @@ public class SimpleEnemy : MonoBehaviour
 {
     public float moveSpeed = 3.5f;
     public float stoppingDistance = 1.5f;
-    public float updateInterval = 0.5f; // Czas miêdzy aktualizacjami pozycji
+    public float updateInterval = 0.5f;
 
     private NavMeshAgent agent;
     private Transform player;
-    private Coroutine updateDestinationCoroutine;
 
     void Start()
     {
@@ -21,33 +20,23 @@ public class SimpleEnemy : MonoBehaviour
         agent.speed = moveSpeed;
         agent.stoppingDistance = stoppingDistance;
 
-        player = GameObject.FindWithTag("Player").transform;
-
-        // Uruchom coroutine do odœwie¿ania pozycji
-        if (player != null)
+        // SprawdŸ czy gracz istnieje
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
         {
-            updateDestinationCoroutine = StartCoroutine(UpdateDestinationRoutine());
+            player = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning("Nie znaleziono gracza z tagiem 'Player'!");
         }
     }
 
-    IEnumerator UpdateDestinationRoutine()
+    void Update()
     {
-        while (true)
+        if (player != null && agent != null && agent.isOnNavMesh)
         {
-            if (player != null && agent != null && agent.isOnNavMesh)
-            {
-                agent.SetDestination(player.position);
-            }
-            yield return new WaitForSeconds(updateInterval);
-        }
-    }
-
-    void OnDestroy()
-    {
-        // Zatrzymaj coroutine gdy obiekt jest niszczony
-        if (updateDestinationCoroutine != null)
-        {
-            StopCoroutine(updateDestinationCoroutine);
+            agent.SetDestination(player.position);
         }
     }
 }

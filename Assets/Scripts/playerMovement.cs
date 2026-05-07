@@ -36,6 +36,21 @@ public class PlayerMovement : MonoBehaviour
 
         Physics.gravity = new Vector3(0, gravity, 0);
         transform.rotation = Quaternion.identity;
+
+        // Automatyczne tworzenie ground check jesli nie jest przypisany
+        if (groundCheck == null)
+        {
+            CreateGroundCheck();
+        }
+    }
+
+    void CreateGroundCheck()
+    {
+        GameObject groundCheckObj = new GameObject("GroundCheck");
+        groundCheckObj.transform.SetParent(transform);
+        groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
+        groundCheck = groundCheckObj.transform;
+        Debug.Log("Automatycznie utworzono GroundCheck dla: " + gameObject.name);
     }
 
     void Update()

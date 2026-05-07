@@ -1,37 +1,39 @@
 using UnityEngine;
+using UnityEngine.AI;
 using TMPro;
 
 public class enemyHealth : MonoBehaviour
 {
     public float health = 50f;
     public LevelSystem levelSystem;
-    public TextMeshPro healthText; // 3D Text nad wrogiem
-    public GameObject bloodEffect; // Efekt krwi (opcjonalny)
+    public TextMeshPro healthText;
+    public float moveSpeed = 3f;
 
-    private float maxHealth;
-    private MeshRenderer meshRenderer;
-    private Color originalColor;
+    private Transform player;
+    private NavMeshAgent agent;
 
     void Start()
     {
-        maxHealth = health;
-        meshRenderer = GetComponent<MeshRenderer>();
+        if (levelSystem == null) levelSystem = FindFirstObjectByType<LevelSystem>();
+        if (levelSystem != null) health = 50f + (levelSystem.currentLevel - 1) * 10f;
 
-        if (meshRenderer != null)
-            originalColor = meshRenderer.material.color;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null) player = playerObj.transform;
 
-        if (levelSystem != null)
-        {
-            health = 50f + (levelSystem.currentLevel - 1) * 10f;
-            maxHealth = health;
-        }
+        agent = GetComponent<NavMeshAgent>();
+        if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
+        agent.speed = moveSpeed;
 
-        UpdateHealthText();
+        if (healthText != null) healthText.text = Mathf.Round(health).ToString();
     }
 
     void Update()
     {
-        // Tekst zawsze patrzy na kamerê
+        if (player != null && agent != null && agent.isOnNavMesh)
+        {
+            agent.SetDestination(player.position);
+        }
+
         if (healthText != null && Camera.main != null)
         {
             healthText.transform.LookAt(Camera.main.transform);
@@ -42,53 +44,13 @@ public class enemyHealth : MonoBehaviour
     public void TakeDamage(float damage)
     {
         health -= damage;
-        UpdateHealthText();
-
-        // Efekt wizualny - miganie na czerwono
-        if (meshRenderer != null)
-            StartCoroutine(FlashRed());
-
-        // Efekt krwi (opcjonalny)
-        if (bloodEffect != null)
-            Instantiate(bloodEffect, transform.position, Quaternion.identity);
-
-        if (health <= 0)
-        {
-            Die();
-        }
-    }
-
-    void UpdateHealthText()
-    {
-        if (healthText != null)
-        {
-            healthText.text = $"{Mathf.Round(health)}/{Mathf.Round(maxHealth)}";
-
-            // Zmiana koloru tekstu w zale¿noœci od zdrowia
-            if (health > maxHealth * 0.6f)
-                healthText.color = Color.green;
-            else if (health > maxHealth * 0.3f)
-                healthText.color = Color.yellow;
-            else
-                healthText.color = Color.red;
-        }
-    }
-
-    System.Collections.IEnumerator FlashRed()
-    {
-        if (meshRenderer != null)
-        {
-            meshRenderer.material.color = Color.red;
-            yield return new WaitForSeconds(0.1f);
-            meshRenderer.material.color = originalColor;
-        }
+        if (healthText != null) healthText.text = Mathf.Round(health).ToString();
+        if (health <= 0) Die();
     }
 
     void Die()
     {
-        if (levelSystem != null)
-            levelSystem.EnemyDied();
-
+        if (levelSystem != null) levelSystem.EnemyDied();
         Destroy(gameObject);
     }
 }

@@ -18,11 +18,14 @@ public class WeaponUpgradeSystem : MonoBehaviour
 
     private int damageLevel = 0;
     private int rangeLevel = 0;
+    private int swingLevel = 0;
     private int specialCooldownLevel = 0;
     private int specialDamageLevel = 0;
     private int specialRotationsLevel = 0;
-    private int ultimateDamageLevel = 0;
+    private int bleedLevel = 0;
+    private int ultimateDurationLevel = 0;
     private int ultimateRadiusLevel = 0;
+    private int ultimateDamageLevel = 0;
 
     public void UpgradeDamage()
     {
@@ -36,6 +39,13 @@ public class WeaponUpgradeSystem : MonoBehaviour
         rangeLevel++;
         currentRange = Mathf.Min(1.5f + (rangeLevel * 0.1f), 2f);
         Debug.Log("Zasieg: " + currentRange + "m");
+    }
+
+    public void UpgradeSwingAngle()
+    {
+        swingLevel++;
+        currentSwingAngle = Mathf.Min(90f + (swingLevel * 10f), 150f);
+        Debug.Log("Kat zamachu: " + currentSwingAngle + "°");
     }
 
     public void UpgradeSpecialDamage()
@@ -59,17 +69,34 @@ public class WeaponUpgradeSystem : MonoBehaviour
         Debug.Log("Obroty: " + currentSpecialRotations);
     }
 
-    public void UpgradeUltimateDamage()
+    public void UpgradeBleed()
     {
-        ultimateDamageLevel++;
-        currentUltimateDamage = 50f + (ultimateDamageLevel * 15f);
-        Debug.Log("Obrazenia ultimate: " + currentUltimateDamage);
+        bleedLevel++;
+        hasBleed = bleedLevel >= 1;
+        bleedDuration = Mathf.Min(2f + (bleedLevel * 0.5f), 5f);
+        bleedDamage = 3f + (bleedLevel * 2f);
+        Debug.Log("Krwawienie: " + bleedDamage + "/s przez " + bleedDuration + "s");
+    }
+
+    public void UpgradeUltimateDuration()
+    {
+        ultimateDurationLevel++;
+        currentUltimateDuration = 10f + (ultimateDurationLevel * 2f);
+        Debug.Log("Czas ultimate: " + currentUltimateDuration + "s");
     }
 
     public void UpgradeUltimateRadius()
     {
         ultimateRadiusLevel++;
         currentUltimateRadius = Mathf.Min(1.25f + (ultimateRadiusLevel * 0.25f), 3f);
-        Debug.Log("Promien ultimate: " + currentUltimateRadius);
+        float diameter = currentUltimateRadius * 2f;
+        Debug.Log("Srednica aury: " + diameter + "m");
+    }
+
+    public void UpgradeUltimateDamage()
+    {
+        ultimateDamageLevel++;
+        currentUltimateDamage = 50f + (ultimateDamageLevel * 15f);
+        Debug.Log("Obrazenia ultimate: " + currentUltimateDamage + "/s");
     }
 }

@@ -22,7 +22,15 @@ public class enemyHealth : MonoBehaviour
 
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
+
         agent.speed = moveSpeed;
+        agent.stoppingDistance = 1.5f;
+
+        // SprawdŸ czy NavMesh jest dostêpny
+        if (agent.isOnNavMesh == false)
+        {
+            Debug.LogWarning("Agent nie jest na NavMesh - wróg nie bêdzie siê porusza³!");
+        }
 
         if (healthText != null) healthText.text = Mathf.Round(health).ToString();
     }

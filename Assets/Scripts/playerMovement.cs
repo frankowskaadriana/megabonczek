@@ -35,42 +35,40 @@ public class PlayerMovement : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         Physics.gravity = new Vector3(0, gravity, 0);
 
-        // Automatyczne tworzenie ground check
         if (groundCheck == null)
         {
-            GameObject groundCheckObj = new GameObject("GroundCheck");
-            groundCheckObj.transform.SetParent(transform);
-            groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
-            groundCheck = groundCheckObj.transform;
+            CreateGroundCheck();
         }
+    }
+
+    void CreateGroundCheck()
+    {
+        GameObject groundCheckObj = new GameObject("GroundCheck");
+        groundCheckObj.transform.SetParent(transform);
+        groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
+        groundCheck = groundCheckObj.transform;
+        Debug.Log("Automatycznie utworzono GroundCheck dla: " + gameObject.name);
     }
 
     void Update()
     {
-        // Sprawdzanie czy na ziemi
         if (groundCheck != null)
         {
             isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-            Debug.Log("IsGrounded: " + isGrounded); // Sprawdü w konsoli
         }
 
-        // Ruch
         HandleMovement();
 
-        // Skok
         if (Input.GetKeyDown(jumpKey) && isGrounded)
         {
-            Debug.Log("Skok!"); // Sprawdü czy w ogÛle wchodzi
             Jump();
         }
 
-        // Reset pozycji
         if (transform.position.y < -10f)
         {
             ResetPosition();
         }
 
-        // Kucanie
         HandleCrouch();
     }
 
@@ -84,35 +82,32 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(rightKey)) horizontal = 1f;
         if (Input.GetKey(leftKey)) horizontal = -1f;
 
-        Vector3 moveDirection = (transform.right * horizontal + transform.forward * vertical).normalized;
+        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
+        moveDirection = moveDirection.normalized;
 
-        if (moveDirection != Vector3.zero)
-        {
-            rb.AddForce(moveDirection * moveForce, ForceMode.Force);
-        }
+        rb.AddForce(moveDirection * moveForce, ForceMode.Force);
 
-        // Ograniczenie predkosci
-        Vector3 velocity = rb.linearVelocity;
-        Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         if (horizontalVelocity.magnitude > maxSpeed)
         {
             horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
-            rb.linearVelocity = new Vector3(horizontalVelocity.x, velocity.y, horizontalVelocity.z);
+            rb.linearVelocity = new Vector3(horizontalVelocity.x, rb.linearVelocity.y, horizontalVelocity.z);
         }
 
-        // Tarcie
         if (moveDirection == Vector3.zero && isGrounded)
         {
-            rb.linearVelocity = new Vector3(velocity.x * 0.95f, velocity.y, velocity.z * 0.95f);
+            rb.linearVelocity = new Vector3(
+                rb.linearVelocity.x * 0.95f,
+                rb.linearVelocity.y,
+                rb.linearVelocity.z * 0.95f
+            );
         }
     }
 
     void Jump()
     {
-        // Reset predkosci pionowej
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        Debug.Log("Skok wykonany! Sila: " + jumpForce);
     }
 
     void ResetPosition()
@@ -120,6 +115,7 @@ public class PlayerMovement : MonoBehaviour
         transform.position = startPosition;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        Debug.Log("Pozycja gracza zresetowana");
     }
 
     void HandleCrouch()
@@ -141,5 +137,12 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
+    }
+
+    // DODANA METODA
+    public void SetGroundCheck(Transform newGroundCheck)
+    {
+        groundCheck = newGroundCheck;
+        Debug.Log("GroundCheck ustawiony recznie dla: " + gameObject.name);
     }
 }

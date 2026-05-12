@@ -450,9 +450,7 @@ GameObject:
   - component: {fileID: 52752802}
   - component: {fileID: 52752801}
   - component: {fileID: 52752800}
-  - component: {fileID: 52752799}
   - component: {fileID: 52752798}
-  - component: {fileID: 52752804}
   m_Layer: 0
   m_Name: Seraphim
   m_TagString: Player
@@ -487,33 +485,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &52752799
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 52752797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f494383641814fc42a7996f8fcb0cc50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  forwardKey: 119
-  backKey: 115
-  leftKey: 97
-  rightKey: 100
-  jumpKey: 32
-  crouchKey: 306
-  moveForce: 10
-  maxSpeed: 5
-  jumpForce: 5
-  gravity: -9.81
-  groundCheck: {fileID: 0}
-  groundDistance: 0.2
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!136 &52752800
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -612,38 +583,6 @@ Transform:
   - {fileID: 1167528296}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &52752804
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 52752797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8fc6ebaab7e72a4aaeca0533fc370c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  maxHealth: 40
-  moveSpeed: 6
-  attackDamage: 30
-  attackRate: 0.6
-  attackRange: 10
-  projectileCount: 1
-  pierceCount: 0
-  canPierce: 0
-  lightBeamPrefab: {fileID: 0}
-  firePoint: {fileID: 663367817}
-  chargeDamage: 60
-  chargeCooldown: 15
-  chargeRange: 7.5
-  chargeSpeedBoost: 0.5
-  chargeDuration: 2
-  judgmentCastTime: 5
-  judgmentRadius: 25
-  judgmentStunDuration: 2
-  playerHealth: {fileID: 1834333398}
-  weaponUpgrade: {fileID: 2050543776}
 --- !u!1 &103952267
 GameObject:
   m_ObjectHideFlags: 0
@@ -1152,14 +1091,11 @@ MonoBehaviour:
   specialCooldown: 20
   specialRotations: 1
   healValue: 30
-  specialRange: 3
   ultimateDuration: 10
   ultimateRadius: 1.25
   ultimateDamage: 50
-  indicatorMaterial: {fileID: 0}
-  gradientTexture: {fileID: 0}
-  playerHealth: {fileID: 0}
-  weaponUpgrade: {fileID: 2050543776}
+  playerHealth: {fileID: 1834333398}
+  weaponUpgrade: {fileID: 1834333401}
 --- !u!1 &184445152
 GameObject:
   m_ObjectHideFlags: 0
@@ -1542,12 +1478,9 @@ MonoBehaviour:
   specialCooldown: 20
   specialRotations: 1
   healValue: 30
-  specialRange: 3
   ultimateDuration: 10
   ultimateRadius: 1.25
   ultimateDamage: 50
-  indicatorMaterial: {fileID: 0}
-  gradientTexture: {fileID: 0}
   playerHealth: {fileID: 0}
   weaponUpgrade: {fileID: 0}
 --- !u!1 &563687925
@@ -1642,9 +1575,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   health: 100
-  levelSystem: {fileID: 0}
+  levelSystem: {fileID: 1834333397}
   healthText: {fileID: 992521169}
-  bloodEffect: {fileID: 0}
+  moveSpeed: 3
 --- !u!195 &563687933
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2481,21 +2414,16 @@ MonoBehaviour:
   attackDamage: 30
   attackRate: 0.6
   attackRange: 10
-  projectileCount: 1
-  pierceCount: 0
-  canPierce: 0
   lightBeamPrefab: {fileID: 0}
   firePoint: {fileID: 0}
   chargeDamage: 60
   chargeCooldown: 15
   chargeRange: 7.5
-  chargeSpeedBoost: 0.5
   chargeDuration: 2
-  judgmentCastTime: 5
   judgmentRadius: 25
   judgmentStunDuration: 2
-  playerHealth: {fileID: 0}
-  weaponUpgrade: {fileID: 0}
+  playerHealth: {fileID: 1834333398}
+  weaponUpgrade: {fileID: 1834333401}
 --- !u!1 &1245077731
 GameObject:
   m_ObjectHideFlags: 0
@@ -2976,7 +2904,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2050543775}
   - {fileID: 168664447}
   - {fileID: 1633459821}
   m_Father: {fileID: 0}
@@ -3028,14 +2955,11 @@ MonoBehaviour:
   specialCooldown: 20
   specialRotations: 1
   healValue: 30
-  specialRange: 3
   ultimateDuration: 10
   ultimateRadius: 1.25
   ultimateDamage: 50
-  indicatorMaterial: {fileID: 0}
-  gradientTexture: {fileID: 0}
   playerHealth: {fileID: 1834333398}
-  weaponUpgrade: {fileID: 2050543776}
+  weaponUpgrade: {fileID: 1834333401}
 --- !u!1 &1306251892
 GameObject:
   m_ObjectHideFlags: 0
@@ -3458,6 +3382,9 @@ GameObject:
   - component: {fileID: 1834333399}
   - component: {fileID: 1834333398}
   - component: {fileID: 1834333397}
+  - component: {fileID: 1834333400}
+  - component: {fileID: 1834333402}
+  - component: {fileID: 1834333401}
   m_Layer: 0
   m_Name: PlayerStats
   m_TagString: Untagged
@@ -3492,19 +3419,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5aa6929b08fcbd4abd1a2431395282d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelSystem
-  mountainManPrefab: {fileID: 1291531060}
-  angelPrefab: {fileID: 52752797}
-  playerSpawnPoint: {fileID: 103952271}
-  cameraController: {fileID: 105144811}
   currentLevel: 1
   enemiesToKill: 5
   enemyPrefab: {fileID: 563687925}
   levelText: {fileID: 0}
   enemiesLeftText: {fileID: 0}
-  characterSelectPanel: {fileID: 0}
-  characterSelectText: {fileID: 0}
   playerHealth: {fileID: 1834333398}
-  weaponUpgrade: {fileID: 2050543776}
+  weaponUpgrade: {fileID: 1834333401}
 --- !u!114 &1834333398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3518,10 +3439,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   maxHealth: 100
-  HeathValue: 100
+  currentHealth: 100
   healthFill: {fileID: 1245077733}
   healthText: {fileID: 1999696999}
-  healthTextLegacy: {fileID: 0}
 --- !u!114 &1834333399
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3544,11 +3464,79 @@ MonoBehaviour:
   maxSpeed: 5
   jumpForce: 5
   gravity: -9.81
-  groundCheck: {fileID: 0}
+  groundCheck: {fileID: 1633459821}
   groundDistance: 0.2
   groundMask:
     serializedVersion: 2
     m_Bits: 0
+--- !u!54 &1834333400
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &1834333401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b74b2a6253c715a428d1226a926f301d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeSystem
+  currentDamage: 50
+  currentRange: 1.5
+  currentSwingAngle: 90
+  currentSpecialCooldown: 20
+  currentSpecialDamage: 80
+  currentSpecialRotations: 1
+  hasBleed: 0
+  bleedDuration: 2
+  bleedDamage: 3
+  currentUltimateDuration: 10
+  currentUltimateRadius: 1.25
+  currentUltimateDamage: 50
+--- !u!114 &1834333402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834333395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ba8ebd70f7602a44b6a8d55676081be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  mountainMan: {fileID: 1291531060}
+  seraphim: {fileID: 52752797}
+  character3: {fileID: 35802893}
+  cameraController: {fileID: 105144811}
+  levelSystem: {fileID: 1834333397}
 --- !u!1 &1933771302
 GameObject:
   m_ObjectHideFlags: 0
@@ -3796,72 +3784,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1999696997}
   m_CullTransparentMesh: 1
---- !u!1 &2050543774
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2050543775}
-  - component: {fileID: 2050543776}
-  m_Layer: 0
-  m_Name: WeaponUpgradeSystem
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2050543775
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2050543774}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.84145, y: -0.86977005, z: 0.54263}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1291531065}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2050543776
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2050543774}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b74b2a6253c715a428d1226a926f301d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeSystem
-  currentDamage: 50
-  currentRange: 1.5
-  currentSwingAngle: 90
-  currentSpecialCooldown: 20
-  currentSpecialDamage: 80
-  currentSpecialRotations: 1
-  hasBleed: 0
-  bleedDuration: 2
-  bleedDamage: 3
-  currentUltimateDuration: 10
-  currentUltimateRadius: 1.25
-  currentUltimateDamage: 50
-  damageLevel: 0
-  rangeLevel: 0
-  swingLevel: 0
-  specialCooldownLevel: 0
-  specialDamageLevel: 0
-  specialRotationsLevel: 0
-  bleedLevel: 0
-  ultimateDurationLevel: 0
-  ultimateRadiusLevel: 0
-  ultimateDamageLevel: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3873,8 +3795,8 @@ SceneRoots:
   - {fileID: 1291531065}
   - {fileID: 52752803}
   - {fileID: 35802899}
-  - {fileID: 135385439}
   - {fileID: 1959003151}
+  - {fileID: 135385439}
   - {fileID: 1933771303}
   - {fileID: 1306251893}
   - {fileID: 872996543}

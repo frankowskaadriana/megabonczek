@@ -2,15 +2,14 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 10f;
-    public float lifetime = 3f;
-    private float timer;
+    public float speed = 20f;
+    public float damage = 10f;
+    public float lifetime = 2f;
+    // private float timer; // zakomentuj lub usuñ tê liniê
 
-    void OnEnable()
+    void Start()
     {
-        timer = 0f;
-        // Opcjonalnie: automatycznie zwróæ do pool po czasie
-        Invoke(nameof(ReturnToPool), lifetime);
+        Destroy(gameObject, lifetime);
     }
 
     void Update()
@@ -20,16 +19,14 @@ public class Bullet : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Enemy"))
         {
-            // Zadaj obra¿enia
-            ReturnToPool();
+            enemyHealth enemy = other.GetComponent<enemyHealth>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage);
+            }
+            Destroy(gameObject);
         }
-    }
-
-    void ReturnToPool()
-    {
-        CancelInvoke();
-        BulletPool.Instance.ReturnBullet(gameObject);
     }
 }

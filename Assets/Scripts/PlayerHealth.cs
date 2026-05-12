@@ -9,33 +9,22 @@ public class PlayerHealth : MonoBehaviour
     public Image healthFill;
     public TextMeshProUGUI healthText;
 
-    private float baseHealth = 100f;
-    private float healthPerLevel = 5f;
-    private int currentLevel = 1;
-
     void Start()
     {
-        LevelSystem levelSystem = FindFirstObjectByType<LevelSystem>();
-        if (levelSystem != null) currentLevel = levelSystem.currentLevel;
-
-        maxHealth = baseHealth + (currentLevel - 1) * healthPerLevel;
-        currentHealth = maxHealth;
+        // Statystyki zostan¹ ustawione przez PlayerStats
         UpdateUI();
     }
 
-    public void SetBaseHealth(float health, int level)
+    public void SetBaseHealth(float health)
     {
-        baseHealth = health;
-        currentLevel = level;
-        maxHealth = baseHealth + (currentLevel - 1) * healthPerLevel;
-        currentHealth = maxHealth;
+        maxHealth = health;
+        currentHealth = health;
         UpdateUI();
     }
 
     public void LevelUpHealth()
     {
-        currentLevel++;
-        maxHealth = baseHealth + (currentLevel - 1) * healthPerLevel;
+        maxHealth += 5f;
         currentHealth = maxHealth;
         UpdateUI();
     }
@@ -66,10 +55,5 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("Player died!");
         Destroy(gameObject);
-    }
-
-    void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Enemy")) TakeDamage(20f);
     }
 }

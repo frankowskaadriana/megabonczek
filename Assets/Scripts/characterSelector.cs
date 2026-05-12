@@ -7,11 +7,15 @@ public class CharacterSelector : MonoBehaviour
     public GameObject seraphim;
     public GameObject character3;
 
-    [Header("Kamera")]
-    public CameraController cameraController;
+    [Header("Ground Check")]
+    public Transform mountainManGroundCheck;
+    public Transform seraphimGroundCheck;
+    public Transform character3GroundCheck;
 
-    [Header("Level System")]
+    [Header("Systemy")]
+    public CameraController cameraController;
     public LevelSystem levelSystem;
+    public PlayerStats playerStats;
 
     private GameObject currentCharacter;
     private bool hasSelected = false;
@@ -29,12 +33,12 @@ public class CharacterSelector : MonoBehaviour
     {
         if (hasSelected) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, "Mountain Man");
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, "Seraphim");
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(character3, "Character3");
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, mountainManGroundCheck, "Mountain Man");
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, seraphimGroundCheck, "Seraphim");
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(character3, character3GroundCheck, "Character3");
     }
 
-    void SelectCharacter(GameObject character, string name)
+    void SelectCharacter(GameObject character, Transform groundCheck, string name)
     {
         if (character == null)
         {
@@ -50,20 +54,42 @@ public class CharacterSelector : MonoBehaviour
 
         if (cameraController != null) cameraController.SetTarget(currentCharacter.transform);
 
-        if (currentCharacter.GetComponent<PlayerMovement>() == null)
-            currentCharacter.AddComponent<PlayerMovement>();
+        PlayerMovement movement = currentCharacter.GetComponent<PlayerMovement>();
+        if (movement == null) movement = currentCharacter.AddComponent<PlayerMovement>();
 
-        if (currentCharacter.GetComponent<PlayerHealth>() == null)
-            currentCharacter.AddComponent<PlayerHealth>();
+        if (groundCheck != null && movement != null)
+        {
+            movement.SetGroundCheck(groundCheck);
+        }
 
-        hasSelected = true;
+        if (playerStats != null)
+        {
+            playerStats.AssignToPlayer(currentCharacter);
+        }
 
-        // Uruchom LevelSystem
         if (levelSystem != null)
         {
+            if (name == "Mountain Man")
+            {
+                AbilitiesMountainMan abilities = currentCharacter.GetComponent<AbilitiesMountainMan>();
+                if (abilities == null) abilities = currentCharacter.AddComponent<AbilitiesMountainMan>();
+                levelSystem.mountainManAbilities = abilities;
+            }
+            else if (name == "Seraphim")
+            {
+                SeraphimAbilities abilities = currentCharacter.GetComponent<SeraphimAbilities>();
+                if (abilities == null) abilities = currentCharacter.AddComponent<SeraphimAbilities>();
+                levelSystem.seraphimAbilities = abilities;
+            }
+
+            levelSystem.playerHealth = currentCharacter.GetComponent<PlayerHealth>();
+            if (levelSystem.playerHealth == null)
+                levelSystem.playerHealth = currentCharacter.AddComponent<PlayerHealth>();
+
             levelSystem.StartGame();
         }
 
-        Debug.Log("Aktywny: " + name + " - rozpoczynam gre!");
+        hasSelected = true;
+        Debug.Log("Aktywny: " + name);
     }
 }

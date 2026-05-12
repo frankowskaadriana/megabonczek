@@ -25,11 +25,28 @@ public class enemyHealth : MonoBehaviour
 
         agent.speed = moveSpeed;
         agent.stoppingDistance = 1.5f;
+        agent.autoBraking = true;
+        agent.autoRepath = true;
 
-        // SprawdŸ czy NavMesh jest dostêpny
-        if (agent.isOnNavMesh == false)
+        // Ustaw agenta na ziemiê jeœli jest nad navmesh
+        if (!agent.isOnNavMesh)
         {
-            Debug.LogWarning("Agent nie jest na NavMesh - wróg nie bêdzie siê porusza³!");
+            // Spróbuj przykleiæ do navmesh
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
+            {
+                transform.position = hit.position;
+                agent.Warp(hit.position);
+                Debug.Log(gameObject.name + " przyklejony do NavMesh");
+            }
+            else
+            {
+                Debug.LogWarning(gameObject.name + " NIE jest na NavMesh! Sprawdz czy NavMesh jest wygenerowany.");
+            }
+        }
+        else
+        {
+            Debug.Log(gameObject.name + " jest na NavMesh");
         }
 
         if (healthText != null) healthText.text = Mathf.Round(health).ToString();
@@ -37,7 +54,7 @@ public class enemyHealth : MonoBehaviour
 
     void Update()
     {
-        if (player != null && agent != null && agent.isOnNavMesh)
+        if (player != null && agent != null && agent.isOnNavMesh && agent.enabled)
         {
             agent.SetDestination(player.position);
         }

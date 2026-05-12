@@ -6,19 +6,33 @@ public class PlayerHealth : MonoBehaviour
 {
     public float maxHealth = 100f;
     public float currentHealth = 100f;
+    public float armor = 0f;
     public Image healthFill;
     public TextMeshProUGUI healthText;
 
     void Start()
     {
-        // Statystyki zostan¹ ustawione przez PlayerStats
         UpdateUI();
     }
 
-    public void SetBaseHealth(float health)
+    public void SetBaseHealth(float health, float initialArmor = 0)
     {
         maxHealth = health;
         currentHealth = health;
+        armor = initialArmor;
+        UpdateUI();
+    }
+
+    public void AddMaxHealth(float amount)
+    {
+        maxHealth += amount;
+        currentHealth += amount;
+        UpdateUI();
+    }
+
+    public void AddArmor(float amount)
+    {
+        armor += amount;
         UpdateUI();
     }
 
@@ -31,7 +45,8 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        currentHealth -= damage;
+        float reducedDamage = damage * (1f - armor / 100f);
+        currentHealth -= reducedDamage;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
         UpdateUI();
 

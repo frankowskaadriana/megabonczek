@@ -16,6 +16,18 @@ public class WeaponUpgradeSystem : MonoBehaviour
     public float currentUltimateRadius = 1.25f;
     public float currentUltimateDamage = 50f;
 
+    // Seraphim
+    public int currentProjectileCount = 1;
+    public bool canPierce = false;
+    public int pierceCount = 0;
+
+    // Shepherd
+    public float currentSheepDamage = 20f;
+    public float currentSheepSpawnCooldown = 45f;
+    public float currentFeastDamage = 350f;
+    public float currentFeastRadius = 3f;
+    public int currentRemainingSheep = 1;
+
     private int damageLevel = 0;
     private int rangeLevel = 0;
     private int swingLevel = 0;
@@ -26,77 +38,32 @@ public class WeaponUpgradeSystem : MonoBehaviour
     private int ultimateDurationLevel = 0;
     private int ultimateRadiusLevel = 0;
     private int ultimateDamageLevel = 0;
+    private int projectileCountLevel = 0;
+    private int pierceLevel = 0;
+    private int sheepDamageLevel = 0;
+    private int sheepCooldownLevel = 0;
+    private int feastDamageLevel = 0;
+    private int feastRadiusLevel = 0;
 
-    public void UpgradeDamage()
-    {
-        damageLevel++;
-        currentDamage = 50f + (damageLevel * 10f);
-        Debug.Log("Obrazenia: " + currentDamage);
-    }
+    // Goral
+    public void UpgradeDamage() { damageLevel++; currentDamage = 50f + (damageLevel * 10f); Debug.Log("Obrazenia: " + currentDamage); }
+    public void UpgradeRange() { rangeLevel++; currentRange = Mathf.Min(1.5f + (rangeLevel * 0.1f), 2f); Debug.Log("Zasieg: " + currentRange + "m"); }
+    public void UpgradeSwingAngle() { swingLevel++; currentSwingAngle = Mathf.Min(90f + (swingLevel * 10f), 150f); Debug.Log("Kat zamachu: " + currentSwingAngle + "°"); }
+    public void UpgradeSpecialDamage() { specialDamageLevel++; currentSpecialDamage = 80f + (specialDamageLevel * 15f); Debug.Log("Obrazenia specjalne: " + currentSpecialDamage); }
+    public void UpgradeSpecialCooldown() { specialCooldownLevel++; currentSpecialCooldown = Mathf.Max(20f - (specialCooldownLevel * 1f), 5f); Debug.Log("Cooldown: " + currentSpecialCooldown + "s"); }
+    public void UpgradeSpecialRotations() { specialRotationsLevel++; currentSpecialRotations = 1 + Mathf.FloorToInt(specialRotationsLevel * 0.5f); Debug.Log("Obroty: " + currentSpecialRotations); }
+    public void UpgradeBleed() { bleedLevel++; hasBleed = bleedLevel >= 1; bleedDuration = Mathf.Min(2f + (bleedLevel * 0.5f), 5f); bleedDamage = 3f + (bleedLevel * 2f); Debug.Log("Krwawienie: " + bleedDamage + "/s przez " + bleedDuration + "s"); }
+    public void UpgradeUltimateDuration() { ultimateDurationLevel++; currentUltimateDuration = 10f + (ultimateDurationLevel * 2f); Debug.Log("Czas ultimate: " + currentUltimateDuration + "s"); }
+    public void UpgradeUltimateRadius() { ultimateRadiusLevel++; currentUltimateRadius = Mathf.Min(1.25f + (ultimateRadiusLevel * 0.25f), 3f); Debug.Log("Promien ultimate: " + currentUltimateRadius + "m"); }
+    public void UpgradeUltimateDamage() { ultimateDamageLevel++; currentUltimateDamage = 50f + (ultimateDamageLevel * 15f); Debug.Log("Obrazenia ultimate: " + currentUltimateDamage + "/s"); }
 
-    public void UpgradeRange()
-    {
-        rangeLevel++;
-        currentRange = Mathf.Min(1.5f + (rangeLevel * 0.1f), 2f);
-        Debug.Log("Zasieg: " + currentRange + "m");
-    }
+    // Seraphim
+    public void UpgradeProjectileCount() { projectileCountLevel++; currentProjectileCount = 1 + projectileCountLevel; Debug.Log("Liczba pociskow: " + currentProjectileCount); }
+    public void UpgradePierce() { pierceLevel++; canPierce = true; pierceCount = pierceLevel; Debug.Log("Przebicie: " + pierceCount); }
 
-    public void UpgradeSwingAngle()
-    {
-        swingLevel++;
-        currentSwingAngle = Mathf.Min(90f + (swingLevel * 10f), 150f);
-        Debug.Log("Kat zamachu: " + currentSwingAngle + "°");
-    }
-
-    public void UpgradeSpecialDamage()
-    {
-        specialDamageLevel++;
-        currentSpecialDamage = 80f + (specialDamageLevel * 15f);
-        Debug.Log("Obrazenia specjalne: " + currentSpecialDamage);
-    }
-
-    public void UpgradeSpecialCooldown()
-    {
-        specialCooldownLevel++;
-        currentSpecialCooldown = Mathf.Max(20f - (specialCooldownLevel * 1f), 5f);
-        Debug.Log("Cooldown: " + currentSpecialCooldown + "s");
-    }
-
-    public void UpgradeSpecialRotations()
-    {
-        specialRotationsLevel++;
-        currentSpecialRotations = 1 + Mathf.FloorToInt(specialRotationsLevel * 0.5f);
-        Debug.Log("Obroty: " + currentSpecialRotations);
-    }
-
-    public void UpgradeBleed()
-    {
-        bleedLevel++;
-        hasBleed = bleedLevel >= 1;
-        bleedDuration = Mathf.Min(2f + (bleedLevel * 0.5f), 5f);
-        bleedDamage = 3f + (bleedLevel * 2f);
-        Debug.Log("Krwawienie: " + bleedDamage + "/s przez " + bleedDuration + "s");
-    }
-
-    public void UpgradeUltimateDuration()
-    {
-        ultimateDurationLevel++;
-        currentUltimateDuration = 10f + (ultimateDurationLevel * 2f);
-        Debug.Log("Czas ultimate: " + currentUltimateDuration + "s");
-    }
-
-    public void UpgradeUltimateRadius()
-    {
-        ultimateRadiusLevel++;
-        currentUltimateRadius = Mathf.Min(1.25f + (ultimateRadiusLevel * 0.25f), 3f);
-        float diameter = currentUltimateRadius * 2f;
-        Debug.Log("Srednica aury: " + diameter + "m");
-    }
-
-    public void UpgradeUltimateDamage()
-    {
-        ultimateDamageLevel++;
-        currentUltimateDamage = 50f + (ultimateDamageLevel * 15f);
-        Debug.Log("Obrazenia ultimate: " + currentUltimateDamage + "/s");
-    }
+    // Shepherd
+    public void UpgradeSheepDamage() { sheepDamageLevel++; currentSheepDamage = 20f + (sheepDamageLevel * 10f); Debug.Log("Obrazenia owcy: " + currentSheepDamage); }
+    public void UpgradeSheepSpawnCooldown() { sheepCooldownLevel++; currentSheepSpawnCooldown = Mathf.Max(10f, 45f - (sheepCooldownLevel * 3f)); Debug.Log("Cooldown przyzywania: " + currentSheepSpawnCooldown + "s"); }
+    public void UpgradeFeastDamage() { feastDamageLevel++; currentFeastDamage = 350f + (feastDamageLevel * 50f); Debug.Log("Obrazenia Wilczej Uczty: " + currentFeastDamage); }
+    public void UpgradeFeastRadius() { feastRadiusLevel++; currentFeastRadius = 3f + (feastRadiusLevel * 0.5f); Debug.Log("Promien Wilczej Uczty: " + currentFeastRadius + "m"); }
 }

@@ -5,12 +5,12 @@ public class CharacterSelector : MonoBehaviour
     [Header("Postacie w hierarchii")]
     public GameObject mountainMan;
     public GameObject seraphim;
-    public GameObject character3;
+    public GameObject shepherd;
 
     [Header("Ground Check")]
     public Transform mountainManGroundCheck;
     public Transform seraphimGroundCheck;
-    public Transform character3GroundCheck;
+    public Transform shepherdGroundCheck;
 
     [Header("Systemy")]
     public CameraController cameraController;
@@ -24,18 +24,18 @@ public class CharacterSelector : MonoBehaviour
     {
         if (mountainMan != null) mountainMan.SetActive(false);
         if (seraphim != null) seraphim.SetActive(false);
-        if (character3 != null) character3.SetActive(false);
+        if (shepherd != null) shepherd.SetActive(false);
 
-        Debug.Log("Wcisnij 1 - Mountain Man, 2 - Seraphim, 3 - Character3");
+        Debug.Log("Wcisnij 1 - Goral, 2 - Seraphim, 3 - Pasterz");
     }
 
     void Update()
     {
         if (hasSelected) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, mountainManGroundCheck, "Mountain Man");
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, mountainManGroundCheck, "Goral");
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, seraphimGroundCheck, "Seraphim");
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(character3, character3GroundCheck, "Character3");
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(shepherd, shepherdGroundCheck, "Pasterz");
     }
 
     void SelectCharacter(GameObject character, Transform groundCheck, string name)
@@ -69,7 +69,7 @@ public class CharacterSelector : MonoBehaviour
 
         if (levelSystem != null)
         {
-            if (name == "Mountain Man")
+            if (name == "Goral")
             {
                 AbilitiesMountainMan abilities = currentCharacter.GetComponent<AbilitiesMountainMan>();
                 if (abilities == null) abilities = currentCharacter.AddComponent<AbilitiesMountainMan>();
@@ -80,6 +80,12 @@ public class CharacterSelector : MonoBehaviour
                 SeraphimAbilities abilities = currentCharacter.GetComponent<SeraphimAbilities>();
                 if (abilities == null) abilities = currentCharacter.AddComponent<SeraphimAbilities>();
                 levelSystem.seraphimAbilities = abilities;
+            }
+            else if (name == "Pasterz")
+            {
+                ShepherdAbilities abilities = currentCharacter.GetComponent<ShepherdAbilities>();
+                if (abilities == null) abilities = currentCharacter.AddComponent<ShepherdAbilities>();
+                levelSystem.shepherdAbilities = abilities;
             }
 
             levelSystem.playerHealth = currentCharacter.GetComponent<PlayerHealth>();

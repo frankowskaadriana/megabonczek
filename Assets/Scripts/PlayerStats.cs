@@ -2,15 +2,18 @@ using UnityEngine;
 
 public class PlayerStats : MonoBehaviour
 {
-    [Header("Statystyki dla ka¿dej postaci")]
-    public float mountainManHealth = 100f;
-    public float mountainManSpeed = 5f;
+    [Header("Goral")]
+    public float goralHealth = 100f;
+    public float goralSpeed = 5f;
 
+    [Header("Seraphim")]
     public float seraphimHealth = 40f;
     public float seraphimSpeed = 6f;
 
-    public float character3Health = 50f;
-    public float character3Speed = 5.5f;
+    [Header("Pasterz")]
+    public float pasterzHealth = 50f;
+    public float pasterzSpeed = 5.5f;
+    public float pasterzArmor = 20f;
 
     private GameObject currentPlayer;
 
@@ -23,27 +26,23 @@ public class PlayerStats : MonoBehaviour
 
         if (health == null || movement == null) return;
 
-        // Ustaw statystyki w zale¿noœci od nazwy postaci
-        if (player.name.Contains("Mountain"))
+        if (player.name.Contains("Mountain") || player.name.Contains("Goral"))
         {
-            health.maxHealth = mountainManHealth;
-            health.currentHealth = mountainManHealth;
-            movement.maxSpeed = mountainManSpeed;
-            Debug.Log("Ustawiono statystyki Górala: HP=" + mountainManHealth + ", Speed=" + mountainManSpeed);
+            health.SetBaseHealth(goralHealth, 0);
+            movement.maxSpeed = goralSpeed;
+            Debug.Log("Goral: HP=" + goralHealth + ", Speed=" + goralSpeed);
         }
         else if (player.name.Contains("Seraphim"))
         {
-            health.maxHealth = seraphimHealth;
-            health.currentHealth = seraphimHealth;
+            health.SetBaseHealth(seraphimHealth, 0);
             movement.maxSpeed = seraphimSpeed;
-            Debug.Log("Ustawiono statystyki Seraphima: HP=" + seraphimHealth + ", Speed=" + seraphimSpeed);
+            Debug.Log("Seraphim: HP=" + seraphimHealth + ", Speed=" + seraphimSpeed);
         }
-        else if (player.name.Contains("Character3"))
+        else if (player.name.Contains("Shepherd") || player.name.Contains("Pasterz"))
         {
-            health.maxHealth = character3Health;
-            health.currentHealth = character3Health;
-            movement.maxSpeed = character3Speed;
-            Debug.Log("Ustawiono statystyki Character3: HP=" + character3Health + ", Speed=" + character3Speed);
+            health.SetBaseHealth(pasterzHealth, pasterzArmor);
+            movement.maxSpeed = pasterzSpeed;
+            Debug.Log("Pasterz: HP=" + pasterzHealth + ", Speed=" + pasterzSpeed + ", Armor=" + pasterzArmor);
         }
 
         health.UpdateUI();

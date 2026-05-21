@@ -1,21 +1,30 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 
 public class enemyHealth : MonoBehaviour
 {
+    [Header("═══════════════ ENEMY STATS ═══════════════")]
     public float health = 50f;
+    public float moveSpeed = 3f;
+    public float damage = 20f;
+    public float attackCooldown = 1f;
+
+    [Header("═══════════════ REFERENCES ═══════════════")]
     public LevelSystem levelSystem;
     public TextMeshPro healthText;
-    public float moveSpeed = 3f;
 
     private Transform player;
     private NavMeshAgent agent;
+    private float attackTimer = 0f;
 
     void Start()
     {
-        if (levelSystem == null) levelSystem = FindFirstObjectByType<LevelSystem>();
-        if (levelSystem != null) health = 50f + (levelSystem.currentLevel - 1) * 10f;
+        if (levelSystem == null)
+            levelSystem = FindFirstObjectByType<LevelSystem>();
+
+        if (levelSystem != null)
+            health = 50f + (levelSystem.currentLevel - 1) * 10f;
 
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
@@ -25,38 +34,29 @@ public class enemyHealth : MonoBehaviour
 
         agent.speed = moveSpeed;
         agent.stoppingDistance = 1.5f;
-        agent.autoBraking = true;
-        agent.autoRepath = true;
-
-        // Ustaw agenta na ziemi� je�li jest nad navmesh
-        if (!agent.isOnNavMesh)
-        {
-            // Spr�buj przyklei� do navmesh
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
-            {
-                transform.position = hit.position;
-                agent.Warp(hit.position);
-                Debug.Log(gameObject.name + " przyklejony do NavMesh");
-            }
-            else
-            {
-                Debug.LogWarning(gameObject.name + " NIE jest na NavMesh! Sprawdz czy NavMesh jest wygenerowany.");
-            }
-        }
-        else
-        {
-            Debug.Log(gameObject.name + " jest na NavMesh");
-        }
 
         if (healthText != null) healthText.text = Mathf.Round(health).ToString();
+
+        Debug.Log($"Enemy spawned! Health: {health}, Damage: {damage}");
     }
 
     void Update()
     {
-        if (player != null && agent != null && agent.isOnNavMesh && agent.enabled)
+        if (player != null && agent != null && agent.isOnNavMesh)
         {
             agent.SetDestination(player.position);
+
+            // Atakuj gracza gdy blisko
+            float distance = Vector3.Distance(transform.position, player.position);
+            if (distance <= 1.8f)
+            {
+                attackTimer += Time.deltaTime;
+                if (attackTimer >= attackCooldown)
+                {
+                    attackTimer = 0f;
+                    AttackPlayer();
+                }
+            }
         }
 
         if (healthText != null && Camera.main != null)
@@ -66,15 +66,31 @@ public class enemyHealth : MonoBehaviour
         }
     }
 
+    void AttackPlayer()
+    {
+        if (player != null)
+        {
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                Debug.Log($"Enemy atakuje! Obrażenia: {damage}");
+                playerHealth.TakeDamage(damage);
+            }
+        }
+    }
+
     public void TakeDamage(float damage)
     {
         health -= damage;
         if (healthText != null) healthText.text = Mathf.Round(health).ToString();
+        Debug.Log($"Enemy otrzymał {damage} obrażeń. Pozostałe HP: {health}");
+
         if (health <= 0) Die();
     }
 
     void Die()
     {
+        Debug.Log("Enemy died!");
         if (levelSystem != null) levelSystem.EnemyDied();
         Destroy(gameObject);
     }

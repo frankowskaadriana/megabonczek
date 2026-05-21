@@ -1,17 +1,39 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
+using TMPro;
+using System.Collections;
 
 public class Sheep : MonoBehaviour
 {
+    [Header("═══════════════ SHEEP STATS ═══════════════")]
     private ShepherdAbilities shepherd;
     private float damage;
     private bool canTakeDamage;
     private float maxHealth;
     private float currentHealth;
+
+    [Header("═══════════════ COMPONENTS ═══════════════")]
     private NavMeshAgent agent;
     private Transform currentTarget;
     private bool isInFormation = false;
     private float attackCooldown = 0f;
+    private float attackRange = 1.5f;
+
+    [Header("═══════════════ AVOIDANCE SETTINGS ═══════════════")]
+    public float avoidanceRadius = 1.2f;      // Promień unikania innych owiec
+    public float avoidanceForce = 3f;         // Siła unikania
+    public float shepherdAvoidanceRadius = 2f; // Promień unikania pasterza
+    public float shepherdAvoidanceForce = 5f;  // Siła unikania pasterza
+
+    [Header("═══════════════ HEALTH TEXT 3D ═══════════════")]
+    public TextMeshPro healthText3D;
+    public float textHeight = 1.2f;
+    public Vector3 textOffset = new Vector3(0, 1.2f, 0);
+
+    void Awake()
+    {
+        CreateHealthText();
+    }
 
     public void Initialize(ShepherdAbilities owner, float sheepDamage, bool takeDamage, float maxHP)
     {
@@ -24,11 +46,12 @@ public class Sheep : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = 5f;
-        agent.stoppingDistance = 1.5f;
+        agent.stoppingDistance = attackRange;
+        agent.radius = avoidanceRadius * 0.5f;
 
         gameObject.tag = "Sheep";
 
-        // Dodaj kolider
+        // Collider
         if (GetComponent<Collider>() == null)
         {
             CapsuleCollider col = gameObject.AddComponent<CapsuleCollider>();
@@ -36,26 +59,63 @@ public class Sheep : MonoBehaviour
             col.height = 1f;
         }
 
-        // Dodaj renderer (widoczna kula)
-        if (GetComponent<MeshRenderer>() == null)
+        // Rigidbody
+        if (GetComponent<Rigidbody>() == null)
         {
-            GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            visual.transform.SetParent(transform);
-            visual.transform.localPosition = Vector3.zero;
-            visual.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
-            Destroy(visual.GetComponent<Collider>());
-
-            Renderer rend = visual.GetComponent<Renderer>();
-            rend.material.color = Color.white;
+            Rigidbody rb = gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
         }
+
+        CreateVisual();
+        UpdateHealthText();
+
+        Debug.Log("Owca stworzona! Obrazenia: " + damage + ", HP: " + currentHealth + "/" + maxHealth);
+    }
+
+    void CreateVisual()
+    {
+        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visual.transform.SetParent(transform);
+        visual.transform.localPosition = Vector3.zero;
+        visual.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
+        Destroy(visual.GetComponent<Collider>());
+
+        Renderer rend = visual.GetComponent<Renderer>();
+        rend.material.color = Color.white;
+    }
+
+    void CreateHealthText()
+    {
+        if (healthText3D != null) return;
+
+        GameObject textObj = new GameObject("HealthText3D");
+        textObj.transform.SetParent(transform);
+        textObj.transform.localPosition = textOffset;
+
+        healthText3D = textObj.AddComponent<TextMeshPro>();
+        healthText3D.fontSize = 0.5f;
+        healthText3D.alignment = TextAlignmentOptions.Center;
+        healthText3D.color = Color.green;
+        healthText3D.text = "?";
+
+        healthText3D.fontMaterial.SetFloat("_OutlineWidth", 0.1f);
+        healthText3D.fontMaterial.SetColor("_OutlineColor", Color.black);
     }
 
     void Update()
     {
-        if (attackCooldown > 0)
+        if (healthText3D != null)
         {
-            attackCooldown -= Time.deltaTime;
+            healthText3D.transform.localPosition = textOffset;
+            if (Camera.main != null)
+            {
+                healthText3D.transform.LookAt(Camera.main.transform);
+                healthText3D.transform.Rotate(0, 180, 0);
+            }
         }
+
+        if (attackCooldown > 0)
+            attackCooldown -= Time.deltaTime;
 
         if (isInFormation)
         {
@@ -66,32 +126,106 @@ public class Sheep : MonoBehaviour
         // Szukaj najblizszego wroga
         if (currentTarget == null || (currentTarget != null && Vector3.Distance(transform.position, currentTarget.position) > 15f))
         {
-            Collider[] enemies = Physics.OverlapSphere(transform.position, 15f);
-            float closestDistance = 15f;
-            currentTarget = null;
-
-            foreach (Collider enemy in enemies)
-            {
-                if (enemy.CompareTag("Enemy"))
-                {
-                    float dist = Vector3.Distance(transform.position, enemy.transform.position);
-                    if (dist < closestDistance)
-                    {
-                        closestDistance = dist;
-                        currentTarget = enemy.transform;
-                    }
-                }
-            }
+            FindClosestEnemy();
         }
 
         if (currentTarget != null && agent != null && agent.isOnNavMesh)
         {
-            agent.SetDestination(currentTarget.position);
+            // Oblicz kierunek do celu
+            Vector3 directionToTarget = (currentTarget.position - transform.position).normalized;
+            Vector3 avoidance = CalculateAvoidance();
+
+            // Połącz kierunek do celu z unikaniem
+            Vector3 finalDirection = (directionToTarget + avoidance).normalized;
+
+            // Ustaw destination z uwzględnieniem unikania
+            Vector3 newDestination = transform.position + finalDirection * 5f;
+
+            // Ogranicz destination do NavMesh
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(newDestination, out hit, 2f, NavMesh.AllAreas))
+            {
+                agent.SetDestination(hit.position);
+            }
+            else
+            {
+                agent.SetDestination(currentTarget.position);
+            }
+
             agent.isStopped = false;
 
-            if (Vector3.Distance(transform.position, currentTarget.position) < 1.5f && attackCooldown <= 0)
+            float distanceToTarget = Vector3.Distance(transform.position, currentTarget.position);
+            if (distanceToTarget <= attackRange && attackCooldown <= 0)
             {
                 Attack();
+            }
+        }
+    }
+
+    Vector3 CalculateAvoidance()
+    {
+        Vector3 avoidanceForceVector = Vector3.zero;
+
+        // Unikanie innych owiec
+        Collider[] nearbySheep = Physics.OverlapSphere(transform.position, avoidanceRadius);
+        foreach (Collider sheep in nearbySheep)
+        {
+            if (sheep.CompareTag("Sheep") && sheep.gameObject != gameObject)
+            {
+                Vector3 directionAway = transform.position - sheep.transform.position;
+                float distance = directionAway.magnitude;
+                if (distance < avoidanceRadius)
+                {
+                    float strength = (1f - distance / avoidanceRadius) * avoidanceForce;
+                    avoidanceForceVector += directionAway.normalized * strength;
+                }
+            }
+        }
+
+        // Unikanie pasterza
+        if (shepherd != null)
+        {
+            Transform shepherdTransform = shepherd.transform;
+            float distanceToShepherd = Vector3.Distance(transform.position, shepherdTransform.position);
+            if (distanceToShepherd < shepherdAvoidanceRadius)
+            {
+                Vector3 directionAway = transform.position - shepherdTransform.position;
+                float strength = (1f - distanceToShepherd / shepherdAvoidanceRadius) * shepherdAvoidanceForce;
+                avoidanceForceVector += directionAway.normalized * strength;
+            }
+        }
+
+        // Unikanie ścian i przeszkód (opcjonalne)
+        RaycastHit hit;
+        Vector3 rayDirection = transform.forward;
+        if (Physics.Raycast(transform.position, rayDirection, out hit, 2f))
+        {
+            if (!hit.collider.CompareTag("Enemy"))
+            {
+                Vector3 wallAvoidance = Vector3.Cross(Vector3.up, hit.normal);
+                avoidanceForceVector += wallAvoidance * 2f;
+            }
+        }
+
+        return avoidanceForceVector;
+    }
+
+    void FindClosestEnemy()
+    {
+        Collider[] enemies = Physics.OverlapSphere(transform.position, 20f);
+        float closestDistance = 20f;
+        currentTarget = null;
+
+        foreach (Collider enemy in enemies)
+        {
+            if (enemy.CompareTag("Enemy"))
+            {
+                float dist = Vector3.Distance(transform.position, enemy.transform.position);
+                if (dist < closestDistance)
+                {
+                    closestDistance = dist;
+                    currentTarget = enemy.transform;
+                }
             }
         }
     }
@@ -104,9 +238,21 @@ public class Sheep : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
-                Debug.Log("Owca atakuje! Obrazenia: " + damage);
                 attackCooldown = 1f;
+                StartCoroutine(FlashRed());
             }
+        }
+    }
+
+    System.Collections.IEnumerator FlashRed()
+    {
+        Renderer rend = GetComponentInChildren<Renderer>();
+        if (rend != null)
+        {
+            Color original = rend.material.color;
+            rend.material.color = Color.red;
+            yield return new WaitForSeconds(0.1f);
+            rend.material.color = original;
         }
     }
 
@@ -115,18 +261,46 @@ public class Sheep : MonoBehaviour
         if (!canTakeDamage) return;
 
         currentHealth -= amount;
-        if (currentHealth <= 0)
+        UpdateHealthText();
+        StartCoroutine(DamageFlash());
+
+        if (currentHealth <= 0) Die();
+    }
+
+    void UpdateHealthText()
+    {
+        if (healthText3D == null)
         {
-            Die();
+            CreateHealthText();
+            return;
+        }
+
+        healthText3D.text = Mathf.Round(currentHealth).ToString();
+
+        float healthPercent = currentHealth / maxHealth;
+        if (healthPercent > 0.6f)
+            healthText3D.color = Color.green;
+        else if (healthPercent > 0.3f)
+            healthText3D.color = Color.yellow;
+        else
+            healthText3D.color = Color.red;
+    }
+
+    System.Collections.IEnumerator DamageFlash()
+    {
+        if (healthText3D != null)
+        {
+            Color originalColor = healthText3D.color;
+            healthText3D.color = Color.white;
+            yield return new WaitForSeconds(0.1f);
+            UpdateHealthText();
         }
     }
 
     void Die()
     {
-        if (shepherd != null)
-        {
-            shepherd.SheepDied(gameObject);
-        }
+        if (shepherd != null) shepherd.SheepDied(gameObject);
+        if (healthText3D != null) Destroy(healthText3D.gameObject);
         Destroy(gameObject);
     }
 
@@ -137,6 +311,7 @@ public class Sheep : MonoBehaviour
         currentTarget = null;
         isInFormation = false;
         if (agent != null) agent.isStopped = false;
+        UpdateHealthText();
     }
 
     public void SetFormationMode(bool inFormation)
@@ -151,5 +326,14 @@ public class Sheep : MonoBehaviour
         {
             TakeDamage(10f);
         }
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, avoidanceRadius);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, shepherdAvoidanceRadius);
     }
 }

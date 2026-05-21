@@ -1,18 +1,18 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CharacterSelector : MonoBehaviour
 {
-    [Header("Postacie w hierarchii")]
+    [Header("═══════════════ POSTACIE ═══════════════")]
     public GameObject mountainMan;
     public GameObject seraphim;
     public GameObject shepherd;
 
-    [Header("Ground Check")]
+    [Header("═══════════════ GROUND CHECK ═══════════════")]
     public Transform mountainManGroundCheck;
     public Transform seraphimGroundCheck;
     public Transform shepherdGroundCheck;
 
-    [Header("Systemy")]
+    [Header("═══════════════ SYSTEMY ═══════════════")]
     public CameraController cameraController;
     public LevelSystem levelSystem;
     public PlayerStats playerStats;
@@ -58,14 +58,10 @@ public class CharacterSelector : MonoBehaviour
         if (movement == null) movement = currentCharacter.AddComponent<PlayerMovement>();
 
         if (groundCheck != null && movement != null)
-        {
             movement.SetGroundCheck(groundCheck);
-        }
 
         if (playerStats != null)
-        {
             playerStats.AssignToPlayer(currentCharacter);
-        }
 
         if (levelSystem != null)
         {

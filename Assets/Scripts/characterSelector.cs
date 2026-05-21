@@ -88,9 +88,7 @@ public class CharacterSelector : MonoBehaviour
             if (levelSystem.playerHealth == null)
                 levelSystem.playerHealth = currentCharacter.AddComponent<PlayerHealth>();
 
-            // Uruchom grę - to odpali timer!
             levelSystem.StartGame();
-            Debug.Log("LevelSystem.StartGame() wywołane - timer powinien ruszyć");
         }
 
         hasSelected = true;

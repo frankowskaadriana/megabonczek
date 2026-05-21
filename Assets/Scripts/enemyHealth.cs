@@ -1,13 +1,16 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 
 public class enemyHealth : MonoBehaviour
 {
+    [Header("═══════════════ ENEMY STATS ═══════════════")]
     public float health = 50f;
+    public float moveSpeed = 3f;
+
+    [Header("═══════════════ REFERENCES ═══════════════")]
     public LevelSystem levelSystem;
     public TextMeshPro healthText;
-    public float moveSpeed = 3f;
 
     private Transform player;
     private NavMeshAgent agent;
@@ -25,39 +28,14 @@ public class enemyHealth : MonoBehaviour
 
         agent.speed = moveSpeed;
         agent.stoppingDistance = 1.5f;
-        agent.autoBraking = true;
-        agent.autoRepath = true;
-
-        // Ustaw agenta na ziemi� je�li jest nad navmesh
-        if (!agent.isOnNavMesh)
-        {
-            // Spr�buj przyklei� do navmesh
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
-            {
-                transform.position = hit.position;
-                agent.Warp(hit.position);
-                Debug.Log(gameObject.name + " przyklejony do NavMesh");
-            }
-            else
-            {
-                Debug.LogWarning(gameObject.name + " NIE jest na NavMesh! Sprawdz czy NavMesh jest wygenerowany.");
-            }
-        }
-        else
-        {
-            Debug.Log(gameObject.name + " jest na NavMesh");
-        }
 
         if (healthText != null) healthText.text = Mathf.Round(health).ToString();
     }
 
     void Update()
     {
-        if (player != null && agent != null && agent.isOnNavMesh && agent.enabled)
-        {
+        if (player != null && agent != null && agent.isOnNavMesh)
             agent.SetDestination(player.position);
-        }
 
         if (healthText != null && Camera.main != null)
         {

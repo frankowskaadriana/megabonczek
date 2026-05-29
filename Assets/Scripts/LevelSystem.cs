@@ -14,7 +14,9 @@ public class LevelSystem : MonoBehaviour
     public int xpRequired = 10;
 
     [Header("═══════════════ ENEMY SETTINGS ═══════════════")]
-    public GameObject enemyPrefab;
+    public List<GameObject> enemyPrefabs = new List<GameObject>();
+    public bool useRandomEnemies = true;
+    public int currentEnemyIndex = 0;
 
     [Header("═══════════════ UI REFERENCES ═══════════════")]
     public TextMeshProUGUI levelText;
@@ -104,9 +106,9 @@ public class LevelSystem : MonoBehaviour
 
     void Start()
     {
-        if (enemyPrefab == null)
+        if (enemyPrefabs == null || enemyPrefabs.Count == 0)
         {
-            Debug.LogError("Przeciagnij prefab wroga do Enemy Prefab!");
+            Debug.LogError("Dodaj przynajmniej jednego przeciwnika do listy Enemy Prefabs!");
             return;
         }
 
@@ -133,11 +135,34 @@ public class LevelSystem : MonoBehaviour
         Debug.Log("Czekam na wybor postaci...");
     }
 
+    GameObject GetRandomEnemyPrefab()
+    {
+        if (enemyPrefabs.Count == 0) return null;
+
+        if (useRandomEnemies)
+        {
+            int randomIndex = Random.Range(0, enemyPrefabs.Count);
+            return enemyPrefabs[randomIndex];
+        }
+        else
+        {
+            return enemyPrefabs[currentEnemyIndex];
+        }
+    }
+
+    public void AddEnemyPrefab(GameObject newEnemy)
+    {
+        if (!enemyPrefabs.Contains(newEnemy))
+        {
+            enemyPrefabs.Add(newEnemy);
+            Debug.Log($"Dodano nowego przeciwnika: {newEnemy.name}");
+        }
+    }
+
     void CreatePerksList()
     {
         availablePerks.Clear();
 
-        // PERKI UNIWERSALNE
         availablePerks.Add(new Perk("⚔️ Obrażenia +10", "+10 do obrażeń broni", () => {
             if (weaponUpgrade != null) weaponUpgrade.UpgradeDamage();
             Debug.Log("Perk: Obrażenia +10");
@@ -183,7 +208,6 @@ public class LevelSystem : MonoBehaviour
             Debug.Log("Perk: Szybszy atak");
         }));
 
-        // PERKI SPECJALNE (rzadsze)
         availablePerks.Add(new Perk("💉 Lifesteal", "1% lifestealu od obrażeń", () => {
             Debug.Log("Perk: Lifesteal aktywowany!");
         }));
@@ -204,7 +228,6 @@ public class LevelSystem : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Wylosuj 3 różne perki
         currentPerks.Clear();
         List<Perk> tempPerks = new List<Perk>(availablePerks);
 
@@ -215,7 +238,6 @@ public class LevelSystem : MonoBehaviour
             tempPerks.RemoveAt(randomIndex);
         }
 
-        // Wyświetl perki w UI
         if (perkText1 != null && currentPerks.Count > 0)
         {
             perkText1.text = currentPerks[0].name;
@@ -266,7 +288,6 @@ public class LevelSystem : MonoBehaviour
         Cursor.visible = false;
         Time.timeScale = 1f;
 
-        // Po wybraniu perka kontynuuj grę
         StartCoroutine(SpawnEnemies());
     }
 
@@ -363,14 +384,18 @@ public class LevelSystem : MonoBehaviour
             if (NavMesh.SamplePosition(spawnPos, out hit, 10f, NavMesh.AllAreas))
             {
                 spawnPos = hit.position;
-                GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-                enemy.name = "Horde_Enemy_" + (i + 1);
+                GameObject enemyToSpawn = GetRandomEnemyPrefab();
+                if (enemyToSpawn != null)
+                {
+                    GameObject enemy = Instantiate(enemyToSpawn, spawnPos, Quaternion.identity);
+                    enemy.name = "Horde_Enemy_" + (i + 1);
 
-                enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
-                if (enemyScript != null)
-                    enemyScript.levelSystem = this;
+                    enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
+                    if (enemyScript != null)
+                        enemyScript.levelSystem = this;
 
-                spawnedCount++;
+                    spawnedCount++;
+                }
             }
 
             if (i % 5 == 0) yield return new WaitForSeconds(0.1f);
@@ -405,7 +430,8 @@ public class LevelSystem : MonoBehaviour
             enemyHealth bossHealth = boss.GetComponent<enemyHealth>();
             if (bossHealth != null)
             {
-                bossHealth.health = 500f;
+                bossHealth.currentHealth = 500f;
+                bossHealth.maxHealth = 500f;
                 bossHealth.levelSystem = this;
             }
 
@@ -413,15 +439,16 @@ public class LevelSystem : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Brak prefaba bossa! Uzyto zwyklego wroga.");
-            GameObject boss = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+            Debug.LogWarning("Brak prefaba bossa! Uzyto losowego przeciwnika.");
+            GameObject boss = Instantiate(GetRandomEnemyPrefab(), spawnPos, Quaternion.identity);
             boss.name = bossName + "_Boss";
             boss.transform.localScale = Vector3.one * 2f;
 
             enemyHealth bossHealth = boss.GetComponent<enemyHealth>();
             if (bossHealth != null)
             {
-                bossHealth.health = 500f;
+                bossHealth.currentHealth = 500f;
+                bossHealth.maxHealth = 500f;
                 bossHealth.levelSystem = this;
             }
         }
@@ -501,11 +528,15 @@ public class LevelSystem : MonoBehaviour
             if (NavMesh.SamplePosition(spawnPos, out hit, 5f, NavMesh.AllAreas))
                 spawnPos = hit.position;
 
-            GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-            enemy.name = "Enemy_Clone_" + (i + 1);
-            enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
-            if (enemyScript != null)
-                enemyScript.levelSystem = this;
+            GameObject enemyToSpawn = GetRandomEnemyPrefab();
+            if (enemyToSpawn != null)
+            {
+                GameObject enemy = Instantiate(enemyToSpawn, spawnPos, Quaternion.identity);
+                enemy.name = "Enemy_Clone_" + (i + 1);
+                enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
+                if (enemyScript != null)
+                    enemyScript.levelSystem = this;
+            }
 
             yield return new WaitForSeconds(0.3f);
         }

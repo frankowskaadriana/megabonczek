@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.UI;
+using Unity.AI.Navigation;
 
 public class LevelSystem : MonoBehaviour
 {
@@ -21,19 +21,11 @@ public class LevelSystem : MonoBehaviour
     [Header("═══════════════ UI REFERENCES ═══════════════")]
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI enemiesLeftText;
-    public TextMeshProUGUI timerText;
-
-    [Header("═══════════════ PERK SELECTION UI ═══════════════")]
     public GameObject perkSelectionPanel;
-    public Button perkButton1;
-    public Button perkButton2;
-    public Button perkButton3;
     public TextMeshProUGUI perkText1;
     public TextMeshProUGUI perkText2;
     public TextMeshProUGUI perkText3;
-    public TextMeshProUGUI perkDescription1;
-    public TextMeshProUGUI perkDescription2;
-    public TextMeshProUGUI perkDescription3;
+    public TextMeshProUGUI timerText;
 
     [Header("═══════════════ PLAYER REFERENCES ═══════════════")]
     public PlayerHealth playerHealth;
@@ -52,6 +44,9 @@ public class LevelSystem : MonoBehaviour
     public float portalUnlockTime = 1800f;
     public bool isPortalUnlocked = false;
     public PortalTrigger portalTrigger;
+
+    [Header("═══════════════ TIME EVENTS ═══════════════")]
+    public List<TimeEvent> timeEvents = new List<TimeEvent>();
 
     [Header("═══════════════ HORDE EVENT ═══════════════")]
     public bool enableHordeEvent = true;
@@ -114,19 +109,13 @@ public class LevelSystem : MonoBehaviour
 
         CreatePerksList();
         UpdateUI();
+        HidePerkPanel();
 
-        if (perkSelectionPanel != null)
-            perkSelectionPanel.SetActive(false);
-
-        if (perkButton1 != null)
-            perkButton1.onClick.AddListener(() => SelectPerk(0));
-        if (perkButton2 != null)
-            perkButton2.onClick.AddListener(() => SelectPerk(1));
-        if (perkButton3 != null)
-            perkButton3.onClick.AddListener(() => SelectPerk(2));
-
+        // Inicjalizacja timera UI
         if (timerText != null && showTimerInUI)
+        {
             timerText.text = "00:00";
+        }
 
         if (portalObject != null) portalObject.SetActive(false);
 
@@ -163,31 +152,28 @@ public class LevelSystem : MonoBehaviour
     {
         availablePerks.Clear();
 
+<<<<<<< HEAD:Assets/Scripts/LevelSystem.cs
         availablePerks.Add(new Perk("⚔️ Obrażenia +10", "+10 do obrażeń broni", () => {
+=======
+        availablePerks.Add(new Perk("Obrazenia +10", "+10 obrazen", () => {
+>>>>>>> origin/igor:Assets/Scripts/LevelMechanic.cs
             if (weaponUpgrade != null) weaponUpgrade.UpgradeDamage();
-            Debug.Log("Perk: Obrażenia +10");
         }));
-
-        availablePerks.Add(new Perk("📏 Zasięg +0.2m", "Zwiększa zasięg ataku", () => {
+        availablePerks.Add(new Perk("Zasieg +0.2m", "Wiekszy zasieg ataku", () => {
             if (weaponUpgrade != null) weaponUpgrade.UpgradeRange();
-            Debug.Log("Perk: Zasięg +0.2m");
         }));
-
-        availablePerks.Add(new Perk("❤️ Zdrowie +20", "+20 maksymalnego zdrowia", () => {
-            if (playerHealth != null)
-            {
-                playerHealth.AddMaxHealth(20);
-                Debug.Log("Perk: Zdrowie +20. Nowe HP: " + playerHealth.maxHealth);
-            }
+        availablePerks.Add(new Perk("Szybki atak", "Szybsze ataki", () => {
+            if (mountainManAbilities != null) mountainManAbilities.attackRate = Mathf.Max(0.5f, mountainManAbilities.attackRate - 0.1f);
         }));
-
-        availablePerks.Add(new Perk("🔄 Szybki cooldown", "-1s cooldown zdolności", () => {
+        availablePerks.Add(new Perk("Zdrowie +20", "+20 maksymalnego zdrowia", () => {
+            if (playerHealth != null) playerHealth.AddMaxHealth(20);
+        }));
+        availablePerks.Add(new Perk("Szybki cooldown", "-1s cooldown zdolnosci", () => {
             if (weaponUpgrade != null) weaponUpgrade.UpgradeSpecialCooldown();
-            Debug.Log("Perk: Szybki cooldown -1s");
         }));
-
-        availablePerks.Add(new Perk("💥 Mocniejsze obrażenia", "+15 obrażeń zdolności", () => {
+        availablePerks.Add(new Perk("Mocniejsze obrazenia", "+15 obrazen zdolnosci", () => {
             if (weaponUpgrade != null) weaponUpgrade.UpgradeSpecialDamage();
+<<<<<<< HEAD:Assets/Scripts/LevelSystem.cs
             Debug.Log("Perk: Mocniejsze obrażenia +15");
         }));
 
@@ -214,13 +200,13 @@ public class LevelSystem : MonoBehaviour
 
         availablePerks.Add(new Perk("✨ Podwójne obrażenia", "Szansa na podwójne obrażenia", () => {
             Debug.Log("Perk: Szansa na podwójne obrażenia!");
+=======
+>>>>>>> origin/igor:Assets/Scripts/LevelMechanic.cs
         }));
     }
 
     void ShowPerkSelection()
     {
-        Debug.Log("=== WYWOŁANO ShowPerkSelection - POZIOM " + currentLevel + " ===");
-
         isPerkSelectionActive = true;
         Time.timeScale = 0f;
 
@@ -239,32 +225,18 @@ public class LevelSystem : MonoBehaviour
         }
 
         if (perkText1 != null && currentPerks.Count > 0)
-        {
-            perkText1.text = currentPerks[0].name;
-            if (perkDescription1 != null)
-                perkDescription1.text = currentPerks[0].description;
-        }
-
+            perkText1.text = currentPerks[0].name + "\n" + currentPerks[0].description;
         if (perkText2 != null && currentPerks.Count > 1)
-        {
-            perkText2.text = currentPerks[1].name;
-            if (perkDescription2 != null)
-                perkDescription2.text = currentPerks[1].description;
-        }
-
+            perkText2.text = currentPerks[1].name + "\n" + currentPerks[1].description;
         if (perkText3 != null && currentPerks.Count > 2)
-        {
-            perkText3.text = currentPerks[2].name;
-            if (perkDescription3 != null)
-                perkDescription3.text = currentPerks[2].description;
-        }
+            perkText3.text = currentPerks[2].name + "\n" + currentPerks[2].description;
 
         if (perkSelectionPanel != null)
             perkSelectionPanel.SetActive(true);
 
-        Debug.Log("═══════════════ WYBIERZ PERK ═══════════════");
+        Debug.Log("=== WYBIERZ PERK ===");
         for (int i = 0; i < currentPerks.Count; i++)
-            Debug.Log($"{i + 1}. {currentPerks[i].name} - {currentPerks[i].description}");
+            Debug.Log((i + 1) + ": " + currentPerks[i].name);
     }
 
     void HidePerkPanel()
@@ -279,7 +251,7 @@ public class LevelSystem : MonoBehaviour
         if (index < 0 || index >= currentPerks.Count) return;
 
         currentPerks[index].applyPerk();
-        Debug.Log($"✅ WYBRANO PERK: {currentPerks[index].name}");
+        Debug.Log("Wybrano perk: " + currentPerks[index].name);
 
         isPerkSelectionActive = false;
         HidePerkPanel();
@@ -303,10 +275,12 @@ public class LevelSystem : MonoBehaviour
             return;
         }
 
-        if (isTimerRunning)
+        // ========== SYSTEM TIMERA ==========
+        if (isTimerRunning && !isPerkSelectionActive)
         {
             gameTime += Time.deltaTime;
             UpdateTimerUI();
+            CheckTimeEvents();
             CheckPortalUnlock();
             CheckHordeEvent();
             CheckBossEvent();
@@ -328,16 +302,39 @@ public class LevelSystem : MonoBehaviour
         }
     }
 
+    void CheckTimeEvents()
+    {
+        foreach (TimeEvent timeEvent in timeEvents)
+        {
+            if (!timeEvent.isTriggered && gameTime >= timeEvent.triggerTime)
+            {
+                timeEvent.isTriggered = true;
+                timeEvent.onTrigger?.Invoke();
+                Debug.Log("Event czasowy: " + timeEvent.eventName + " aktywowany!");
+            }
+        }
+    }
+
     void CheckPortalUnlock()
     {
         if (!isPortalUnlocked && gameTime >= portalUnlockTime)
         {
-            isPortalUnlocked = true;
-            if (portalObject != null)
-                portalObject.SetActive(true);
-            if (portalTrigger != null)
-                portalTrigger.SetLevelSystem(this);
+            UnlockPortal();
+        }
+    }
+
+    void UnlockPortal()
+    {
+        isPortalUnlocked = true;
+        if (portalObject != null)
+        {
+            portalObject.SetActive(true);
             Debug.Log("Portal odblokowany po " + FormatTime(gameTime) + "!");
+        }
+
+        if (portalTrigger != null)
+        {
+            portalTrigger.SetLevelSystem(this);
         }
     }
 
@@ -468,10 +465,8 @@ public class LevelSystem : MonoBehaviour
         enemiesKilled = 0;
         UpdateUI();
 
-        if (playerHealth != null)
-            playerHealth.LevelUpHealth();
+        if (playerHealth != null) playerHealth.LevelUpHealth();
 
-        Debug.Log("===== LEVEL UP! Poziom " + currentLevel + " =====");
         ShowPerkSelection();
     }
 
@@ -481,8 +476,6 @@ public class LevelSystem : MonoBehaviour
         enemiesAlive--;
         enemiesKilled++;
         currentXP++;
-
-        Debug.Log($"Zabity wróg! {enemiesKilled}/{enemiesToKill} | XP: {currentXP}/{xpRequired}");
 
         if (currentXP >= xpRequired)
         {
@@ -503,8 +496,12 @@ public class LevelSystem : MonoBehaviour
             gameTime = 0f;
             nextHordeTime = firstHordeTime;
 
+            // Ręczne ustawienie timera na starcie
             if (timerText != null && showTimerInUI)
+            {
                 timerText.text = "00:00";
+                Debug.Log("Timer UI zainicjalizowany");
+            }
 
             Debug.Log("Gra rozpoczeta! Timer startuje...");
             StartCoroutine(SpawnEnemies());
@@ -524,10 +521,14 @@ public class LevelSystem : MonoBehaviour
         for (int i = 0; i < enemiesToKill; i++)
         {
             Vector3 spawnPos = center + new Vector3(Random.Range(-3f, 3f), 0, Random.Range(-3f, 3f));
+
             NavMeshHit hit;
             if (NavMesh.SamplePosition(spawnPos, out hit, 5f, NavMesh.AllAreas))
+            {
                 spawnPos = hit.position;
+            }
 
+<<<<<<< HEAD:Assets/Scripts/LevelSystem.cs
             GameObject enemyToSpawn = GetRandomEnemyPrefab();
             if (enemyToSpawn != null)
             {
@@ -537,6 +538,14 @@ public class LevelSystem : MonoBehaviour
                 if (enemyScript != null)
                     enemyScript.levelSystem = this;
             }
+=======
+            GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+            enemy.name = "Enemy_Clone_" + (i + 1);
+
+            enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
+            if (enemyScript != null)
+                enemyScript.levelSystem = this;
+>>>>>>> origin/igor:Assets/Scripts/LevelMechanic.cs
 
             yield return new WaitForSeconds(0.3f);
         }

@@ -1,34 +1,32 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("═══════════════ ENEMY SETTINGS ═══════════════")]
-    public GameObject enemyPrefab;
-    public int maxEnemies = 50;
+    [Header("Enemy Settings")]
+    public GameObject enemyPrefab; // Podepnij prefab przeciwnika
+    public int maxEnemies = 50; // Maksymalna liczba przeciwnik�w na scenie
 
-    [Header("═══════════════ SPAWN SETTINGS ═══════════════")]
-    public float spawnRadius = 8f;        // Maksymalny promień spawnu od gracza
-    public float minSpawnDistance = 5f;   // Minimalna odległość od gracza (NIE SPAWNUJ BLIŻEJ!)
-    public float maxSpawnDistance = 12f;  // Maksymalna odległość od gracza (DODANE)
-    public float spawnInterval = 1.5f;
-    public int enemiesPerSpawn = 1;
+    [Header("Spawn Settings")]
+    public float spawnRadius = 8f; // Promie� spawnu od gracza
+    public float minSpawnDistance = 5f; // Minimalna odleg�o�� od gracza
+    public float spawnInterval = 1.5f; // Czas mi�dzy spawnami
+    public int enemiesPerSpawn = 1; // Ile przeciwnik�w naraz
 
-    [Header("═══════════════ WAVE SETTINGS ═══════════════")]
+    [Header("Wave Settings")]
     public bool waveMode = false;
     public int enemiesPerWave = 10;
     public float timeBetweenWaves = 5f;
 
-    [Header("═══════════════ DIFFICULTY SCALING ═══════════════")]
+    [Header("Difficulty Scaling")]
     public bool scaleWithTime = true;
-    public float maxSpawnInterval = 0.3f;
-    public float scaleTime = 300f;
+    public float maxSpawnInterval = 0.3f; // Minimalny czas mi�dzy spawnami (najtrudniej)
+    public float scaleTime = 300f; // Czas po kt�rym osi�ga max trudno�� (5 minut)
 
-    [Header("═══════════════ SPAWN AREA VISUALIZATION ═══════════════")]
+    [Header("Spawn Area Visualization")]
     public bool showSpawnRadius = true;
     public Color spawnAreaColor = new Color(1, 0, 0, 0.3f);
-    public Color noSpawnZoneColor = new Color(0, 1, 0, 0.3f);
 
     private Transform player;
     private List<GameObject> activeEnemies = new List<GameObject>();
@@ -40,6 +38,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        // Znajd� gracza
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null)
         {
@@ -58,6 +57,7 @@ public class EnemySpawner : MonoBehaviour
     {
         if (player == null) return;
 
+        // Aktualizuj timer gry dla skalowania trudno�ci
         if (scaleWithTime)
         {
             gameTimer += Time.deltaTime;
@@ -65,7 +65,7 @@ public class EnemySpawner : MonoBehaviour
             currentSpawnInterval = Mathf.Lerp(spawnInterval, maxSpawnInterval, t);
         }
 
-        // Odśwież listę aktywnych wrogów
+        // Od�wie� list� aktywnych wrog�w (nowa metoda)
         enemyHealth[] enemies = FindObjectsByType<enemyHealth>(FindObjectsSortMode.None);
         activeEnemies.Clear();
         foreach (var enemy in enemies)
@@ -74,6 +74,7 @@ public class EnemySpawner : MonoBehaviour
                 activeEnemies.Add(enemy.gameObject);
         }
 
+        // Spawnowanie w trybie falowym
         if (waveMode)
         {
             if (!waveInProgress && activeEnemies.Count == 0)
@@ -83,6 +84,7 @@ public class EnemySpawner : MonoBehaviour
         }
         else
         {
+            // Normalny spawn
             if (activeEnemies.Count < maxEnemies)
             {
                 spawnTimer -= Time.deltaTime;
@@ -102,68 +104,30 @@ public class EnemySpawner : MonoBehaviour
             if (activeEnemies.Count >= maxEnemies) break;
 
             Vector3 spawnPosition = GetSpawnPosition();
-
-            // Dodatkowe sprawdzenie czy pozycja nie jest za blisko gracza
-            if (IsPositionTooCloseToPlayer(spawnPosition))
-            {
-                Debug.Log("Pozycja spawnu za blisko gracza! Szukam nowej...");
-                spawnPosition = GetAlternativeSpawnPosition();
-            }
-
             GameObject newEnemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
             activeEnemies.Add(newEnemy);
+
+            // Opcjonalnie: ustaw rodzica dla porz�dku
             newEnemy.transform.parent = transform;
         }
     }
 
     Vector3 GetSpawnPosition()
     {
-        // Losuj kąt (0-360 stopni)
+        // Losuj k�t
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
 
-        // Losuj odległość między minSpawnDistance a maxSpawnDistance
-        float distance = Random.Range(minSpawnDistance, maxSpawnDistance);
+        // Losuj odleg�o�� mi�dzy minSpawnDistance a spawnRadius
+        float distance = Random.Range(minSpawnDistance, spawnRadius);
 
-        // Oblicz pozycję względem gracza
+        // Oblicz pozycj� wzgl�dem gracza
         Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
         Vector3 spawnPos = player.position + offset;
 
-        // Ustaw wysokość na 0 (lub na poziom gracza)
-        spawnPos.y = 0;
+        // Opcjonalnie: dostosuj wysoko�� (je�li gra ma Y jako wysoko��)
+        spawnPos.y = 0; // Lub player.position.y je�li chcesz na wysoko�ci gracza
 
         return spawnPos;
-    }
-
-    // Sprawdza czy pozycja jest za blisko gracza
-    bool IsPositionTooCloseToPlayer(Vector3 position)
-    {
-        float distanceToPlayer = Vector3.Distance(position, player.position);
-        return distanceToPlayer < minSpawnDistance;
-    }
-
-    // Alternatywna pozycja spawnu - próbuje znaleźć bezpieczne miejsce
-    Vector3 GetAlternativeSpawnPosition()
-    {
-        int maxAttempts = 10;
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-            float distance = Random.Range(minSpawnDistance + 1f, maxSpawnDistance);
-            Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
-            Vector3 spawnPos = player.position + offset;
-            spawnPos.y = 0;
-
-            if (!IsPositionTooCloseToPlayer(spawnPos))
-            {
-                return spawnPos;
-            }
-        }
-
-        // Jeśli nie znaleziono, zwróć pozycję na maksymalnym dystansie
-        Vector3 fallbackPos = player.position + (Vector3.forward * maxSpawnDistance);
-        fallbackPos.y = 0;
-        Debug.LogWarning("Nie znaleziono bezpiecznej pozycji spawnu! Użyto domyślnej.");
-        return fallbackPos;
     }
 
     IEnumerator StartWave()
@@ -171,8 +135,9 @@ public class EnemySpawner : MonoBehaviour
         waveInProgress = true;
         currentWave++;
 
-        int enemiesToSpawn = enemiesPerWave + (currentWave / 2);
-        Debug.Log($"Fala {currentWave} rozpoczyna się! {enemiesToSpawn} przeciwników");
+        int enemiesToSpawn = enemiesPerWave + (currentWave / 2); // Z ka�d� fal� wi�cej wrog�w
+
+        Debug.Log($"Fala {currentWave} rozpoczyna si�! {enemiesToSpawn} przeciwnik�w");
 
         for (int i = 0; i < enemiesToSpawn; i++)
         {
@@ -183,55 +148,38 @@ public class EnemySpawner : MonoBehaviour
             }
 
             Vector3 spawnPosition = GetSpawnPosition();
-
-            // Blokada spawnu za blisko gracza w falach
-            if (IsPositionTooCloseToPlayer(spawnPosition))
-            {
-                spawnPosition = GetAlternativeSpawnPosition();
-            }
-
             GameObject newEnemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
             activeEnemies.Add(newEnemy);
             newEnemy.transform.parent = transform;
 
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSeconds(0.2f); // Op�nienie mi�dzy spawnami w fali
         }
 
         waveInProgress = false;
     }
 
+    // R�czne spawnowanie przeciwnika
     public void SpawnSingleEnemy()
     {
         if (enemyPrefab != null && player != null)
         {
             Vector3 spawnPosition = GetSpawnPosition();
-
-            if (IsPositionTooCloseToPlayer(spawnPosition))
-            {
-                spawnPosition = GetAlternativeSpawnPosition();
-            }
-
             GameObject newEnemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
             activeEnemies.Add(newEnemy);
         }
     }
 
+    // Spawnowanie w konkretnej pozycji
     public void SpawnEnemyAtPosition(Vector3 position)
     {
         if (enemyPrefab != null)
         {
-            // Sprawdź czy podana pozycja nie jest za blisko gracza
-            if (player != null && IsPositionTooCloseToPlayer(position))
-            {
-                Debug.LogWarning("Próba spawnu wroga za blisko gracza! Spawn anulowany.");
-                return;
-            }
-
             GameObject newEnemy = Instantiate(enemyPrefab, position, Quaternion.identity);
             activeEnemies.Add(newEnemy);
         }
     }
 
+    // Usu� wszystkich przeciwnik�w
     public void ClearAllEnemies()
     {
         foreach (GameObject enemy in activeEnemies)
@@ -242,42 +190,38 @@ public class EnemySpawner : MonoBehaviour
         activeEnemies.Clear();
     }
 
+    // Zwi�ksz trudno�� r�cznie
     public void IncreaseDifficulty()
     {
         spawnInterval = Mathf.Max(maxSpawnInterval, spawnInterval * 0.9f);
         enemiesPerSpawn++;
-        // Zmniejsz minimalną odległość spawnu wraz z trudnością
-        minSpawnDistance = Mathf.Max(2f, minSpawnDistance * 0.95f);
     }
 
     private void OnDrawGizmosSelected()
     {
         if (showSpawnRadius && player != null)
         {
-            // Zasięg maksymalny spawnu (czerwony)
+            // Rysuj zasi�g spawnu
             Gizmos.color = spawnAreaColor;
-            Gizmos.DrawWireSphere(player.position, maxSpawnDistance);
+            Gizmos.DrawWireSphere(player.position, spawnRadius);
 
-            // Strefa NO SPAWN (zielona) - tu NIE pojawiają się wrogowie
-            Gizmos.color = noSpawnZoneColor;
+            // Rysuj minimaln� odleg�o��
+            Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(player.position, minSpawnDistance);
 
-            // Wypełnij strefę NO SPAWN dla lepszej widoczności
-            Gizmos.color = new Color(0, 1, 0, 0.1f);
-            Gizmos.DrawSphere(player.position, minSpawnDistance);
-
-            // Przykładowe dopuszczalne pozycje spawnu
-            Gizmos.color = Color.yellow;
+            // Rysuj przyk�adowe pozycje spawnu
+            Gizmos.color = Color.red;
             for (int i = 0; i < 8; i++)
             {
                 float angle = i * 45f * Mathf.Deg2Rad;
-                float distance = (minSpawnDistance + maxSpawnDistance) / 2;
+                float distance = (minSpawnDistance + spawnRadius) / 2;
                 Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
                 Gizmos.DrawSphere(player.position + offset, 0.3f);
             }
         }
     }
 
+    // Gettery
     public int GetEnemyCount() => activeEnemies.Count;
     public int GetCurrentWave() => currentWave;
     public float GetCurrentSpawnInterval() => currentSpawnInterval;

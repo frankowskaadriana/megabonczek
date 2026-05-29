@@ -12,12 +12,24 @@ public class enemyHealth : MonoBehaviour
     public float maxHealth = 50f;
     public float currentHealth;
     public float moveSpeed = 3f;
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
     public float damage = 20f;
     public int expReward = 10;
 
     [Header("═══════════════ ATAK ═══════════════")]
     public float attackRange = 1.8f;
     public float attackCooldown = 1f;
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+=======
+>>>>>>> origin/mati
+>>>>>>> Stashed changes
 
     [Header("═══════════════ ATAK DYSTANSOWY (Leszy) ═══════════════")]
     public GameObject projectilePrefab;
@@ -38,6 +50,7 @@ public class enemyHealth : MonoBehaviour
 
     private Transform player;
     private NavMeshAgent agent;
+<<<<<<< HEAD
     private float attackTimer = 0f;
     private float rangedTimer = 0f;
     private float laserTimer = 0f;
@@ -51,6 +64,13 @@ public class enemyHealth : MonoBehaviour
 
         if (levelSystem == null)
             levelSystem = FindFirstObjectByType<LevelSystem>();
+=======
+
+    void Start()
+    {
+        if (levelSystem == null) levelSystem = FindFirstObjectByType<LevelSystem>();
+        if (levelSystem != null) health = 50f + (levelSystem.currentLevel - 1) * 10f;
+>>>>>>> origin/igor
 
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
@@ -60,6 +80,7 @@ public class enemyHealth : MonoBehaviour
         agent.speed = moveSpeed;
         agent.stoppingDistance = attackRange;
 
+<<<<<<< HEAD
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null) originalColor = meshRenderer.material.color;
 
@@ -107,15 +128,32 @@ public class enemyHealth : MonoBehaviour
                 transform.localScale = Vector3.one * 1.8f;
                 break;
         }
+=======
+        if (healthText != null) healthText.text = Mathf.Round(health).ToString();
+>>>>>>> origin/igor
     }
 
     void Update()
     {
+<<<<<<< HEAD
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
 
         if (agent != null && agent.isOnNavMesh && distance > attackRange)
+=======
+        if (player != null && agent != null && agent.isOnNavMesh)
+<<<<<<< Updated upstream
+            agent.SetDestination(player.position);
+
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+            agent.SetDestination(player.position);
+
+=======
+<<<<<<< Updated upstream
+>>>>>>> origin/igor
         {
             agent.SetDestination(player.position);
         }
@@ -133,7 +171,11 @@ public class enemyHealth : MonoBehaviour
                 MeleeAttack();
             }
         }
+=======
+            agent.SetDestination(player.position);
+>>>>>>> Stashed changes
 
+<<<<<<< HEAD
         if (enemyType == EnemyType.Leszy)
         {
             HandleLeszyAttacks(distance);
@@ -143,6 +185,14 @@ public class enemyHealth : MonoBehaviour
             HandleBazyliszekAttacks(distance);
         }
 
+=======
+>>>>>>> Stashed changes
+=======
+            agent.SetDestination(player.position);
+
+>>>>>>> origin/mati
+>>>>>>> Stashed changes
+>>>>>>> origin/igor
         if (healthText != null && Camera.main != null)
         {
             healthText.transform.LookAt(Camera.main.transform);
@@ -150,6 +200,7 @@ public class enemyHealth : MonoBehaviour
         }
     }
 
+<<<<<<< HEAD
     void HandleLeszyAttacks(float distance)
     {
         if (isAttacking) return;
@@ -300,10 +351,18 @@ public class enemyHealth : MonoBehaviour
             yield return new WaitForSeconds(0.1f);
             meshRenderer.material.color = originalColor;
         }
+=======
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+        if (healthText != null) healthText.text = Mathf.Round(health).ToString();
+        if (health <= 0) Die();
+>>>>>>> origin/igor
     }
 
     void Die()
     {
+<<<<<<< HEAD
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
@@ -311,6 +370,9 @@ public class enemyHealth : MonoBehaviour
             levelSystem.EnemyDied();
 
         Debug.Log($"{enemyType} zginął!");
+=======
+        if (levelSystem != null) levelSystem.EnemyDied();
+>>>>>>> origin/igor
         Destroy(gameObject);
     }
 

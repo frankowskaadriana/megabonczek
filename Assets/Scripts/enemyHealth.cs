@@ -7,6 +7,20 @@ public class enemyHealth : MonoBehaviour
     [Header("═══════════════ ENEMY STATS ═══════════════")]
     public float health = 50f;
     public float moveSpeed = 3f;
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+    public float damage = 20f;
+    public float attackCooldown = 1f;
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+=======
+>>>>>>> origin/mati
+>>>>>>> Stashed changes
 
     [Header("═══════════════ REFERENCES ═══════════════")]
     public LevelSystem levelSystem;
@@ -35,8 +49,41 @@ public class enemyHealth : MonoBehaviour
     void Update()
     {
         if (player != null && agent != null && agent.isOnNavMesh)
+<<<<<<< Updated upstream
             agent.SetDestination(player.position);
 
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+            agent.SetDestination(player.position);
+
+=======
+<<<<<<< Updated upstream
+        {
+            agent.SetDestination(player.position);
+
+            // Atakuj gracza gdy blisko
+            float distance = Vector3.Distance(transform.position, player.position);
+            if (distance <= 1.8f)
+            {
+                attackTimer += Time.deltaTime;
+                if (attackTimer >= attackCooldown)
+                {
+                    attackTimer = 0f;
+                    AttackPlayer();
+                }
+            }
+        }
+=======
+            agent.SetDestination(player.position);
+>>>>>>> Stashed changes
+
+>>>>>>> Stashed changes
+=======
+            agent.SetDestination(player.position);
+
+>>>>>>> origin/mati
+>>>>>>> Stashed changes
         if (healthText != null && Camera.main != null)
         {
             healthText.transform.LookAt(Camera.main.transform);

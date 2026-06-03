@@ -24,6 +24,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     [Header("═══════════════ REFERENCES ═══════════════")]
     public PlayerHealth playerHealth;
     public WeaponUpgradeSystem weaponUpgrade;
+    public AbilityVisuals abilityVisuals;  // DODANE - wizualizacje
 
     private float attackTimer = 0f;
     private bool isSpecialOnCooldown = false;
@@ -46,12 +47,15 @@ public class AbilitiesMountainMan : MonoBehaviour
             ultimateDamage = weaponUpgrade.currentUltimateDamage;
         }
 
+        // Dodaj AbilityVisuals jeśli nie ma
+        if (abilityVisuals == null)
+            abilityVisuals = GetComponent<AbilityVisuals>();
+
         Debug.Log("AbilitiesMountainMan zainicjalizowany!");
     }
 
     void Update()
     {
-        // Automatyczny atak
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate)
         {
@@ -59,7 +63,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             PerformBasicAttack();
         }
 
-        // Cooldown dla Gniewu Tatr (Q)
         if (isSpecialOnCooldown)
         {
             specialCooldownTimer -= Time.deltaTime;
@@ -70,7 +73,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             }
         }
 
-        // Cooldown dla Orlego Gromu (R)
         if (isUltimateOnCooldown)
         {
             ultimateCooldownTimer -= Time.deltaTime;
@@ -81,35 +83,29 @@ public class AbilitiesMountainMan : MonoBehaviour
             }
         }
 
-        // Gniew Tatr na Q
         if (Input.GetKeyDown(KeyCode.Q))
         {
             if (!isSpecialOnCooldown)
             {
                 StartCoroutine(PerformSpecial());
             }
-            else
-            {
-                Debug.Log($"Gniew Tatr na cooldownie! Pozostało: {specialCooldownTimer:F1}s");
-            }
         }
 
-        // Orli Grom na R
         if (Input.GetKeyDown(KeyCode.R))
         {
             if (!isUltimateOnCooldown)
             {
                 StartCoroutine(PerformUltimate());
             }
-            else
-            {
-                Debug.Log($"Orli Grom na cooldownie! Pozostało: {ultimateCooldownTimer:F1}s");
-            }
         }
     }
 
     void PerformBasicAttack()
     {
+        // POKAŻ WIZUALIZACJĘ ATAKU
+        if (abilityVisuals != null)
+            abilityVisuals.ShowAttackRange();
+
         Collider[] hits = Physics.OverlapSphere(transform.position, attackRange);
         int hitCount = 0;
 
@@ -140,6 +136,10 @@ public class AbilitiesMountainMan : MonoBehaviour
         isSpecialOnCooldown = true;
         specialCooldownTimer = specialCooldown;
 
+        // POKAŻ WIZUALIZACJĘ ZDOLNOŚCI
+        if (abilityVisuals != null)
+            abilityVisuals.ShowSpecialRange();
+
         if (playerHealth != null)
         {
             playerHealth.Heal(healValue);
@@ -168,6 +168,10 @@ public class AbilitiesMountainMan : MonoBehaviour
         isUltimateOnCooldown = true;
         ultimateCooldownTimer = ultimateDuration;
 
+        // POKAŻ WIZUALIZACJĘ ULTIMATE
+        if (abilityVisuals != null)
+            abilityVisuals.ShowUltimateRange();
+
         float elapsed = 0f;
         float tickTime = 0.5f;
 
@@ -190,134 +194,36 @@ public class AbilitiesMountainMan : MonoBehaviour
         }
     }
 
-    // ============ GIZMO - WIDOCZNE W EDYTORZE ============
-    void OnDrawGizmos()
+    void OnDrawGizmosSelected()
     {
-        // Zasięg ataku ciupagi (czerwony stożek)
-        DrawAttackCone();
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        // Zasięg Gniewu Tatr (żółte koło)
         Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, specialRange);
 
-        // Zasięg Orlego Gromu (niebieskie koło)
         Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, ultimateRadius);
-    }
 
-    void DrawAttackCone()
-    {
+        // Rysuj stożek ataku
         Vector3 center = transform.position;
         Vector3 forward = transform.forward;
         float halfAngle = attackAngle / 2f;
 
-        // Kolor stożka (czerwony)
-        Gizmos.color = new Color(1f, 0f, 0f, 0.4f);
-
-        // Lewa i prawa krawędź
         Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
         Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
 
         Gizmos.DrawRay(center, leftDir * attackRange);
         Gizmos.DrawRay(center, rightDir * attackRange);
 
-        // Rysuj łuk (linia łącząca końce)
-        int segments = 30;
+        int segments = 20;
         Vector3 prevPoint = center + leftDir * attackRange;
-
         for (int i = 1; i <= segments; i++)
         {
             float t = (float)i / segments;
             float angle = -halfAngle + (attackAngle * t);
             Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
             Vector3 point = center + dir * attackRange;
-            Gizmos.DrawLine(prevPoint, point);
-            prevPoint = point;
-        }
-
-        // Rysuj wypełnienie stożka (tylko w edytorze - linie promieniowe)
-        Gizmos.color = new Color(1f, 0f, 0f, 0.15f);
-        prevPoint = center + leftDir * attackRange;
-        for (int i = 1; i <= segments; i++)
-        {
-            float t = (float)i / segments;
-            float angle = -halfAngle + (attackAngle * t);
-            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
-            Vector3 point = center + dir * attackRange;
-            Gizmos.DrawLine(center, point);
-            Gizmos.DrawLine(prevPoint, point);
-            prevPoint = point;
-        }
-
-        // Rysuj linię środkową
-        Gizmos.color = new Color(1f, 0.5f, 0f, 0.8f);
-        Gizmos.DrawRay(center, forward * attackRange);
-    }
-
-    // Rysowanie tylko gdy obiekt zaznaczony (bardziej szczegółowe)
-    void OnDrawGizmosSelected()
-    {
-        // Grubsze linie gdy zaznaczony
-        Vector3 center = transform.position;
-        Vector3 forward = transform.forward;
-        float halfAngle = attackAngle / 2f;
-
-        Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
-
-        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
-        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
-
-        Gizmos.DrawRay(center, leftDir * attackRange);
-        Gizmos.DrawRay(center, rightDir * attackRange);
-        Gizmos.DrawRay(center, forward * attackRange);
-
-        // Rysuj łuk z większą liczbą segmentów
-        int segments = 40;
-        Vector3 prevPoint = center + leftDir * attackRange;
-
-        for (int i = 1; i <= segments; i++)
-        {
-            float t = (float)i / segments;
-            float angle = -halfAngle + (attackAngle * t);
-            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
-            Vector3 point = center + dir * attackRange;
-            Gizmos.DrawLine(prevPoint, point);
-            prevPoint = point;
-        }
-
-        // Informacja tekstowa (przybliżona pozycja)
-        Gizmos.color = Color.white;
-
-        // Zasięg Gniewu Tatr
-        Gizmos.color = new Color(1f, 1f, 0f, 0.6f);
-        Gizmos.DrawWireSphere(center, specialRange);
-
-        // Zasięg Orlego Gromu
-        Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.6f);
-        Gizmos.DrawWireSphere(center, ultimateRadius);
-
-        // Dodatkowe oznaczenie kąta na ziemi (półkole)
-        DrawGroundArc();
-    }
-
-    void DrawGroundArc()
-    {
-        Vector3 center = transform.position;
-        Vector3 forward = transform.forward;
-        float halfAngle = attackAngle / 2f;
-
-        // Rysuj łuk na ziemi (Y=0)
-        center.y = 0.05f;
-        int segments = 30;
-
-        Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-
-        Vector3 prevPoint = center + Quaternion.Euler(0, -halfAngle, 0) * forward * attackRange;
-        for (int i = 1; i <= segments; i++)
-        {
-            float t = (float)i / segments;
-            float angle = -halfAngle + (attackAngle * t);
-            Vector3 point = center + Quaternion.Euler(0, angle, 0) * forward * attackRange;
             Gizmos.DrawLine(prevPoint, point);
             prevPoint = point;
         }

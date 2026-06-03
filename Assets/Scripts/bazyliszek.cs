@@ -3,27 +3,20 @@ using UnityEngine.AI;
 using TMPro;
 using System.Collections;
 
-public class enemyHealth : MonoBehaviour
+public class Bazyliszek : MonoBehaviour
 {
-    [Header("═══════════════ TYP PRZECIWNIKA ═══════════════")]
-    public EnemyType enemyType = EnemyType.Polnocnica;
-
     [Header("═══════════════ STATYSTYKI ═══════════════")]
-    public float maxHealth = 50f;
+    public float maxHealth = 800f;
     public float currentHealth;
-    public float moveSpeed = 3f;
-    public float damage = 20f;
-    public int expReward = 10;
+    public float moveSpeed = 1.5f;
+    public float damage = 50f;
+    public int expReward = 200;
 
     [Header("═══════════════ ATAK WRĘCZ ═══════════════")]
-    public float attackRange = 1.8f;
-    public float attackCooldown = 1f;
+    public float attackRange = 3f;
+    public float attackCooldown = 2f;
 
-    [Header("═══════════════ ODEPCHNIĘCIE PRZECIWNIKA ═══════════════")]
-    public float pushForce = 8f;
-    public float pushUpForce = 1f;
-
-    [Header("═══════════════ ATAK LASEREM (Leszy) ═══════════════")]
+    [Header("═══════════════ ATAK LASEREM ═══════════════")]
     public GameObject laserPrefab;
     public float laserRange = 15f;
     public float laserCooldown = 5f;
@@ -48,7 +41,6 @@ public class enemyHealth : MonoBehaviour
     private bool isCharging = false;
     private MeshRenderer meshRenderer;
     private Color originalColor;
-    private Rigidbody enemyRigidbody;
 
     private Vector3 aimDirection;
     private Vector3 targetPosition;
@@ -62,20 +54,12 @@ public class enemyHealth : MonoBehaviour
             levelSystem = FindFirstObjectByType<LevelSystem>();
 
         GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null)
-            player = playerObj.transform;
+        if (playerObj != null) player = playerObj.transform;
 
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
         agent.stoppingDistance = attackRange;
-
-        // Dodaj Rigidbody do przeciwnika dla odepchnięcia
-        enemyRigidbody = GetComponent<Rigidbody>();
-        if (enemyRigidbody == null)
-            enemyRigidbody = gameObject.AddComponent<Rigidbody>();
-        enemyRigidbody.isKinematic = false;
-        enemyRigidbody.useGravity = false;
 
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null) originalColor = meshRenderer.material.color;
@@ -83,18 +67,17 @@ public class enemyHealth : MonoBehaviour
         if (healthText != null)
         {
             healthText.text = Mathf.Round(currentHealth).ToString();
-            if (enemyType == EnemyType.Leszy)
-                healthText.fontSize = 0.8f;
+            healthText.fontSize = 0.8f;
         }
 
-        ApplyEnemyVisuals();
+        if (meshRenderer != null)
+            meshRenderer.material.color = new Color(0.9f, 0.7f, 0.2f);
 
-        if (enemyType == EnemyType.Leszy)
-        {
-            CreateAimLine();
-        }
+        transform.localScale = Vector3.one * 2f;
 
-        Debug.Log($"{enemyType} pojawił się! HP: {currentHealth}");
+        CreateAimLine();
+
+        Debug.Log("!!! BAZYLISZEK POJAWIŁ SIĘ !!! HP: " + currentHealth);
     }
 
     void CreateAimLine()
@@ -123,63 +106,28 @@ public class enemyHealth : MonoBehaviour
         aimLine.SetPosition(0, startPos);
         aimLine.SetPosition(1, endPos);
 
-        float progress = Mathf.Clamp01(laserTimer / laserCooldown);
+        float progress = laserTimer / laserCooldown;
         aimLine.startColor = Color.Lerp(Color.yellow, Color.red, progress);
         aimLine.endColor = Color.Lerp(Color.yellow, Color.red, progress);
     }
 
-    void ApplyEnemyVisuals()
-    {
-        if (meshRenderer == null) return;
-
-        switch (enemyType)
-        {
-            case EnemyType.Polnocnica:
-                meshRenderer.material.color = new Color(0.6f, 0.3f, 0.8f);
-                expReward = 10;
-                break;
-            case EnemyType.Strzyga:
-                meshRenderer.material.color = new Color(0.5f, 0.2f, 0.1f);
-                expReward = 15;
-                break;
-            case EnemyType.Upior:
-                meshRenderer.material.color = new Color(0.4f, 0.6f, 0.3f);
-                expReward = 20;
-                break;
-            case EnemyType.Leszy:
-                meshRenderer.material.color = new Color(0.2f, 0.7f, 0.2f);
-                transform.localScale = Vector3.one * 1.8f;
-                maxHealth = 600f;
-                currentHealth = 600f;
-                damage = 45f;
-                expReward = 100;
-                break;
-        }
-
-        if (healthText != null)
-            healthText.text = Mathf.Round(currentHealth).ToString();
-    }
-
     void Update()
     {
-        if (player == null || isDead) return;
+        if (player == null || isDead || isCharging) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        if (!isAttacking && !isCharging)
+        if (agent != null && agent.isOnNavMesh && distance > attackRange && !isAttacking)
         {
-            if (agent != null && agent.isOnNavMesh && distance > attackRange)
-            {
-                agent.isStopped = false;
-                agent.SetDestination(player.position);
-            }
-            else if (agent != null && agent.isOnNavMesh)
-            {
-                agent.isStopped = true;
-            }
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+        }
+        else if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
         }
 
-        if (distance <= attackRange && !isAttacking && !isCharging)
+        if (distance <= attackRange && !isAttacking)
         {
             attackTimer += Time.deltaTime;
             if (attackTimer >= attackCooldown)
@@ -189,7 +137,7 @@ public class enemyHealth : MonoBehaviour
             }
         }
 
-        if (enemyType == EnemyType.Leszy && !isAttacking && !isCharging)
+        if (!isAttacking)
         {
             laserTimer += Time.deltaTime;
             if (distance <= laserRange && laserTimer >= laserCooldown)
@@ -214,36 +162,8 @@ public class enemyHealth : MonoBehaviour
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(damage);
-                // ODPYCHANIE PRZECIWNIKA OD GRACZA
-                PushEnemyAway();
+                Debug.Log($"Bazyliszek zadał {damage} obrażeń!");
             }
-        }
-    }
-
-    void PushEnemyAway()
-    {
-        if (player == null || enemyRigidbody == null) return;
-
-        // Kierunek od gracza do przeciwnika (odpychanie od gracza)
-        Vector3 direction = (transform.position - player.position).normalized;
-        direction.y = pushUpForce;
-
-        enemyRigidbody.AddForce(direction * pushForce, ForceMode.Impulse);
-
-        // Krótkie zatrzymanie agenta podczas odepchnięcia
-        if (agent != null)
-        {
-            agent.isStopped = true;
-            StartCoroutine(ResumeAgent());
-        }
-    }
-
-    IEnumerator ResumeAgent()
-    {
-        yield return new WaitForSeconds(0.3f);
-        if (agent != null && !isDead)
-        {
-            agent.isStopped = false;
         }
     }
 
@@ -254,6 +174,8 @@ public class enemyHealth : MonoBehaviour
 
         targetPosition = player.position;
         aimDirection = (targetPosition - transform.position).normalized;
+
+        Debug.Log("Bazyliszek celuje...");
 
         if (aimLine != null)
         {
@@ -271,6 +193,7 @@ public class enemyHealth : MonoBehaviour
         while (chargeTimer < laserChargeTime)
         {
             chargeTimer += Time.deltaTime;
+
             if (aimLine != null) UpdateAimLine();
 
             if (meshRenderer != null)
@@ -294,6 +217,8 @@ public class enemyHealth : MonoBehaviour
 
     void FireLaser()
     {
+        Debug.Log("!!! BAZYLISZEK STRZELA LASEREM !!!");
+
         if (laserPrefab != null)
         {
             GameObject laser = Instantiate(laserPrefab, transform.position + Vector3.up * 1.5f, Quaternion.LookRotation(aimDirection));
@@ -310,7 +235,12 @@ public class enemyHealth : MonoBehaviour
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(laserDamage);
+                Debug.Log($"BAZYLISZEK TRAFIŁ gracza! Obrażenia: {laserDamage}");
             }
+        }
+        else
+        {
+            Debug.Log("Gracz uniknął lasera!");
         }
     }
 
@@ -341,7 +271,6 @@ public class enemyHealth : MonoBehaviour
 
     void Die()
     {
-        if (isDead) return;
         isDead = true;
 
         if (aimLine != null && aimLine.gameObject != null)
@@ -350,13 +279,14 @@ public class enemyHealth : MonoBehaviour
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
-        // DODANIE XP - WYWOŁUJEMY TYLKO RAZ!
         if (levelSystem != null)
         {
             levelSystem.EnemyDied();
-            Debug.Log($"!!! {enemyType} ZGINĄŁ! Dodano {expReward} XP !!!");
+            for (int i = 0; i < 5; i++)
+                levelSystem.EnemyDied();
         }
 
+        Debug.Log("!!! BAZYLISZEK ZGINĄŁ !!!");
         Destroy(gameObject);
     }
 
@@ -365,10 +295,7 @@ public class enemyHealth : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        if (enemyType == EnemyType.Leszy)
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(transform.position, laserRange);
-        }
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, laserRange);
     }
 }

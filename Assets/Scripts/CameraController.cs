@@ -1,22 +1,33 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-    [Header("Camera Settings")]
-    public float distance = 5f;
-    public float height = 2f;
-    public float sensitivity = 2f;
-    public float yMinLimit = -20f;
-    public float yMaxLimit = 80f;
+    [Header("═══════════════ USTAWIENIA KAMERY IZOMETRYCZNEJ ═══════════════")]
+    public Transform target;
+    public float cameraAngle = 45f;
+    public float cameraDistance = 12f;
+    public float cameraHeight = 8f;
+    public float smoothSpeed = 5f;
 
-    private float currentX = 0f;
-    private float currentY = 0f;
-    private Transform target;
+    private Vector3 desiredPosition;
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (target == null)
+        {
+            GameObject player = GameObject.FindWithTag("Player");
+            if (player != null)
+            {
+                target = player.transform;
+                Debug.Log("Camera target ustawiony na: " + target.name);
+            }
+        }
+
+        if (target != null)
+        {
+            UpdateCameraPosition();
+            transform.position = desiredPosition;
+        }
     }
 
     void LateUpdate()
@@ -28,18 +39,19 @@ public class CameraController : MonoBehaviour
             else return;
         }
 
-        currentX += Input.GetAxis("Mouse X") * sensitivity;
-        currentY -= Input.GetAxis("Mouse Y") * sensitivity;
-        currentY = Mathf.Clamp(currentY, yMinLimit, yMaxLimit);
+        UpdateCameraPosition();
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
+        transform.LookAt(target.position + Vector3.up * 1f);
+    }
 
-        target.rotation = Quaternion.Euler(0, currentX, 0);
+    void UpdateCameraPosition()
+    {
+        if (target == null) return;
 
-        Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
-        Vector3 direction = new Vector3(0, height, -distance);
-        Vector3 targetPosition = target.position + rotation * direction;
-
-        transform.position = targetPosition;
-        transform.LookAt(target.position + Vector3.up * (height / 2));
+        Quaternion rotation = Quaternion.Euler(cameraAngle, 0, 0);
+        Vector3 offset = rotation * new Vector3(0, 0, -cameraDistance);
+        desiredPosition = target.position + offset;
+        desiredPosition.y += cameraHeight;
     }
 
     public void SetTarget(Transform newTarget)

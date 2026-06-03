@@ -1,26 +1,22 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerStats : MonoBehaviour
 {
-    [Header("Goral")]
+    [Header("═══════════════ GÓRAL ═══════════════")]
     public float goralHealth = 100f;
     public float goralSpeed = 5f;
 
-    [Header("Seraphim")]
+    [Header("═══════════════ SERAPHIM ═══════════════")]
     public float seraphimHealth = 40f;
     public float seraphimSpeed = 6f;
 
-    [Header("Pasterz")]
+    [Header("═══════════════ PASTERZ ═══════════════")]
     public float pasterzHealth = 50f;
     public float pasterzSpeed = 5.5f;
     public float pasterzArmor = 20f;
 
-    private GameObject currentPlayer;
-
     public void AssignToPlayer(GameObject player)
     {
-        currentPlayer = player;
-
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         PlayerMovement movement = player.GetComponent<PlayerMovement>();
 
@@ -30,19 +26,19 @@ public class PlayerStats : MonoBehaviour
         {
             health.SetBaseHealth(goralHealth, 0);
             movement.maxSpeed = goralSpeed;
-            Debug.Log("Goral: HP=" + goralHealth + ", Speed=" + goralSpeed);
+            Debug.Log($"Goral: HP={goralHealth}, Speed={goralSpeed}");
         }
         else if (player.name.Contains("Seraphim"))
         {
             health.SetBaseHealth(seraphimHealth, 0);
             movement.maxSpeed = seraphimSpeed;
-            Debug.Log("Seraphim: HP=" + seraphimHealth + ", Speed=" + seraphimSpeed);
+            Debug.Log($"Seraphim: HP={seraphimHealth}, Speed={seraphimSpeed}");
         }
         else if (player.name.Contains("Shepherd") || player.name.Contains("Pasterz"))
         {
             health.SetBaseHealth(pasterzHealth, pasterzArmor);
             movement.maxSpeed = pasterzSpeed;
-            Debug.Log("Pasterz: HP=" + pasterzHealth + ", Speed=" + pasterzSpeed + ", Armor=" + pasterzArmor);
+            Debug.Log($"Pasterz: HP={pasterzHealth}, Speed={pasterzSpeed}, Armor={pasterzArmor}");
         }
 
         health.UpdateUI();

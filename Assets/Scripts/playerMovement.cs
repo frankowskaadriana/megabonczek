@@ -1,53 +1,57 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Keybinds")]
-    public KeyCode forwardKey = KeyCode.W;
-    public KeyCode backKey = KeyCode.S;
+    [Header("═══════════════ RUCH ═══════════════")]
+    [SerializeField] private float moveSpeed = 5f;
+
+    [Header("═══════════════ KLAWISZE ═══════════════")]
+    public KeyCode upKey = KeyCode.W;
+    public KeyCode downKey = KeyCode.S;
     public KeyCode leftKey = KeyCode.A;
     public KeyCode rightKey = KeyCode.D;
-    public KeyCode jumpKey = KeyCode.Space;
-    public KeyCode crouchKey = KeyCode.LeftControl;
 
-    [Header("Movement")]
-    public float moveForce = 10f;
-    public float maxSpeed = 5f;
-    public float jumpForce = 5f;
-    public float gravity = -9.81f;
-
-    [Header("Ground Check")]
+    [Header("═══════════════ GROUND CHECK ═══════════════")]
     public Transform groundCheck;
     public float groundDistance = 0.2f;
     public LayerMask groundMask;
 
     private Rigidbody rb;
+    private Vector3 movementDirection;
+    private Camera mainCamera;
     private bool isGrounded;
     private Vector3 startPosition;
+
+    // Publiczna właściwość dla maxSpeed
+    public float maxSpeed
+    {
+        get { return moveSpeed; }
+        set { moveSpeed = value; }
+    }
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
 
-        startPosition = transform.position;
+        rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                         RigidbodyConstraints.FreezeRotationZ |
+                         RigidbodyConstraints.FreezeRotationY;
 
-        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-        Physics.gravity = new Vector3(0, gravity, 0);
+        mainCamera = Camera.main;
+        startPosition = transform.position;
 
         if (groundCheck == null)
         {
-            CreateGroundCheck();
+            GameObject groundCheckObj = new GameObject("GroundCheck");
+            groundCheckObj.transform.SetParent(transform);
+            groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
+            groundCheck = groundCheckObj.transform;
         }
-    }
 
-    void CreateGroundCheck()
-    {
-        GameObject groundCheckObj = new GameObject("GroundCheck");
-        groundCheckObj.transform.SetParent(transform);
-        groundCheckObj.transform.localPosition = new Vector3(0, -0.5f, 0);
-        groundCheck = groundCheckObj.transform;
-        Debug.Log("Automatycznie utworzono GroundCheck dla: " + gameObject.name);
+        // ODBLOKOWANIE MYSZKI - kursor widoczny i nie zablokowany
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     void Update()
@@ -57,57 +61,65 @@ public class PlayerMovement : MonoBehaviour
             isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
         }
 
-        HandleMovement();
+        float horizontal = 0f;
+        float vertical = 0f;
 
-        if (Input.GetKeyDown(jumpKey) && isGrounded)
-        {
-            Jump();
-        }
+        if (Input.GetKey(upKey)) vertical = 1f;
+        if (Input.GetKey(downKey)) vertical = -1f;
+        if (Input.GetKey(rightKey)) horizontal = 1f;
+        if (Input.GetKey(leftKey)) horizontal = -1f;
+
+        // Kierunek ruchu względem kamery
+        Vector3 cameraForward = mainCamera.transform.forward;
+        Vector3 cameraRight = mainCamera.transform.right;
+        cameraForward.y = 0f;
+        cameraRight.y = 0f;
+        cameraForward.Normalize();
+        cameraRight.Normalize();
+
+        movementDirection = (cameraForward * vertical + cameraRight * horizontal).normalized;
+
+        // OBRACANIE POSTACI ZA MYSZKĄ - w stronę kursora
+        RotateToMouse();
 
         if (transform.position.y < -10f)
         {
             ResetPosition();
         }
-
-        HandleCrouch();
     }
 
-    void HandleMovement()
+    void FixedUpdate()
     {
-        float horizontal = 0f;
-        float vertical = 0f;
-
-        if (Input.GetKey(forwardKey)) vertical = 1f;
-        if (Input.GetKey(backKey)) vertical = -1f;
-        if (Input.GetKey(rightKey)) horizontal = 1f;
-        if (Input.GetKey(leftKey)) horizontal = -1f;
-
-        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
-        moveDirection = moveDirection.normalized;
-
-        rb.AddForce(moveDirection * moveForce, ForceMode.Force);
-
-        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        if (horizontalVelocity.magnitude > maxSpeed)
+        if (movementDirection.magnitude > 0.1f)
         {
-            horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
-            rb.linearVelocity = new Vector3(horizontalVelocity.x, rb.linearVelocity.y, horizontalVelocity.z);
+            Vector3 targetVelocity = movementDirection * moveSpeed;
+            rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
         }
-
-        if (moveDirection == Vector3.zero && isGrounded)
+        else
         {
-            rb.linearVelocity = new Vector3(
-                rb.linearVelocity.x * 0.95f,
-                rb.linearVelocity.y,
-                rb.linearVelocity.z * 0.95f
-            );
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         }
     }
 
-    void Jump()
+    void RotateToMouse()
     {
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        // Rzutuj promień z myszki na płaszczyznę ziemi
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            Vector3 hitPoint = ray.GetPoint(distance);
+            Vector3 direction = hitPoint - transform.position;
+            direction.y = 0f;
+
+            if (direction.magnitude > 0.1f)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = targetRotation;
+            }
+        }
     }
 
     void ResetPosition()
@@ -118,16 +130,15 @@ public class PlayerMovement : MonoBehaviour
         Debug.Log("Pozycja gracza zresetowana");
     }
 
-    void HandleCrouch()
+    public void SetGroundCheck(Transform newGroundCheck)
     {
-        if (Input.GetKeyDown(crouchKey))
-        {
-            transform.localScale = new Vector3(1f, 0.5f, 1f);
-        }
-        else if (Input.GetKeyUp(crouchKey))
-        {
-            transform.localScale = new Vector3(1f, 1f, 1f);
-        }
+        groundCheck = newGroundCheck;
+        Debug.Log("GroundCheck ustawiony dla: " + gameObject.name);
+    }
+
+    public void SetMoveSpeed(float newSpeed)
+    {
+        moveSpeed = newSpeed;
     }
 
     void OnDrawGizmosSelected()
@@ -137,12 +148,8 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
-    }
 
-    // DODANA METODA
-    public void SetGroundCheck(Transform newGroundCheck)
-    {
-        groundCheck = newGroundCheck;
-        Debug.Log("GroundCheck ustawiony recznie dla: " + gameObject.name);
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, transform.forward * 2f);
     }
 }

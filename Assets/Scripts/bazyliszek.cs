@@ -6,27 +6,29 @@ using System.Collections;
 public class Bazyliszek : MonoBehaviour
 {
     [Header("═══════════════ STATYSTYKI ═══════════════")]
-    public float maxHealth = 800f;
+    public float maxHealth = 120f;
     public float currentHealth;
-    public float moveSpeed = 1.5f;
-    public float damage = 50f;
-    public int expReward = 200;
+    public float moveSpeed = 2f;
+    public float damage = 25f;
 
     [Header("═══════════════ ATAK WRĘCZ ═══════════════")]
-    public float attackRange = 3f;
-    public float attackCooldown = 2f;
+    public float attackRange = 2f;
+    public float attackCooldown = 1.2f;
 
     [Header("═══════════════ ATAK LASEREM ═══════════════")]
     public GameObject laserPrefab;
-    public float laserRange = 15f;
-    public float laserCooldown = 5f;
-    public float laserDamage = 60f;
-    public float laserChargeTime = 1.5f;
+    public float laserRange = 12f;
+    public float laserCooldown = 3f;
+    public float laserDamage = 35f;
+    public float laserChargeTime = 0.8f;
 
-    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
+    [Header("═══════════════ TRAJEKTORIA ═══════════════")]
+    public LineRenderer trajectoryLine;
+    public Color trajectoryColor = new Color(1f, 0.5f, 0f, 0.8f);
+
+    [Header("═══════════════ EFEKTY ═══════════════")]
     public GameObject deathEffect;
     public GameObject hitEffect;
-    public GameObject chargeEffect;
 
     [Header("═══════════════ REFERENCES ═══════════════")]
     public LevelSystem levelSystem;
@@ -41,17 +43,13 @@ public class Bazyliszek : MonoBehaviour
     private bool isCharging = false;
     private MeshRenderer meshRenderer;
     private Color originalColor;
-
-    private Vector3 aimDirection;
     private Vector3 targetPosition;
-    private LineRenderer aimLine;
+    private AudioManager audioManager;
 
     void Start()
     {
         currentHealth = maxHealth;
-
-        if (levelSystem == null)
-            levelSystem = FindFirstObjectByType<LevelSystem>();
+        levelSystem = FindFirstObjectByType<LevelSystem>();
 
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
@@ -64,51 +62,49 @@ public class Bazyliszek : MonoBehaviour
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null) originalColor = meshRenderer.material.color;
 
-        if (healthText != null)
-        {
-            healthText.text = Mathf.Round(currentHealth).ToString();
-            healthText.fontSize = 0.8f;
-        }
+        if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
+
+        audioManager = AudioManager.Instance;
 
         if (meshRenderer != null)
             meshRenderer.material.color = new Color(0.9f, 0.7f, 0.2f);
 
-        transform.localScale = Vector3.one * 2f;
+        transform.localScale = Vector3.one * 1.2f;
 
-        CreateAimLine();
-
-        Debug.Log("!!! BAZYLISZEK POJAWIŁ SIĘ !!! HP: " + currentHealth);
+        CreateTrajectoryLine();
+        Debug.Log($"🐉 Bazyliszek pojawił się!");
     }
 
-    void CreateAimLine()
+    void CreateTrajectoryLine()
     {
-        GameObject lineObj = new GameObject("AimLine");
-        lineObj.transform.SetParent(transform);
-        lineObj.transform.localPosition = Vector3.zero;
-        aimLine = lineObj.AddComponent<LineRenderer>();
-
-        aimLine.startWidth = 0.1f;
-        aimLine.endWidth = 0.1f;
-        aimLine.positionCount = 2;
-        aimLine.material = new Material(Shader.Find("Sprites/Default"));
-        aimLine.startColor = Color.red;
-        aimLine.endColor = Color.red;
-        aimLine.enabled = false;
+        if (trajectoryLine == null)
+        {
+            GameObject trajObj = new GameObject("TrajectoryLine");
+            trajObj.transform.SetParent(transform);
+            trajectoryLine = trajObj.AddComponent<LineRenderer>();
+        }
+        trajectoryLine.startWidth = 0.1f;
+        trajectoryLine.endWidth = 0.05f;
+        trajectoryLine.positionCount = 2;
+        trajectoryLine.material = new Material(Shader.Find("Sprites/Default"));
+        trajectoryLine.startColor = trajectoryColor;
+        trajectoryLine.endColor = new Color(trajectoryColor.r, trajectoryColor.g, trajectoryColor.b, 0.3f);
+        trajectoryLine.enabled = false;
     }
 
-    void UpdateAimLine()
+    void ShowTrajectory(Vector3 direction)
     {
-        if (aimLine == null || player == null) return;
+        if (trajectoryLine == null) return;
+        Vector3 startPos = transform.position + Vector3.up * 1f;
+        Vector3 endPos = startPos + direction * laserRange;
+        trajectoryLine.SetPosition(0, startPos);
+        trajectoryLine.SetPosition(1, endPos);
+        trajectoryLine.enabled = true;
+    }
 
-        Vector3 startPos = transform.position + Vector3.up * 1.5f;
-        Vector3 endPos = player.position + Vector3.up * 0.5f;
-
-        aimLine.SetPosition(0, startPos);
-        aimLine.SetPosition(1, endPos);
-
-        float progress = laserTimer / laserCooldown;
-        aimLine.startColor = Color.Lerp(Color.yellow, Color.red, progress);
-        aimLine.endColor = Color.Lerp(Color.yellow, Color.red, progress);
+    void HideTrajectory()
+    {
+        if (trajectoryLine != null) trajectoryLine.enabled = false;
     }
 
     void Update()
@@ -118,14 +114,7 @@ public class Bazyliszek : MonoBehaviour
         float distance = Vector3.Distance(transform.position, player.position);
 
         if (agent != null && agent.isOnNavMesh && distance > attackRange && !isAttacking)
-        {
-            agent.isStopped = false;
             agent.SetDestination(player.position);
-        }
-        else if (agent != null && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-        }
 
         if (distance <= attackRange && !isAttacking)
         {
@@ -137,7 +126,7 @@ public class Bazyliszek : MonoBehaviour
             }
         }
 
-        if (!isAttacking)
+        if (!isAttacking && !isCharging && !isDead)
         {
             laserTimer += Time.deltaTime;
             if (distance <= laserRange && laserTimer >= laserCooldown)
@@ -159,11 +148,7 @@ public class Bazyliszek : MonoBehaviour
         if (player != null)
         {
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damage);
-                Debug.Log($"Bazyliszek zadał {damage} obrażeń!");
-            }
+            if (playerHealth != null) playerHealth.TakeDamage(damage);
         }
     }
 
@@ -173,129 +158,59 @@ public class Bazyliszek : MonoBehaviour
         isAttacking = true;
 
         targetPosition = player.position;
-        aimDirection = (targetPosition - transform.position).normalized;
+        Vector3 direction = (targetPosition - transform.position).normalized;
 
-        Debug.Log("Bazyliszek celuje...");
-
-        if (aimLine != null)
-        {
-            aimLine.enabled = true;
-            UpdateAimLine();
-        }
-
-        if (chargeEffect != null)
-            chargeEffect.SetActive(true);
-
-        if (meshRenderer != null)
-            meshRenderer.material.color = Color.Lerp(Color.yellow, Color.red, 0.5f);
+        ShowTrajectory(direction);
 
         float chargeTimer = 0f;
         while (chargeTimer < laserChargeTime)
         {
             chargeTimer += Time.deltaTime;
-
-            if (aimLine != null) UpdateAimLine();
-
-            if (meshRenderer != null)
-            {
-                float intensity = Mathf.PingPong(chargeTimer * 3f, 0.5f) + 0.5f;
-                meshRenderer.material.color = Color.Lerp(Color.yellow, Color.red, intensity);
-            }
-
             yield return null;
         }
 
-        FireLaser();
-
-        if (aimLine != null) aimLine.enabled = false;
-        if (chargeEffect != null) chargeEffect.SetActive(false);
-        if (meshRenderer != null) meshRenderer.material.color = originalColor;
+        HideTrajectory();
+        FireLaser(direction);
 
         isCharging = false;
         isAttacking = false;
     }
 
-    void FireLaser()
+    void FireLaser(Vector3 direction)
     {
-        Debug.Log("!!! BAZYLISZEK STRZELA LASEREM !!!");
-
         if (laserPrefab != null)
         {
-            GameObject laser = Instantiate(laserPrefab, transform.position + Vector3.up * 1.5f, Quaternion.LookRotation(aimDirection));
-            float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
-            laser.transform.localScale = new Vector3(0.3f, 0.3f, distanceToTarget);
+            GameObject laser = Instantiate(laserPrefab, transform.position + Vector3.up * 1f, Quaternion.LookRotation(direction));
+            RaycastHit hit;
+            float distance = laserRange;
+            if (Physics.Raycast(transform.position + Vector3.up * 1f, direction, out hit, laserRange))
+                distance = hit.distance;
+            laser.transform.localScale = new Vector3(0.15f, 0.15f, distance);
             Destroy(laser, 0.3f);
         }
 
-        float distanceToShot = Vector3.Distance(player.position, targetPosition);
-
-        if (distanceToShot < 2f)
+        if (Vector3.Distance(player.position, targetPosition) < 2f)
         {
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(laserDamage);
-                Debug.Log($"BAZYLISZEK TRAFIŁ gracza! Obrażenia: {laserDamage}");
-            }
-        }
-        else
-        {
-            Debug.Log("Gracz uniknął lasera!");
+            if (playerHealth != null) playerHealth.TakeDamage(laserDamage);
         }
     }
 
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
-
         currentHealth -= damageAmount;
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
-
-        StartCoroutine(DamageFlash());
-
-        if (hitEffect != null)
-            Instantiate(hitEffect, transform.position + Vector3.up * 1f, Quaternion.identity);
-
         if (currentHealth <= 0) Die();
-    }
-
-    IEnumerator DamageFlash()
-    {
-        if (meshRenderer != null)
-        {
-            meshRenderer.material.color = Color.white;
-            yield return new WaitForSeconds(0.1f);
-            meshRenderer.material.color = originalColor;
-        }
     }
 
     void Die()
     {
         isDead = true;
-
-        if (aimLine != null && aimLine.gameObject != null)
-            Destroy(aimLine.gameObject);
-
-        if (deathEffect != null)
-            Instantiate(deathEffect, transform.position, Quaternion.identity);
-
-        if (levelSystem != null)
-        {
-            levelSystem.EnemyDied();
-            for (int i = 0; i < 5; i++)
-                levelSystem.EnemyDied();
-        }
-
-        Debug.Log("!!! BAZYLISZEK ZGINĄŁ !!!");
+        if (trajectoryLine != null && trajectoryLine.gameObject != null)
+            Destroy(trajectoryLine.gameObject);
+        if (deathEffect != null) Instantiate(deathEffect, transform.position, Quaternion.identity);
+        if (levelSystem != null) levelSystem.EnemyDied();
         Destroy(gameObject);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, laserRange);
     }
 }

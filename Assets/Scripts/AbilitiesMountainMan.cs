@@ -24,13 +24,14 @@ public class AbilitiesMountainMan : MonoBehaviour
     [Header("═══════════════ REFERENCES ═══════════════")]
     public PlayerHealth playerHealth;
     public WeaponUpgradeSystem weaponUpgrade;
-    public AbilityVisuals abilityVisuals;  // DODANE - wizualizacje
+    public AbilityVisuals abilityVisuals;
 
     private float attackTimer = 0f;
     private bool isSpecialOnCooldown = false;
     private bool isUltimateOnCooldown = false;
     private float specialCooldownTimer = 0f;
     private float ultimateCooldownTimer = 0f;
+    private AudioManager audioManager;
 
     void Start()
     {
@@ -47,10 +48,10 @@ public class AbilitiesMountainMan : MonoBehaviour
             ultimateDamage = weaponUpgrade.currentUltimateDamage;
         }
 
-        // Dodaj AbilityVisuals jeśli nie ma
         if (abilityVisuals == null)
             abilityVisuals = GetComponent<AbilityVisuals>();
 
+        audioManager = AudioManager.Instance;
         Debug.Log("AbilitiesMountainMan zainicjalizowany!");
     }
 
@@ -102,9 +103,10 @@ public class AbilitiesMountainMan : MonoBehaviour
 
     void PerformBasicAttack()
     {
-        // POKAŻ WIZUALIZACJĘ ATAKU
         if (abilityVisuals != null)
             abilityVisuals.ShowAttackRange();
+
+        if (audioManager != null) audioManager.PlayAttack();
 
         Collider[] hits = Physics.OverlapSphere(transform.position, attackRange);
         int hitCount = 0;
@@ -136,9 +138,10 @@ public class AbilitiesMountainMan : MonoBehaviour
         isSpecialOnCooldown = true;
         specialCooldownTimer = specialCooldown;
 
-        // POKAŻ WIZUALIZACJĘ ZDOLNOŚCI
         if (abilityVisuals != null)
             abilityVisuals.ShowSpecialRange();
+
+        if (audioManager != null) audioManager.PlaySpecialAbility();
 
         if (playerHealth != null)
         {
@@ -168,12 +171,12 @@ public class AbilitiesMountainMan : MonoBehaviour
         isUltimateOnCooldown = true;
         ultimateCooldownTimer = ultimateDuration;
 
-        // POKAŻ WIZUALIZACJĘ ULTIMATE
         if (abilityVisuals != null)
             abilityVisuals.ShowUltimateRange();
 
+        if (audioManager != null) audioManager.PlayUltimate();
+
         float elapsed = 0f;
-        float tickTime = 0.5f;
 
         while (elapsed < ultimateDuration)
         {
@@ -191,41 +194,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             }
             elapsed += Time.deltaTime;
             yield return null;
-        }
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
-        Gizmos.DrawWireSphere(transform.position, specialRange);
-
-        Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
-        Gizmos.DrawWireSphere(transform.position, ultimateRadius);
-
-        // Rysuj stożek ataku
-        Vector3 center = transform.position;
-        Vector3 forward = transform.forward;
-        float halfAngle = attackAngle / 2f;
-
-        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
-        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
-
-        Gizmos.DrawRay(center, leftDir * attackRange);
-        Gizmos.DrawRay(center, rightDir * attackRange);
-
-        int segments = 20;
-        Vector3 prevPoint = center + leftDir * attackRange;
-        for (int i = 1; i <= segments; i++)
-        {
-            float t = (float)i / segments;
-            float angle = -halfAngle + (attackAngle * t);
-            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
-            Vector3 point = center + dir * attackRange;
-            Gizmos.DrawLine(prevPoint, point);
-            prevPoint = point;
         }
     }
 }

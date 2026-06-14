@@ -69,7 +69,6 @@ public class ShepherdAbilities : MonoBehaviour
         StartCoroutine(SpawnInitialSheep());
     }
 
-    // DODANA METODA SpawnInitialSheep
     IEnumerator SpawnInitialSheep()
     {
         yield return new WaitForSeconds(0.5f);
@@ -250,13 +249,5 @@ public class ShepherdAbilities : MonoBehaviour
     public void EnableAbilities()
     {
         isEnabled = true;
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, feastRadius);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
     }
 }

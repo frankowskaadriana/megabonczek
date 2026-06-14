@@ -20,39 +20,24 @@ public class enemyHealth : MonoBehaviour
     public float attackCooldown = 1f;
 
     [Header("═══════════════ ODEPCHNIĘCIE PRZECIWNIKA ═══════════════")]
-    public float pushForce = 8f;
-    public float pushUpForce = 1f;
+    public float pushForce = 3f;
+    public float pushUpForce = 0.5f;
+    public float pushRadius = 1.5f;
 
-    [Header("═══════════════ ATAK LASEREM (Leszy) ═══════════════")]
-    public GameObject laserPrefab;
-    public float laserRange = 15f;
-    public float laserCooldown = 5f;
-    public float laserDamage = 60f;
-    public float laserChargeTime = 1.5f;
-
-    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
-    public GameObject deathEffect;
-    public GameObject hitEffect;
-    public GameObject chargeEffect;
-
-    [Header("═══════════════ REFERENCES ═══════════════")]
+    [Header("═══════════════ REFERENCJE ═══════════════")]
     public LevelSystem levelSystem;
     public TextMeshPro healthText;
 
     private Transform player;
     private NavMeshAgent agent;
     private float attackTimer = 0f;
-    private float laserTimer = 0f;
-    private bool isAttacking = false;
     private bool isDead = false;
-    private bool isCharging = false;
     private MeshRenderer meshRenderer;
     private Color originalColor;
     private Rigidbody enemyRigidbody;
-
-    private Vector3 aimDirection;
-    private Vector3 targetPosition;
-    private LineRenderer aimLine;
+    private AudioManager audioManager;
+    private float stuckTimer = 0f;
+    private Vector3 lastPosition;
 
     void Start()
     {
@@ -62,70 +47,33 @@ public class enemyHealth : MonoBehaviour
             levelSystem = FindFirstObjectByType<LevelSystem>();
 
         GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null)
-            player = playerObj.transform;
+        if (playerObj != null) player = playerObj.transform;
 
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
         agent.stoppingDistance = attackRange;
+        agent.autoBraking = false;
+        agent.autoRepath = true;
+        agent.updateRotation = true;
+        agent.updatePosition = true;
+        agent.angularSpeed = 360f;
+        agent.acceleration = 100f;
 
-        // Dodaj Rigidbody do przeciwnika dla odepchnięcia
         enemyRigidbody = GetComponent<Rigidbody>();
-        if (enemyRigidbody == null)
-            enemyRigidbody = gameObject.AddComponent<Rigidbody>();
-        enemyRigidbody.isKinematic = false;
+        if (enemyRigidbody == null) enemyRigidbody = gameObject.AddComponent<Rigidbody>();
+        enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null) originalColor = meshRenderer.material.color;
 
-        if (healthText != null)
-        {
-            healthText.text = Mathf.Round(currentHealth).ToString();
-            if (enemyType == EnemyType.Leszy)
-                healthText.fontSize = 0.8f;
-        }
+        if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
+
+        audioManager = AudioManager.Instance;
+        lastPosition = transform.position;
 
         ApplyEnemyVisuals();
-
-        if (enemyType == EnemyType.Leszy)
-        {
-            CreateAimLine();
-        }
-
-        Debug.Log($"{enemyType} pojawił się! HP: {currentHealth}");
-    }
-
-    void CreateAimLine()
-    {
-        GameObject lineObj = new GameObject("AimLine");
-        lineObj.transform.SetParent(transform);
-        lineObj.transform.localPosition = Vector3.zero;
-        aimLine = lineObj.AddComponent<LineRenderer>();
-
-        aimLine.startWidth = 0.1f;
-        aimLine.endWidth = 0.1f;
-        aimLine.positionCount = 2;
-        aimLine.material = new Material(Shader.Find("Sprites/Default"));
-        aimLine.startColor = Color.red;
-        aimLine.endColor = Color.red;
-        aimLine.enabled = false;
-    }
-
-    void UpdateAimLine()
-    {
-        if (aimLine == null || player == null) return;
-
-        Vector3 startPos = transform.position + Vector3.up * 1.5f;
-        Vector3 endPos = player.position + Vector3.up * 0.5f;
-
-        aimLine.SetPosition(0, startPos);
-        aimLine.SetPosition(1, endPos);
-
-        float progress = Mathf.Clamp01(laserTimer / laserCooldown);
-        aimLine.startColor = Color.Lerp(Color.yellow, Color.red, progress);
-        aimLine.endColor = Color.Lerp(Color.yellow, Color.red, progress);
     }
 
     void ApplyEnemyVisuals()
@@ -149,9 +97,6 @@ public class enemyHealth : MonoBehaviour
             case EnemyType.Leszy:
                 meshRenderer.material.color = new Color(0.2f, 0.7f, 0.2f);
                 transform.localScale = Vector3.one * 1.8f;
-                maxHealth = 600f;
-                currentHealth = 600f;
-                damage = 45f;
                 expReward = 100;
                 break;
         }
@@ -166,36 +111,23 @@ public class enemyHealth : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        if (!isAttacking && !isCharging)
+        if (agent != null && agent.isOnNavMesh)
         {
-            if (agent != null && agent.isOnNavMesh && distance > attackRange)
-            {
+            agent.SetDestination(player.position);
+
+            if (distance > agent.stoppingDistance)
                 agent.isStopped = false;
-                agent.SetDestination(player.position);
-            }
-            else if (agent != null && agent.isOnNavMesh)
-            {
+            else
                 agent.isStopped = true;
-            }
         }
 
-        if (distance <= attackRange && !isAttacking && !isCharging)
+        if (distance <= attackRange)
         {
             attackTimer += Time.deltaTime;
             if (attackTimer >= attackCooldown)
             {
                 attackTimer = 0f;
                 MeleeAttack();
-            }
-        }
-
-        if (enemyType == EnemyType.Leszy && !isAttacking && !isCharging)
-        {
-            laserTimer += Time.deltaTime;
-            if (distance <= laserRange && laserTimer >= laserCooldown)
-            {
-                laserTimer = 0f;
-                StartCoroutine(LaserAttack());
             }
         }
 
@@ -214,102 +146,19 @@ public class enemyHealth : MonoBehaviour
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(damage);
-                // ODPYCHANIE PRZECIWNIKA OD GRACZA
-                PushEnemyAway();
-            }
-        }
-    }
+                if (audioManager != null) audioManager.PlayEnemyAttack();
 
-    void PushEnemyAway()
-    {
-        if (player == null || enemyRigidbody == null) return;
-
-        // Kierunek od gracza do przeciwnika (odpychanie od gracza)
-        Vector3 direction = (transform.position - player.position).normalized;
-        direction.y = pushUpForce;
-
-        enemyRigidbody.AddForce(direction * pushForce, ForceMode.Impulse);
-
-        // Krótkie zatrzymanie agenta podczas odepchnięcia
-        if (agent != null)
-        {
-            agent.isStopped = true;
-            StartCoroutine(ResumeAgent());
-        }
-    }
-
-    IEnumerator ResumeAgent()
-    {
-        yield return new WaitForSeconds(0.3f);
-        if (agent != null && !isDead)
-        {
-            agent.isStopped = false;
-        }
-    }
-
-    IEnumerator LaserAttack()
-    {
-        isCharging = true;
-        isAttacking = true;
-
-        targetPosition = player.position;
-        aimDirection = (targetPosition - transform.position).normalized;
-
-        if (aimLine != null)
-        {
-            aimLine.enabled = true;
-            UpdateAimLine();
-        }
-
-        if (chargeEffect != null)
-            chargeEffect.SetActive(true);
-
-        if (meshRenderer != null)
-            meshRenderer.material.color = Color.Lerp(Color.yellow, Color.red, 0.5f);
-
-        float chargeTimer = 0f;
-        while (chargeTimer < laserChargeTime)
-        {
-            chargeTimer += Time.deltaTime;
-            if (aimLine != null) UpdateAimLine();
-
-            if (meshRenderer != null)
-            {
-                float intensity = Mathf.PingPong(chargeTimer * 3f, 0.5f) + 0.5f;
-                meshRenderer.material.color = Color.Lerp(Color.yellow, Color.red, intensity);
-            }
-
-            yield return null;
-        }
-
-        FireLaser();
-
-        if (aimLine != null) aimLine.enabled = false;
-        if (chargeEffect != null) chargeEffect.SetActive(false);
-        if (meshRenderer != null) meshRenderer.material.color = originalColor;
-
-        isCharging = false;
-        isAttacking = false;
-    }
-
-    void FireLaser()
-    {
-        if (laserPrefab != null)
-        {
-            GameObject laser = Instantiate(laserPrefab, transform.position + Vector3.up * 1.5f, Quaternion.LookRotation(aimDirection));
-            float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
-            laser.transform.localScale = new Vector3(0.3f, 0.3f, distanceToTarget);
-            Destroy(laser, 0.3f);
-        }
-
-        float distanceToShot = Vector3.Distance(player.position, targetPosition);
-
-        if (distanceToShot < 2f)
-        {
-            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(laserDamage);
+                float distance = Vector3.Distance(transform.position, player.position);
+                if (distance < pushRadius)
+                {
+                    Rigidbody playerRb = player.GetComponent<Rigidbody>();
+                    if (playerRb != null)
+                    {
+                        Vector3 direction = (player.position - transform.position).normalized;
+                        direction.y = 0.5f;
+                        playerRb.AddForce(direction * pushForce * 0.5f, ForceMode.Impulse);
+                    }
+                }
             }
         }
     }
@@ -322,9 +171,7 @@ public class enemyHealth : MonoBehaviour
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
 
         StartCoroutine(DamageFlash());
-
-        if (hitEffect != null)
-            Instantiate(hitEffect, transform.position + Vector3.up * 1f, Quaternion.identity);
+        if (audioManager != null) audioManager.PlayEnemyHit();
 
         if (currentHealth <= 0) Die();
     }
@@ -344,31 +191,10 @@ public class enemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        if (aimLine != null && aimLine.gameObject != null)
-            Destroy(aimLine.gameObject);
+        if (audioManager != null) audioManager.PlayEnemyDeath();
 
-        if (deathEffect != null)
-            Instantiate(deathEffect, transform.position, Quaternion.identity);
-
-        // DODANIE XP - WYWOŁUJEMY TYLKO RAZ!
-        if (levelSystem != null)
-        {
-            levelSystem.EnemyDied();
-            Debug.Log($"!!! {enemyType} ZGINĄŁ! Dodano {expReward} XP !!!");
-        }
+        if (levelSystem != null) levelSystem.EnemyDied();
 
         Destroy(gameObject);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        if (enemyType == EnemyType.Leszy)
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(transform.position, laserRange);
-        }
     }
 }

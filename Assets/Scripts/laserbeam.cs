@@ -1,9 +1,11 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LaserBeam : MonoBehaviour
 {
+    [Header("═══════════════ USTAWIENIA LASERA ═══════════════")]
     public float damage = 60f;
     public float lifetime = 0.3f;
+    public Gradient laserGradient;
 
     private LineRenderer lineRenderer;
 
@@ -16,11 +18,17 @@ public class LaserBeam : MonoBehaviour
         lineRenderer.startWidth = 0.2f;
         lineRenderer.endWidth = 0.05f;
         lineRenderer.positionCount = 2;
-        lineRenderer.startColor = Color.red;
-        lineRenderer.endColor = new Color(1f, 0.5f, 0f);
+
+        if (laserGradient != null)
+            lineRenderer.colorGradient = laserGradient;
+        else
+        {
+            lineRenderer.startColor = Color.red;
+            lineRenderer.endColor = new Color(1f, 0.5f, 0f);
+        }
+
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
 
-        // Ustaw pozycje lasera
         lineRenderer.SetPosition(0, Vector3.zero);
         lineRenderer.SetPosition(1, Vector3.forward * transform.localScale.z);
 
@@ -35,7 +43,7 @@ public class LaserBeam : MonoBehaviour
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(damage);
-                Debug.Log($"Laser Leszego trafi� gracza! Obra�enia: {damage}");
+                Debug.Log($"⚡ Laser trafił gracza! Obrażenia: {damage}");
             }
         }
     }

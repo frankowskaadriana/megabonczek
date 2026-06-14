@@ -460,7 +460,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1939083969}
   - {fileID: 287657804}
   m_Father: {fileID: 438458403}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1757,6 +1756,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LaserBeam
   damage: 60
   lifetime: 0.3
+  laserGradient:
+    serializedVersion: 2
+    key0: {r: 1, g: 1, b: 1, a: 1}
+    key1: {r: 1, g: 1, b: 1, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65535
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
 --- !u!114 &321990832
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1775,7 +1804,7 @@ MonoBehaviour:
   damage: 45
   attackRange: 2.5
   attackCooldown: 1.5
-  laserPrefab: {fileID: 0}
+  laserPrefab: {fileID: 1249319675819408284, guid: 966ed929cf9a3f046ba3347cc884323a, type: 3}
   laserRange: 15
   laserCooldown: 4
   laserDamage: 50
@@ -2278,6 +2307,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 854664208}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &869160377 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7597373550420866698, guid: 1f1df0d33409dd0458d2d08370c683c5, type: 3}
+  m_PrefabInstance: {fileID: 5924769846743857492}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &872996539
 GameObject:
   m_ObjectHideFlags: 0
@@ -2392,6 +2426,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 523250210489055454, guid: abdfd2c150d062043b603618cc9734a8, type: 3}
   m_PrefabInstance: {fileID: 6599919913718717792}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &976837301 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5491076625460316094, guid: 75302c37cf684064f823a67c57a7bf64, type: 3}
+  m_PrefabInstance: {fileID: 6316441510220222590}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1167528295
 GameObject:
   m_ObjectHideFlags: 0
@@ -2441,7 +2480,7 @@ MonoBehaviour:
   damage: 30
   fireRate: 0.6
   attackRange: 10
-  bulletPrefab: {fileID: 8178450516018393427, guid: f209297e733f7244c8a7107528c03d14, type: 3}
+  bulletPrefab: {fileID: 3136976628989420765, guid: f03548cb5d915c34f80887cb698bc636, type: 3}
   firePoint: {fileID: 663367817}
   inaccuracyAngle: 5
   maxInaccuracy: 15
@@ -2467,14 +2506,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1905b34ad6a4bf4499744d8769af9d16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AbilityVisuals
-  showDuration: 0.3
+  showDuration: 9999
   attackColor: {r: 1, g: 0, b: 0, a: 0.8}
   specialColor: {r: 1, g: 1, b: 0, a: 0.8}
   ultimateColor: {r: 0, g: 0.5, b: 1, a: 0.8}
   lineWidth: 0.1
   trajectoryLength: 12
   trajectoryPoints: 20
-  firePoint: {fileID: 0}
+  firePoint: {fileID: 663367817}
+--- !u!1 &1202497128 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7206607090242176868, guid: abdfd2c150d062043b603618cc9734a8, type: 3}
+  m_PrefabInstance: {fileID: 6599919913718717792}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1245077731
 GameObject:
   m_ObjectHideFlags: 0
@@ -2841,6 +2885,11 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 6f3d56fd1bf51d846ade4a6b287c832d, type: 2}
   m_BuildHeightMesh: 0
+--- !u!1 &1277495866 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2626547076534365784, guid: 30f48401bbfb0f544a16a5399c175831, type: 3}
+  m_PrefabInstance: {fileID: 4122658201329904589}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1291531060
 GameObject:
   m_ObjectHideFlags: 0
@@ -2955,7 +3004,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 168664447}
-  - {fileID: 1633459821}
   m_Father: {fileID: 438458403}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1291531066
@@ -3343,37 +3391,6 @@ Transform:
   m_Children:
   - {fileID: 3068977}
   m_Father: {fileID: 1167528296}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1633459820
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1633459821}
-  m_Layer: 0
-  m_Name: Check Ground
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1633459821
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633459820}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.01, z: 0}
-  m_LocalScale: {x: 1, y: 1.4702, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1291531065}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1637905823 stripped
 Transform:
@@ -3903,37 +3920,6 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: af6c63ce9004cf34fab353aff34400fe, type: 2}
   m_BuildHeightMesh: 0
---- !u!1 &1939083968
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1939083969}
-  m_Layer: 0
-  m_Name: Check Ground
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1939083969
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1939083968}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.01, z: 0}
-  m_LocalScale: {x: 1, y: 1.4702, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 35802899}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1999696997
 GameObject:
   m_ObjectHideFlags: 0
@@ -4296,8 +4282,8 @@ MonoBehaviour:
   mountainMan: {fileID: 1291531060}
   seraphim: {fileID: 52752797}
   shepherd: {fileID: 35802893}
-  mountainManGroundCheck: {fileID: 1939083969}
-  seraphimGroundCheck: {fileID: 1633459821}
+  mountainManGroundCheck: {fileID: 0}
+  seraphimGroundCheck: {fileID: 0}
   shepherdGroundCheck: {fileID: 0}
   cameraController: {fileID: 105144811}
   levelSystem: {fileID: 2097285950}
@@ -4385,7 +4371,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7465ccbb9381e9f4aab8a9f366752c76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaveSpawner
-  enemyTemplates: []
+  enemyTemplates:
+  - {fileID: 1277495866}
+  - {fileID: 869160377}
+  - {fileID: 1202497128}
+  - {fileID: 976837301}
   baseSpawnDelay: 0.8
   minSpawnDelay: 0.2
   maxEnemiesOnScreen: 30
@@ -4393,7 +4383,7 @@ MonoBehaviour:
   maxSpawnDistance: 12
   difficultyIncreasePerWave: 0.05
   maxEnemiesIncreasePerWave: 2
-  bossTemplate: {fileID: 0}
+  bossTemplate: {fileID: 321990823}
   bossWave: 5
   spawnBossKey: 98
   enemiesContainer: {fileID: 2134442704}
@@ -4999,6 +4989,7 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1648381555}
   - {fileID: 438458403}
   - {fileID: 105144809}
   - {fileID: 184445154}
@@ -5009,5 +5000,4 @@ SceneRoots:
   - {fileID: 758037042}
   - {fileID: 191867996}
   - {fileID: 200048964}
-  - {fileID: 1648381555}
   - {fileID: 2134442704}

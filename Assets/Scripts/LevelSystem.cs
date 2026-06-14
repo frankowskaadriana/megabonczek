@@ -200,7 +200,7 @@ public class LevelSystem : MonoBehaviour
         HidePerkPanel();
 
         Cursor.lockState = previousLockMode;
-        Cursor.visible = false;
+        Cursor.visible = true;
         Time.timeScale = 1f;
     }
 

@@ -7,24 +7,18 @@ public class ShepherdAbilities : MonoBehaviour
     [Header("═══════════════ PASTERZ STATS ═══════════════")]
     public float maxHealth = 50f;
     public float armor = 20f;
-    public float moveSpeed = 5.5f;
 
     [Header("═══════════════ PRZYZYWANIE OWCY ═══════════════")]
     public GameObject sheepPrefab;
-    public int currentSheepCount = 1;
     public int maxSheepCount = 10;
-    public float sheepSpawnCooldown = 45f;
+    public float sheepSpawnCooldown = 3f;
     public float sheepDamage = 20f;
-    public bool sheepCanTakeDamage = false;
-    public float sheepMaxDamage = 30f;
 
-    [Header("═══════════════ SHEEP RESURRECTION (R) ═══════════════")]
+    [Header("═══════════════ ZMARTWYCHWSTANIE (Q) ═══════════════")]
     public float resurrectionCooldown = 45f;
-    public float resurrectionCastTime = 2f;
 
-    [Header("═══════════════ WOLF'S FEAST (T) ═══════════════")]
+    [Header("═══════════════ WILCZA UCZTA (R) ═══════════════")]
     public float feastRadius = 3f;
-    public float feastFormationTime = 1.5f;
     public float feastDamage = 350f;
     public float explosionRadius = 1f;
     public int remainingSheepAfterFeast = 1;
@@ -36,72 +30,75 @@ public class ShepherdAbilities : MonoBehaviour
 
     private List<GameObject> activeSheep = new List<GameObject>();
     private List<GameObject> deadSheep = new List<GameObject>();
-    private float sheepSpawnTimer = 0f;
+    private float spawnTimer = 0f;
     private bool isResurrecting = false;
     private bool isFeasting = false;
-    private float currentResurrectCooldown = 0f;
-    private float currentFeastCooldown = 0f;
-    private bool canSpawnSheep = true;
-    private bool isEnabled = true;
+    private float resurrectCooldownTimer = 0f;
+    private float feastCooldownTimer = 0f;
 
     void Start()
     {
-        if (playerHealth != null)
-        {
-            playerHealth.SetBaseHealth(maxHealth, armor);
-            Debug.Log($"Pasterz: Ustawiono zdrowie na {maxHealth}, pancerz {armor}");
-        }
-        else
-        {
-            Debug.LogError("PlayerHealth nie jest przypisany w ShepherdAbilities!");
-        }
+        Debug.Log("🐑 PASTERZ START");
+        Debug.Log($"✅ SheepPrefab: {(sheepPrefab != null ? sheepPrefab.name : "NULL")}");
 
-        if (weaponUpgrade != null)
+        if (playerHealth != null)
+            playerHealth.SetBaseHealth(maxHealth, armor);
+
+        if (sheepPrefab == null)
         {
-            sheepDamage = weaponUpgrade.currentSheepDamage;
-            sheepSpawnCooldown = weaponUpgrade.currentSheepSpawnCooldown;
-            feastDamage = weaponUpgrade.currentFeastDamage;
-            feastRadius = weaponUpgrade.currentFeastRadius;
+            Debug.LogError("❌ SheepPrefab NIE JEST PRZYPISANY! Przeciągnij SheepVar!");
+            return;
         }
 
         if (spawnPoint == null) spawnPoint = transform;
 
-        StartCoroutine(SpawnInitialSheep());
+        StartCoroutine(SpawnLoop());
     }
 
-    IEnumerator SpawnInitialSheep()
+    IEnumerator SpawnLoop()
     {
+        Debug.Log("🐑 Uruchamiam pętlę spawnu");
+
         yield return new WaitForSeconds(0.5f);
-        for (int i = 0; i < currentSheepCount; i++)
+        SpawnSheep();
+
+        while (true)
         {
-            SpawnSheep();
+            yield return new WaitForSeconds(sheepSpawnCooldown);
+
+            if (!isResurrecting && !isFeasting && activeSheep.Count < maxSheepCount)
+                SpawnSheep();
         }
     }
 
     void Update()
     {
-        if (!isEnabled || isResurrecting || isFeasting) return;
-
-        if (canSpawnSheep && currentSheepCount < maxSheepCount)
+        // TEST: Spawn na K
+        if (Input.GetKeyDown(KeyCode.K))
         {
-            sheepSpawnTimer += Time.deltaTime;
-            if (sheepSpawnTimer >= sheepSpawnCooldown)
-            {
-                sheepSpawnTimer = 0f;
-                SpawnSheep();
-            }
+            Debug.Log("🔴 Ręczny spawn (K)!");
+            SpawnSheep();
         }
 
-        if (currentResurrectCooldown > 0)
-            currentResurrectCooldown -= Time.deltaTime;
+        // TEST: Info na F1
+        if (Input.GetKeyDown(KeyCode.F1))
+        {
+            Debug.Log($"🐑 Owce: {activeSheep.Count}/{maxSheepCount} | Martwe: {deadSheep.Count}");
+            Debug.Log($"   Prefab: {(sheepPrefab != null ? sheepPrefab.name : "NULL")}");
+        }
 
-        if (currentFeastCooldown > 0)
-            currentFeastCooldown -= Time.deltaTime;
+        // Cooldowny
+        if (resurrectCooldownTimer > 0)
+            resurrectCooldownTimer -= Time.deltaTime;
+        if (feastCooldownTimer > 0)
+            feastCooldownTimer -= Time.deltaTime;
 
-        if (Input.GetKeyDown(KeyCode.R) && currentResurrectCooldown <= 0 && !isResurrecting)
+        // ZMARTWYCHWSTANIE (Q)
+        if (Input.GetKeyDown(KeyCode.Q) && resurrectCooldownTimer <= 0 && !isResurrecting)
             StartCoroutine(SheepResurrection());
 
-        if (Input.GetKeyDown(KeyCode.T) && currentFeastCooldown <= 0 && !isFeasting && activeSheep.Count > 0)
+        // WILCZA UCZTA (R)
+        if (Input.GetKeyDown(KeyCode.R) && feastCooldownTimer <= 0 && !isFeasting && activeSheep.Count > 0)
             StartCoroutine(WolfsFeast());
     }
 
@@ -109,23 +106,21 @@ public class ShepherdAbilities : MonoBehaviour
     {
         if (sheepPrefab == null)
         {
-            Debug.LogError("sheepPrefab nie jest przypisany!");
+            Debug.LogError("❌ sheepPrefab NULL!");
             return;
         }
 
-        Vector3 spawnPos = spawnPoint.position + new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
-        GameObject sheep = Instantiate(sheepPrefab, spawnPos, Quaternion.identity);
+        Vector3 pos = spawnPoint.position + new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
+        GameObject sheep = Instantiate(sheepPrefab, pos, Quaternion.identity);
+        sheep.name = $"Sheep_{activeSheep.Count + 1}";
 
-        Sheep sheepScript = sheep.GetComponent<Sheep>();
-        if (sheepScript == null)
-            sheepScript = sheep.AddComponent<Sheep>();
+        Sheep script = sheep.GetComponent<Sheep>();
+        if (script == null) script = sheep.AddComponent<Sheep>();
 
-        sheepScript.Initialize(this, sheepDamage, sheepCanTakeDamage, sheepMaxDamage);
+        script.Initialize(this, sheepDamage, false, 30f);
 
         activeSheep.Add(sheep);
-        currentSheepCount = activeSheep.Count;
-
-        Debug.Log($"Przyzwano owce! Liczba owiec: {currentSheepCount}");
+        Debug.Log($"✅ Owca przyzwana! ({activeSheep.Count}/{maxSheepCount})");
     }
 
     public void SheepDied(GameObject sheep)
@@ -135,51 +130,44 @@ public class ShepherdAbilities : MonoBehaviour
             activeSheep.Remove(sheep);
             deadSheep.Add(sheep);
         }
-        currentSheepCount = activeSheep.Count;
-        Debug.Log($"Owca umarla. Pozostale owce: {currentSheepCount}");
+        Debug.Log($"💀 Owca umarła. Żywych: {activeSheep.Count}, Martwych: {deadSheep.Count}");
     }
 
     IEnumerator SheepResurrection()
     {
         isResurrecting = true;
-        currentResurrectCooldown = resurrectionCooldown;
+        resurrectCooldownTimer = resurrectionCooldown;
 
-        Debug.Log("Zmartwychwstanie owiec - rozkladanie...");
+        Debug.Log("🔄 Zmartwychwstanie...");
 
-        float castTimer = 0f;
-        while (castTimer < resurrectionCastTime)
-        {
-            castTimer += Time.deltaTime;
-            yield return null;
-        }
+        yield return new WaitForSeconds(1f);
 
-        int resurrectedCount = 0;
+        int count = 0;
         foreach (GameObject sheep in deadSheep)
         {
             if (sheep != null)
             {
-                Sheep sheepScript = sheep.GetComponent<Sheep>();
-                if (sheepScript != null)
+                Sheep script = sheep.GetComponent<Sheep>();
+                if (script != null)
                 {
-                    sheepScript.Resurrect();
+                    script.Resurrect();
                     activeSheep.Add(sheep);
-                    resurrectedCount++;
+                    count++;
                 }
             }
         }
 
         deadSheep.Clear();
-        currentSheepCount = activeSheep.Count;
         isResurrecting = false;
-        Debug.Log($"Zmartwychwstalo {resurrectedCount} owiec!");
+        Debug.Log($"✨ Zmartwychwstało {count} owiec!");
     }
 
     IEnumerator WolfsFeast()
     {
         isFeasting = true;
-        currentFeastCooldown = 60f;
+        feastCooldownTimer = 60f;
 
-        Debug.Log("Wilcza Uczta - owce ustawiaja sie w kole...");
+        Debug.Log($"🐺 Wilcza Uczta! ({activeSheep.Count} owiec)");
 
         if (activeSheep.Count == 0)
         {
@@ -187,29 +175,28 @@ public class ShepherdAbilities : MonoBehaviour
             yield break;
         }
 
+        // Ustaw owce w kole
         float angleStep = 360f / activeSheep.Count;
-
         for (int i = 0; i < activeSheep.Count; i++)
         {
             if (activeSheep[i] != null)
             {
                 float angle = angleStep * i;
-                Vector3 pos = transform.position + new Vector3(Mathf.Sin(angle * Mathf.Deg2Rad) * feastRadius, 0, Mathf.Cos(angle * Mathf.Deg2Rad) * feastRadius);
-
-                Sheep sheepScript = activeSheep[i].GetComponent<Sheep>();
-                if (sheepScript != null) sheepScript.SetFormationMode(true);
-
+                Vector3 pos = transform.position + new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * feastRadius,
+                    0,
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * feastRadius
+                );
                 activeSheep[i].transform.position = pos;
+
+                Sheep script = activeSheep[i].GetComponent<Sheep>();
+                if (script != null) script.SetFormationMode(true);
             }
         }
 
-        float formationTimer = 0f;
-        while (formationTimer < feastFormationTime)
-        {
-            formationTimer += Time.deltaTime;
-            yield return null;
-        }
+        yield return new WaitForSeconds(1.5f);
 
+        // Eksplozje
         int totalDamage = 0;
         foreach (GameObject sheep in activeSheep)
         {
@@ -234,20 +221,16 @@ public class ShepherdAbilities : MonoBehaviour
 
         activeSheep.Clear();
 
+        // Zostań z kilkoma owcami
         for (int i = 0; i < remainingSheepAfterFeast; i++)
             SpawnSheep();
 
         isFeasting = false;
-        Debug.Log($"Wilcza Uczta zadala {totalDamage} obrazen!");
+        Debug.Log($"🐺 Wilcza Uczta: {totalDamage} obrażeń!");
     }
 
-    public void DisableAbilities()
-    {
-        isEnabled = false;
-    }
+    public void DisableAbilities() { isEnabled = false; }
+    public void EnableAbilities() { isEnabled = true; }
 
-    public void EnableAbilities()
-    {
-        isEnabled = true;
-    }
+    private bool isEnabled = true;
 }

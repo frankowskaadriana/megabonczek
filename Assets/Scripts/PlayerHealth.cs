@@ -13,9 +13,13 @@ public class PlayerHealth : MonoBehaviour
     public Image healthFill;
     public TextMeshProUGUI healthText;
 
+    private AudioManager audioManager;
+    private SeraphimAnimationController animController;
+
     void Start()
     {
-        // Spróbuj znaleźć UI automatycznie jeśli nie podpięte
+        audioManager = AudioManager.Instance;
+
         if (healthFill == null)
         {
             Canvas canvas = FindFirstObjectByType<Canvas>();
@@ -34,6 +38,11 @@ public class PlayerHealth : MonoBehaviour
             }
         }
 
+        // Znajdź kontroler animacji
+        animController = GetComponent<SeraphimAnimationController>();
+        if (animController == null)
+            animController = GetComponentInChildren<SeraphimAnimationController>();
+
         UpdateUI();
         Debug.Log($"PlayerHealth: {currentHealth}/{maxHealth}");
     }
@@ -51,6 +60,7 @@ public class PlayerHealth : MonoBehaviour
         maxHealth += amount;
         currentHealth = maxHealth;
         UpdateUI();
+        if (audioManager != null) audioManager.PlayHeal();
     }
 
     public void AddArmor(int amount)
@@ -64,6 +74,7 @@ public class PlayerHealth : MonoBehaviour
         maxHealth += 5f;
         currentHealth = maxHealth;
         UpdateUI();
+        if (audioManager != null) audioManager.PlayHeal();
     }
 
     public void TakeDamage(float damage)
@@ -73,6 +84,12 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
         UpdateUI();
 
+        if (audioManager != null) audioManager.PlayDamage();
+
+        // ANIMACJA OBRAŻEŃ
+        if (animController != null)
+            animController.TriggerDamage();
+
         if (currentHealth <= 0f) Die();
     }
 
@@ -81,6 +98,7 @@ public class PlayerHealth : MonoBehaviour
         currentHealth += amount;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
         UpdateUI();
+        if (audioManager != null) audioManager.PlayHeal();
     }
 
     public void UpdateUI()
@@ -95,6 +113,13 @@ public class PlayerHealth : MonoBehaviour
     void Die()
     {
         Debug.Log("Player died!");
+
+        if (audioManager != null) audioManager.PlayDeath();
+
+        // ANIMACJA ŚMIERCI
+        if (animController != null)
+            animController.TriggerDeath();
+
         Time.timeScale = 0f;
         Destroy(gameObject);
     }

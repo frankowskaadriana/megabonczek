@@ -29,6 +29,7 @@ public class SeraphimAbilities : MonoBehaviour
     public PlayerHealth playerHealth;
     public WeaponUpgradeSystem weaponUpgrade;
     public AbilityVisuals abilityVisuals;
+    public SeraphimAnimationController animController;
 
     private float fireTimer = 0f;
     private bool isChargeOnCooldown = false;
@@ -41,6 +42,7 @@ public class SeraphimAbilities : MonoBehaviour
     private Camera mainCamera;
     private AudioManager audioManager;
     private float currentInaccuracy = 0f;
+    private bool isShooting = false;
 
     void Start()
     {
@@ -70,6 +72,14 @@ public class SeraphimAbilities : MonoBehaviour
 
         if (abilityVisuals == null)
             abilityVisuals = GetComponent<AbilityVisuals>();
+
+        // Znajdź kontroler animacji
+        if (animController == null)
+            animController = GetComponent<SeraphimAnimationController>();
+        if (animController == null)
+            animController = GetComponentInChildren<SeraphimAnimationController>();
+        if (animController == null)
+            animController = gameObject.AddComponent<SeraphimAnimationController>();
 
         if (bulletPrefab == null)
         {
@@ -120,7 +130,12 @@ public class SeraphimAbilities : MonoBehaviour
         if (abilityVisuals != null)
             abilityVisuals.ShowAttackRange();
 
-        if (audioManager != null) audioManager.PlayAttack();
+        if (audioManager != null)
+            audioManager.PlayAttack();
+
+        // ANIMACJA STRZAŁU
+        if (animController != null)
+            animController.TriggerShoot();
 
         Vector3 direction = GetAimDirection();
         Vector3 finalDirection = ApplyInaccuracy(direction);
@@ -179,6 +194,10 @@ public class SeraphimAbilities : MonoBehaviour
             audioManager.PlaySpecialAbility();
         }
 
+        // ANIMACJA UMIEJĘTNOŚCI
+        if (animController != null)
+            animController.TriggerAbility();
+
         if (playerMovement != null)
             playerMovement.maxSpeed = originalMoveSpeed * 1.5f;
 
@@ -220,7 +239,12 @@ public class SeraphimAbilities : MonoBehaviour
         if (abilityVisuals != null)
             abilityVisuals.ShowUltimateRange();
 
-        if (audioManager != null) audioManager.PlayUltimate();
+        if (audioManager != null)
+            audioManager.PlayUltimate();
+
+        // ANIMACJA ULTIMATE
+        if (animController != null)
+            animController.TriggerUltimate();
 
         float castTimer = 0f;
         while (castTimer < 5f)

@@ -21,8 +21,9 @@ public class PlayerMovement : MonoBehaviour
     private Camera mainCamera;
     private bool isGrounded;
     private Vector3 startPosition;
+    private AudioManager audioManager;
+    private float footstepTimer = 0f;
 
-    // Publiczna właściwość dla maxSpeed
     public float maxSpeed
     {
         get { return moveSpeed; }
@@ -40,6 +41,7 @@ public class PlayerMovement : MonoBehaviour
 
         mainCamera = Camera.main;
         startPosition = transform.position;
+        audioManager = AudioManager.Instance;
 
         if (groundCheck == null)
         {
@@ -49,7 +51,6 @@ public class PlayerMovement : MonoBehaviour
             groundCheck = groundCheckObj.transform;
         }
 
-        // ODBLOKOWANIE MYSZKI - kursor widoczny i nie zablokowany
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -69,7 +70,6 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(rightKey)) horizontal = 1f;
         if (Input.GetKey(leftKey)) horizontal = -1f;
 
-        // Kierunek ruchu względem kamery
         Vector3 cameraForward = mainCamera.transform.forward;
         Vector3 cameraRight = mainCamera.transform.right;
         cameraForward.y = 0f;
@@ -79,8 +79,22 @@ public class PlayerMovement : MonoBehaviour
 
         movementDirection = (cameraForward * vertical + cameraRight * horizontal).normalized;
 
-        // OBRACANIE POSTACI ZA MYSZKĄ - w stronę kursora
         RotateToMouse();
+
+        // Dźwięki kroków
+        if (movementDirection.magnitude > 0.1f && isGrounded)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer > 0.3f)
+            {
+                footstepTimer = 0f;
+                if (audioManager != null) audioManager.PlayFootstep();
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
 
         if (transform.position.y < -10f)
         {
@@ -103,7 +117,8 @@ public class PlayerMovement : MonoBehaviour
 
     void RotateToMouse()
     {
-        // Rzutuj promień z myszki na płaszczyznę ziemi
+        if (mainCamera == null) return;
+
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, transform.position);
 
@@ -133,12 +148,25 @@ public class PlayerMovement : MonoBehaviour
     public void SetGroundCheck(Transform newGroundCheck)
     {
         groundCheck = newGroundCheck;
-        Debug.Log("GroundCheck ustawiony dla: " + gameObject.name);
     }
 
     public void SetMoveSpeed(float newSpeed)
     {
         moveSpeed = newSpeed;
+    }
+
+    // ========== METODY DLA ANIMACJI ==========
+
+    public Vector3 GetVelocity()
+    {
+        if (rb != null)
+            return rb.linearVelocity;
+        return Vector3.zero;
+    }
+
+    public bool IsGrounded()
+    {
+        return isGrounded;
     }
 
     void OnDrawGizmosSelected()
@@ -148,8 +176,5 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundDistance);
         }
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, transform.forward * 2f);
     }
 }

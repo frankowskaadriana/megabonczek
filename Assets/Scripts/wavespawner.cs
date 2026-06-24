@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class WaveSpawner : MonoBehaviour
 {
-    [Header("═══════════════ LISTA PRZECIWNIKÓW (PODEPNIJ TUTAJ!) ═══════════════")]
+    [Header("═══════════════ LISTA PRZECIWNIKÓW ═══════════════")]
     public List<GameObject> enemyTemplates;
 
     [Header("═══════════════ USTAWIENIA SPAWNU ═══════════════")]
@@ -25,15 +25,15 @@ public class WaveSpawner : MonoBehaviour
     public int bossWave = 5;
     public KeyCode spawnBossKey = KeyCode.B;
 
-    [Header("═══════════════ KONTENER NA WROGÓW ═══════════════")]
+    [Header("═══════════════ KONTENER ═══════════════")]
     public Transform enemiesContainer;
 
     private Transform player;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private float spawnTimer = 0f;
     private float currentSpawnDelay;
-    public int currentMaxEnemies;
-    public int currentWave = 0;
+    private int currentMaxEnemies;
+    private int currentWave = 0;
     private int enemiesSpawnedInWave = 0;
     private int enemiesToSpawnThisWave = 0;
     private bool bossSpawnedThisWave = false;
@@ -108,6 +108,9 @@ public class WaveSpawner : MonoBehaviour
 
                 if (enemiesSpawnedInWave >= enemiesToSpawnThisWave)
                     NextWave();
+
+                if (levelSystem != null)
+                    levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
             }
         }
     }
@@ -126,6 +129,9 @@ public class WaveSpawner : MonoBehaviour
         enemiesToSpawnThisWave = 20 + currentWave * 5;
         bossSpawnedThisWave = false;
         Debug.Log($"🌊 FALA {currentWave}");
+
+        if (levelSystem != null)
+            levelSystem.UpdateUI();
     }
 
     void SpawnBoss()
@@ -149,6 +155,9 @@ public class WaveSpawner : MonoBehaviour
 
         activeEnemies.Add(boss);
         Debug.Log($"👑 BOSS SPAWNOWANY!");
+
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
     public void TestSpawnBoss()
@@ -176,6 +185,9 @@ public class WaveSpawner : MonoBehaviour
 
         activeEnemies.Add(boss);
         Debug.Log($"🧪 TESTOWY BOSS SPAWNOWANY!");
+
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
     void SpawnEnemy()
@@ -211,6 +223,9 @@ public class WaveSpawner : MonoBehaviour
         }
 
         activeEnemies.Add(enemy);
+
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
     Vector3 GetRandomPosition()
@@ -223,19 +238,23 @@ public class WaveSpawner : MonoBehaviour
         return new Vector3(x, 0, z);
     }
 
+    public int GetEnemyCount()
+    {
+        return activeEnemies.Count;
+    }
+
+    public int GetCurrentWave()
+    {
+        return currentWave;
+    }
+
     public void ClearAllEnemies()
     {
         foreach (GameObject enemy in activeEnemies)
             if (enemy != null) Destroy(enemy);
         activeEnemies.Clear();
-    }
 
-    void OnGUI()
-    {
-        GUI.Label(new Rect(10, 10, 300, 25), $"FALA: {currentWave}");
-        GUI.Label(new Rect(10, 35, 300, 25), $"Wrogowie: {activeEnemies.Count}/{currentMaxEnemies}");
-        GUI.Label(new Rect(10, 60, 300, 25), $"Szybkość: co {currentSpawnDelay:F2}s");
-        if (GUI.Button(new Rect(10, 90, 200, 30), "TEST BOSSA (B)"))
-            TestSpawnBoss();
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(0);
     }
 }

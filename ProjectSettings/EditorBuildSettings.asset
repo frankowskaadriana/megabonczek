@@ -6,8 +6,11 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Scenes/jagoda.unity
+    guid: 952aceb8ef490ba4a9ad53b00c7fc2fc
+  - enabled: 1
+    path: Assets/Scenes/Programowanie.unity
+    guid: fcd0d817aa0955c4bbc1875d81f7d2ef
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

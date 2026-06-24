@@ -1508,13 +1508,15 @@ GameObject:
   - component: {fileID: 1641630503}
   - component: {fileID: 1641630505}
   - component: {fileID: 1641630504}
+  - component: {fileID: 1641630506}
+  - component: {fileID: 1641630507}
   m_Layer: 5
   m_Name: menu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1641630503
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1572,6 +1574,46 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1641630502}
   m_CullTransparentMesh: 1
+--- !u!114 &1641630506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1641630502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1037346907f094bb5343189e96bd59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  gameSceneName: Programowanie
+  mainMenuPanel: {fileID: 1641630502}
+  settingsPanel: {fileID: 1534844930}
+  playButton: {fileID: 1567404479}
+  settingsButton: {fileID: 1073831371}
+  quitButton: {fileID: 1266819417}
+  backButton: {fileID: 1266819417}
+  masterVolumeSlider: {fileID: 0}
+  sfxVolumeSlider: {fileID: 0}
+  musicVolumeSlider: {fileID: 0}
+  fullscreenToggle: {fileID: 0}
+  hoverSound: {fileID: 0}
+  clickSound: {fileID: 0}
+  gameStartSound: {fileID: 0}
+  quitSound: {fileID: 0}
+--- !u!114 &1641630507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1641630502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1535b1c0ed825c42aee2d5b32132990, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  sceneName: Programowanie
 --- !u!1 &1700115887
 GameObject:
   m_ObjectHideFlags: 0

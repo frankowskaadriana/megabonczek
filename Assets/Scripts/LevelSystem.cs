@@ -16,6 +16,7 @@ public class LevelSystem : MonoBehaviour
     [Header("═══════════════ UI REFERENCES ═══════════════")]
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI xpText;
+    public Image xpFill;
     public TextMeshProUGUI waveText;
     public TextMeshProUGUI enemiesLeftText;
     public TextMeshProUGUI timerText;
@@ -40,6 +41,9 @@ public class LevelSystem : MonoBehaviour
     private bool gameStarted = false;
     private bool isChoosingPerk = false;
     private CursorLockMode previousCursorState;
+    private float targetXpFill = 0f;
+    private float currentXpFill = 0f;
+    private float smoothSpeed = 5f;
 
     private List<Perk> allPerks = new List<Perk>();
     private List<Perk> currentPerks = new List<Perk>();
@@ -72,6 +76,8 @@ public class LevelSystem : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        targetXpFill = 0f;
+        currentXpFill = 0f;
         UpdateUI();
         Debug.Log("LevelSystem gotowy!");
     }
@@ -82,6 +88,12 @@ public class LevelSystem : MonoBehaviour
 
         gameTime += Time.deltaTime;
         UpdateTimerUI();
+
+        if (xpFill != null)
+        {
+            currentXpFill = Mathf.Lerp(currentXpFill, targetXpFill, Time.deltaTime * smoothSpeed);
+            xpFill.fillAmount = currentXpFill;
+        }
 
         if (isChoosingPerk)
         {
@@ -200,12 +212,15 @@ public class LevelSystem : MonoBehaviour
         if (!gameStarted) return;
 
         currentXP += xpPerEnemy;
+        targetXpFill = (float)currentXP / xpRequired;
 
         if (currentXP >= xpRequired)
         {
             currentXP -= xpRequired;
             xpRequired += 10;
             currentLevel++;
+            targetXpFill = 0f;
+            currentXpFill = 0f;
 
             if (playerHealth != null) playerHealth.LevelUpHealth();
 
@@ -238,22 +253,25 @@ public class LevelSystem : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    void UpdateUI()
+    public void UpdateUI()
     {
         if (levelText != null)
             levelText.text = $"Poziom: {currentLevel}";
 
         if (xpText != null)
-            xpText.text = $"XP: {currentXP}/{xpRequired}";
+            xpText.text = $"{currentXP} / {xpRequired}";
+
+        if (xpFill != null)
+        {
+            targetXpFill = (float)currentXP / xpRequired;
+        }
 
         if (waveSpawner != null && waveText != null)
-            waveText.text = $"Fala: {waveSpawner.currentWave}";
+            waveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
 
         if (enemiesLeftText != null)
         {
-            int enemyCount = 0;
-            if (waveSpawner != null)
-                enemyCount = waveSpawner.GetEnemyCount();
+            int enemyCount = waveSpawner != null ? waveSpawner.GetEnemyCount() : 0;
             enemiesLeftText.text = $"Wrogowie: {enemyCount}";
         }
     }

@@ -4407,8 +4407,11 @@ MonoBehaviour:
   footstepClips: []
   attackClips:
   - {fileID: 8300000, guid: b0484a84494877546817dcfec174fa2c, type: 3}
-  - {fileID: 8300000, guid: 74ac969ce47a5ec47a97b8255b12de1c, type: 3}
-  - {fileID: 8300000, guid: 0803ebc5bc6ddb74e9c3e27094a65fc7, type: 3}
+  - {fileID: 8300000, guid: 1bb39cb3cf250234e877f5c4419a4f90, type: 3}
+  - {fileID: 8300000, guid: b12e2e112b0d2df419e1dbfc5a1929f3, type: 3}
+  - {fileID: 8300000, guid: 44236675485d4bf4ebf66696516fc6eb, type: 3}
+  - {fileID: 8300000, guid: 986140dc11acdbe4bb13cbedf27121cb, type: 3}
+  - {fileID: 8300000, guid: c063a9c627e39fd43bf627bf6cf5d697, type: 3}
   damageClips: []
   deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   healClip: {fileID: 8300000, guid: f7c538247b24639488c5e1f9c0c52a97, type: 3}

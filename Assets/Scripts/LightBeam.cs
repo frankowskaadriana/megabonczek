@@ -1,12 +1,14 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LightBeam : MonoBehaviour
 {
+    [Header("═══════════════ STATYSTYKI POCISKU ═══════════════")]
     public float damage = 30f;
     public float speed = 20f;
     public float lifetime = 3f;
 
     private Rigidbody rb;
+    private bool hasHit = false;
 
     void Start()
     {
@@ -17,40 +19,46 @@ public class LightBeam : MonoBehaviour
         rb.useGravity = false;
         rb.linearVelocity = transform.forward * speed;
 
-        // Dodaj kolider jako trigger
         SphereCollider collider = GetComponent<SphereCollider>();
         if (collider == null)
         {
             collider = gameObject.AddComponent<SphereCollider>();
-            collider.isTrigger = true;  // TRIGGER - nie odpycha!
+            collider.isTrigger = true;
             collider.radius = 0.3f;
         }
         else
         {
-            collider.isTrigger = true;  // Upewnij si� �e to trigger
+            collider.isTrigger = true;
         }
 
-        // Zniszcz po czasie
         Destroy(gameObject, lifetime);
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // TYLKO wr�g - zniszcz pocisk po trafieniu
+        if (hasHit) return;
+
+        // Trafienie w wroga
         if (other.CompareTag("Enemy"))
         {
             enemyHealth enemy = other.GetComponent<enemyHealth>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
-                Debug.Log($"LightBeam trafi� wroga! Obra�enia: {damage}");
+                Debug.Log($"💥 LightBeam trafił wroga! Obrażenia: {damage}");
+                hasHit = true;
             }
             Destroy(gameObject);
         }
-        // Zniszcz przy kolizji z czymkolwiek innym (opr�cz gracza i owiec)
+        // Trafienie w ścianę lub przeszkodę
         else if (!other.CompareTag("Player") && !other.CompareTag("Sheep"))
         {
             Destroy(gameObject);
         }
+    }
+
+    public void SetDamage(float newDamage)
+    {
+        damage = newDamage;
     }
 }

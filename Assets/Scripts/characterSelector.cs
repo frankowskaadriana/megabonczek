@@ -67,27 +67,24 @@ public class CharacterSelector : MonoBehaviour
         {
             if (name == "Goral")
             {
-                AbilitiesMountainMan abilities = currentCharacter.GetComponent<AbilitiesMountainMan>();
-                if (abilities == null) abilities = currentCharacter.AddComponent<AbilitiesMountainMan>();
-                levelSystem.mountainManAbilities = abilities;
+                if (currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
+                    currentCharacter.AddComponent<AbilitiesMountainMan>();
             }
             else if (name == "Seraphim")
             {
-                SeraphimAbilities abilities = currentCharacter.GetComponent<SeraphimAbilities>();
-                if (abilities == null) abilities = currentCharacter.AddComponent<SeraphimAbilities>();
-                levelSystem.seraphimAbilities = abilities;
+                if (currentCharacter.GetComponent<SeraphimAbilities>() == null)
+                    currentCharacter.AddComponent<SeraphimAbilities>();
             }
             else if (name == "Pasterz")
             {
-                ShepherdAbilities abilities = currentCharacter.GetComponent<ShepherdAbilities>();
-                if (abilities == null) abilities = currentCharacter.AddComponent<ShepherdAbilities>();
-                levelSystem.shepherdAbilities = abilities;
+                if (currentCharacter.GetComponent<ShepherdAbilities>() == null)
+                    currentCharacter.AddComponent<ShepherdAbilities>();
             }
 
-            levelSystem.playerHealth = currentCharacter.GetComponent<PlayerHealth>();
-            if (levelSystem.playerHealth == null)
-                levelSystem.playerHealth = currentCharacter.AddComponent<PlayerHealth>();
+            if (currentCharacter.GetComponent<PlayerHealth>() == null)
+                currentCharacter.AddComponent<PlayerHealth>();
 
+            levelSystem.playerHealth = currentCharacter.GetComponent<PlayerHealth>();
             levelSystem.StartGame();
         }
 

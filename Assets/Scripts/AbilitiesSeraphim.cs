@@ -10,6 +10,11 @@ public class SeraphimAbilities : MonoBehaviour
     public GameObject bulletPrefab;
     public Transform firePoint;
 
+    [Header("═══════════════ INACCURACY (NIECELNOŚĆ) ═══════════════")]
+    public float inaccuracyAngle = 5f;
+    public float maxInaccuracy = 15f;
+    public float inaccuracyRecoveryRate = 2f;
+
     [Header("═══════════════ Heavenly Charge (Q) ═══════════════")]
     public float chargeDamage = 60f;
     public float chargeCooldown = 15f;
@@ -24,6 +29,7 @@ public class SeraphimAbilities : MonoBehaviour
     public PlayerHealth playerHealth;
     public WeaponUpgradeSystem weaponUpgrade;
     public AbilityVisuals abilityVisuals;
+    public SeraphimAnimationController animController;
 
     private float fireTimer = 0f;
     private bool isChargeOnCooldown = false;
@@ -34,6 +40,9 @@ public class SeraphimAbilities : MonoBehaviour
     private bool isCastingJudgment = false;
     private PlayerMovement playerMovement;
     private Camera mainCamera;
+    private AudioManager audioManager;
+    private float currentInaccuracy = 0f;
+    private bool isShooting = false;
 
     void Start()
     {
@@ -42,6 +51,7 @@ public class SeraphimAbilities : MonoBehaviour
             originalMoveSpeed = playerMovement.maxSpeed;
 
         mainCamera = Camera.main;
+        audioManager = AudioManager.Instance;
 
         if (playerHealth != null)
         {
@@ -63,19 +73,28 @@ public class SeraphimAbilities : MonoBehaviour
         if (abilityVisuals == null)
             abilityVisuals = GetComponent<AbilityVisuals>();
 
+        // Znajdź kontroler animacji
+        if (animController == null)
+            animController = GetComponent<SeraphimAnimationController>();
+        if (animController == null)
+            animController = GetComponentInChildren<SeraphimAnimationController>();
+        if (animController == null)
+            animController = gameObject.AddComponent<SeraphimAnimationController>();
+
         if (bulletPrefab == null)
         {
-            Debug.LogError("❌ BULLET PREFAB NIE JEST PRZYPISANY! Stwórz prostą kulę i przeciągnij!");
+            Debug.LogError("❌ BULLET PREFAB NIE JEST PRZYPISANY!");
         }
 
-        Debug.Log("Seraphim gotowy! Atak co " + fireRate + "s");
+        Debug.Log("Seraphim gotowy!");
     }
 
     void Update()
     {
         if (isCastingJudgment) return;
 
-        // Automatyczny atak
+        currentInaccuracy = Mathf.Max(0, currentInaccuracy - inaccuracyRecoveryRate * Time.deltaTime);
+
         fireTimer += Time.deltaTime;
         if (fireTimer >= fireRate)
         {
@@ -83,33 +102,21 @@ public class SeraphimAbilities : MonoBehaviour
             Shoot();
         }
 
-        // Cooldown dla Heavenly Charge
         if (isChargeOnCooldown)
         {
             chargeCooldownTimer -= Time.deltaTime;
-            if (chargeCooldownTimer <= 0)
-            {
-                isChargeOnCooldown = false;
-                Debug.Log("Heavenly Charge gotowe!");
-            }
+            if (chargeCooldownTimer <= 0) isChargeOnCooldown = false;
         }
 
-        // Cooldown dla Divine Judgment
         if (isJudgmentOnCooldown)
         {
             judgmentCooldownTimer -= Time.deltaTime;
-            if (judgmentCooldownTimer <= 0)
-            {
-                isJudgmentOnCooldown = false;
-                Debug.Log("Divine Judgment gotowe!");
-            }
+            if (judgmentCooldownTimer <= 0) isJudgmentOnCooldown = false;
         }
 
-        // Heavenly Charge na Q
         if (Input.GetKeyDown(KeyCode.Q) && !isChargeOnCooldown && !isCastingJudgment)
             StartCoroutine(HeavenlyCharge());
 
-        // Divine Judgment na R
         if (Input.GetKeyDown(KeyCode.R) && !isJudgmentOnCooldown && !isCastingJudgment)
             StartCoroutine(DivineJudgment());
     }
@@ -118,17 +125,23 @@ public class SeraphimAbilities : MonoBehaviour
     {
         if (bulletPrefab == null) return;
 
-        // Pokaż linię trajektorii
+        currentInaccuracy = Mathf.Min(maxInaccuracy, currentInaccuracy + inaccuracyAngle);
+
         if (abilityVisuals != null)
             abilityVisuals.ShowAttackRange();
 
-        // Oblicz kierunek do kursora
+        if (audioManager != null)
+            audioManager.PlayAttack();
+
+        // ANIMACJA STRZAŁU
+        if (animController != null)
+            animController.TriggerShoot();
+
         Vector3 direction = GetAimDirection();
+        Vector3 finalDirection = ApplyInaccuracy(direction);
 
-        // Stwórz pocisk
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(direction));
+        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(finalDirection));
 
-        // Ustaw obrażenia
         LightBeam beam = bullet.GetComponent<LightBeam>();
         if (beam != null)
             beam.damage = damage;
@@ -154,20 +167,40 @@ public class SeraphimAbilities : MonoBehaviour
         return transform.forward;
     }
 
+    Vector3 ApplyInaccuracy(Vector3 direction)
+    {
+        if (currentInaccuracy <= 0) return direction;
+
+        float randomAngle = Random.Range(0f, 360f);
+        float randomOffset = Random.Range(0f, currentInaccuracy);
+
+        Vector3 horizontalOffset = Quaternion.Euler(0, randomAngle, 0) * Vector3.right * randomOffset;
+        Vector3 finalDirection = direction + (horizontalOffset * 0.01f);
+
+        return finalDirection.normalized;
+    }
+
     IEnumerator HeavenlyCharge()
     {
         isChargeOnCooldown = true;
         chargeCooldownTimer = chargeCooldown;
 
-        // Pokaż wizualizację
         if (abilityVisuals != null)
             abilityVisuals.ShowSpecialRange();
 
-        // Zwiększ prędkość
+        if (audioManager != null)
+        {
+            audioManager.PlayCharge();
+            audioManager.PlaySpecialAbility();
+        }
+
+        // ANIMACJA UMIEJĘTNOŚCI
+        if (animController != null)
+            animController.TriggerAbility();
+
         if (playerMovement != null)
             playerMovement.maxSpeed = originalMoveSpeed * 1.5f;
 
-        // Szarża
         float elapsed = 0f;
         Vector3 startPos = transform.position;
         Vector3 endPos = transform.position + transform.forward * chargeRange;
@@ -177,15 +210,13 @@ public class SeraphimAbilities : MonoBehaviour
             float t = elapsed / chargeDuration;
             transform.position = Vector3.Lerp(startPos, endPos, t);
 
-            // Zadaj obrażenia wrogom w zasięgu
             Collider[] enemies = Physics.OverlapSphere(transform.position, 2f);
             foreach (Collider enemy in enemies)
             {
                 if (enemy.CompareTag("Enemy"))
                 {
                     enemyHealth e = enemy.GetComponent<enemyHealth>();
-                    if (e != null)
-                        e.TakeDamage(chargeDamage);
+                    if (e != null) e.TakeDamage(chargeDamage);
                 }
             }
 
@@ -193,7 +224,6 @@ public class SeraphimAbilities : MonoBehaviour
             yield return null;
         }
 
-        // Przywróć prędkość
         if (playerMovement != null)
             playerMovement.maxSpeed = originalMoveSpeed;
 
@@ -206,11 +236,16 @@ public class SeraphimAbilities : MonoBehaviour
         isCastingJudgment = true;
         judgmentCooldownTimer = 60f;
 
-        // Pokaż wizualizację
         if (abilityVisuals != null)
             abilityVisuals.ShowUltimateRange();
 
-        // Czas ładowania 5 sekund
+        if (audioManager != null)
+            audioManager.PlayUltimate();
+
+        // ANIMACJA ULTIMATE
+        if (animController != null)
+            animController.TriggerUltimate();
+
         float castTimer = 0f;
         while (castTimer < 5f)
         {
@@ -218,7 +253,6 @@ public class SeraphimAbilities : MonoBehaviour
             yield return null;
         }
 
-        // One-shot w promieniu
         Collider[] enemies = Physics.OverlapSphere(transform.position, judgmentRadius);
         int hitCount = 0;
 
@@ -235,7 +269,6 @@ public class SeraphimAbilities : MonoBehaviour
             }
         }
 
-        // Unieruchomienie na 2 sekundy
         if (playerMovement != null)
         {
             float originalSpeed = playerMovement.maxSpeed;
@@ -246,17 +279,5 @@ public class SeraphimAbilities : MonoBehaviour
 
         isCastingJudgment = false;
         Debug.Log($"Boski Osad zabił {hitCount} wrogów!");
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, chargeRange);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, judgmentRadius);
     }
 }

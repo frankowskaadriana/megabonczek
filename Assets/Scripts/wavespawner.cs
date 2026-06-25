@@ -4,313 +4,257 @@ using System.Collections.Generic;
 
 public class WaveSpawner : MonoBehaviour
 {
-    [Header("═══════════════ USTAWIENIA FAL ═══════════════")]
-    public int currentWave = 0;
-    public int enemiesPerWave = 5;
-    public float timeBetweenWaves = 5f;
-    public float timeBetweenSpawns = 0.5f;
+    [Header("═══════════════ LISTA PRZECIWNIKÓW ═══════════════")]
+    public List<GameObject> enemyTemplates;
 
-    [Header("═══════════════ SPAWN USTAWIENIA ═══════════════")]
-    public List<GameObject> enemyPrefabs;
-    public float spawnRadius = 12f;
-    public float minSpawnDistance = 8f;
+    [Header("═══════════════ USTAWIENIA SPAWNU ═══════════════")]
+    public float baseSpawnDelay = 0.8f;
+    public float minSpawnDelay = 0.2f;
+    public int maxEnemiesOnScreen = 30;
+
+    [Header("═══════════════ PROMIEŃ SPAWNU ═══════════════")]
+    public float minSpawnDistance = 6f;
+    public float maxSpawnDistance = 12f;
 
     [Header("═══════════════ SKALOWANIE TRUDNOŚCI ═══════════════")]
-    public int enemiesIncreasePerWave = 2;
-    public float spawnDelayDecreasePerWave = 0.05f;
-    public float minSpawnDelay = 0.2f;
+    public float difficultyIncreasePerWave = 0.05f;
+    public int maxEnemiesIncreasePerWave = 2;
 
-    [Header("═══════════════ USTAWIENIA BOSSA ═══════════════")]
-    public bool enableBoss = true;
-    public int bossWave = 5;           // Która fala pojawia się boss
-    public GameObject bossPrefab;      // Prefab bossa (Leszy)
-    public float bossHealthMultiplier = 3f;
-    public float bossDamageMultiplier = 2f;
+    [Header("═══════════════ BOSS ═══════════════")]
+    public GameObject bossTemplate;
+    public int bossWave = 5;
+    public KeyCode spawnBossKey = KeyCode.B;
 
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public LevelSystem levelSystem;
-    public Camera mainCamera;
+    [Header("═══════════════ KONTENER ═══════════════")]
+    public Transform enemiesContainer;
 
+    private Transform player;
     private List<GameObject> activeEnemies = new List<GameObject>();
-    private bool isSpawning = false;
-    private bool waveInProgress = false;
-    private bool isBossWave = false;
-    private float waveTimer = 0f;
-    private float cameraMargin = 2f;
+    private float spawnTimer = 0f;
+    private float currentSpawnDelay;
+    private int currentMaxEnemies;
+    private int currentWave = 0;
+    private int enemiesSpawnedInWave = 0;
+    private int enemiesToSpawnThisWave = 0;
+    private bool bossSpawnedThisWave = false;
+    private LevelSystem levelSystem;
 
     void Start()
     {
-        if (levelSystem == null)
-            levelSystem = FindFirstObjectByType<LevelSystem>();
+        Debug.Log("=== PŁYNNY WAVESPAWNER START ===");
 
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        levelSystem = FindFirstObjectByType<LevelSystem>();
 
-        StartNewWave();
+        if (enemyTemplates == null || enemyTemplates.Count == 0)
+        {
+            Debug.LogError("❌ BRAK PRZECIWNIKÓW! Przeciągnij przeciwników z hierarchii!");
+            return;
+        }
+
+        foreach (var enemy in enemyTemplates)
+        {
+            if (enemy != null)
+                Debug.Log($"✅ Podpięto: {enemy.name}");
+        }
+
+        if (bossTemplate != null)
+            Debug.Log($"✅ Boss podpięty: {bossTemplate.name}");
+
+        currentWave = 0;
+        currentSpawnDelay = baseSpawnDelay;
+        currentMaxEnemies = maxEnemiesOnScreen / 2;
+        enemiesToSpawnThisWave = 20;
+
+        Debug.Log($"🌊 Rozpoczynanie gry!");
     }
 
     void Update()
     {
-        if (waveInProgress)
+        if (Input.GetKeyDown(spawnBossKey))
+            TestSpawnBoss();
+
+        if (player == null)
         {
-            // Usuń martwych przeciwników z listy
-            for (int i = activeEnemies.Count - 1; i >= 0; i--)
-            {
-                if (activeEnemies[i] == null)
-                    activeEnemies.RemoveAt(i);
-            }
+            GameObject p = GameObject.FindWithTag("Player");
+            if (p != null) player = p.transform;
+            else return;
+        }
 
-            // Sprawdź czy fala się skończyła
-            if (activeEnemies.Count == 0 && !isSpawning)
-            {
-                waveInProgress = false;
-                waveTimer = timeBetweenWaves;
+        for (int i = activeEnemies.Count - 1; i >= 0; i--)
+        {
+            if (activeEnemies[i] == null)
+                activeEnemies.RemoveAt(i);
+        }
 
-                if (isBossWave)
+        UpdateDifficulty();
+
+        if (activeEnemies.Count < currentMaxEnemies && enemyTemplates.Count > 0)
+        {
+            spawnTimer += Time.deltaTime;
+            if (spawnTimer >= currentSpawnDelay)
+            {
+                spawnTimer = 0f;
+
+                if (!bossSpawnedThisWave && currentWave > 0 && currentWave % bossWave == 0 && bossTemplate != null)
                 {
-                    Debug.Log($"Boss pokonany! Fala {currentWave} zakończona!");
-                    isBossWave = false;
+                    SpawnBoss();
+                    bossSpawnedThisWave = true;
                 }
                 else
                 {
-                    Debug.Log($"Fala {currentWave} zakończona! Następna fala za {timeBetweenWaves} sekund");
+                    SpawnEnemy();
+                    enemiesSpawnedInWave++;
                 }
-            }
-        }
-        else
-        {
-            if (waveTimer > 0)
-            {
-                waveTimer -= Time.deltaTime;
-                if (waveTimer <= 0)
-                {
-                    StartNewWave();
-                }
+
+                if (enemiesSpawnedInWave >= enemiesToSpawnThisWave)
+                    NextWave();
+
+                if (levelSystem != null)
+                    levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
             }
         }
     }
 
-    void StartNewWave()
+    void UpdateDifficulty()
+    {
+        float difficulty = Mathf.Pow(1 + difficultyIncreasePerWave, currentWave);
+        currentSpawnDelay = Mathf.Max(minSpawnDelay, baseSpawnDelay / difficulty);
+        currentMaxEnemies = Mathf.Min(maxEnemiesOnScreen, (int)((maxEnemiesOnScreen / 2) + currentWave * maxEnemiesIncreasePerWave));
+    }
+
+    void NextWave()
     {
         currentWave++;
+        enemiesSpawnedInWave = 0;
+        enemiesToSpawnThisWave = 20 + currentWave * 5;
+        bossSpawnedThisWave = false;
+        Debug.Log($"🌊 FALA {currentWave}");
 
-        // Sprawdź czy to fala z bossem
-        if (enableBoss && currentWave % bossWave == 0)
-        {
-            isBossWave = true;
-            Debug.Log($"!!! FALA {currentWave} - BOSS NADCHODZI !!!");
-            StartCoroutine(SpawnBossWave());
-        }
-        else
-        {
-            isBossWave = false;
-            int enemiesToSpawn = enemiesPerWave + (currentWave - 1) * enemiesIncreasePerWave;
-            float currentSpawnDelay = Mathf.Max(minSpawnDelay, timeBetweenSpawns - (currentWave - 1) * spawnDelayDecreasePerWave);
-
-            Debug.Log($"=== FALA {currentWave} ===");
-            Debug.Log($"Przeciwników: {enemiesToSpawn}, Odstęp: {currentSpawnDelay:F1}s");
-
-            StartCoroutine(SpawnWave(enemiesToSpawn, currentSpawnDelay));
-        }
+        if (levelSystem != null)
+            levelSystem.UpdateUI();
     }
 
-    IEnumerator SpawnBossWave()
+    void SpawnBoss()
     {
-        isSpawning = true;
-        waveInProgress = true;
+        if (bossTemplate == null) return;
+        if (player == null) return;
 
-        // Najpierw spawnuj normalnych wrogów (mniej niż zwykle)
-        int normalEnemies = enemiesPerWave / 2;
-        float currentSpawnDelay = 0.3f;
+        Vector3 spawnPos = GetRandomPosition();
+        GameObject boss = Instantiate(bossTemplate, spawnPos, Quaternion.identity);
+        boss.name = $"BOSS_Wave{currentWave}";
 
-        for (int i = 0; i < normalEnemies; i++)
+        if (enemiesContainer != null)
+            boss.transform.SetParent(enemiesContainer);
+
+        Leszy leszyScript = boss.GetComponent<Leszy>();
+        if (leszyScript != null)
         {
-            Vector3 spawnPos = GetSpawnPositionOutsideCamera();
-            GameObject enemyToSpawn = GetRandomEnemy();
-
-            if (enemyToSpawn != null)
-            {
-                GameObject enemy = Instantiate(enemyToSpawn, spawnPos, Quaternion.identity);
-                enemy.name = $"Enemy_Wave{currentWave}_{i + 1}";
-
-                enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
-                if (enemyScript != null)
-                {
-                    if (levelSystem != null)
-                        enemyScript.levelSystem = levelSystem;
-
-                    float healthMultiplier = 1f + (currentWave - 1) * 0.1f;
-                    enemyScript.maxHealth = Mathf.RoundToInt(enemyScript.maxHealth * healthMultiplier);
-                    enemyScript.currentHealth = enemyScript.maxHealth;
-                }
-
-                activeEnemies.Add(enemy);
-            }
-
-            yield return new WaitForSeconds(currentSpawnDelay);
+            leszyScript.levelSystem = levelSystem;
+            leszyScript.currentHealth = leszyScript.maxHealth;
         }
 
-        // Spawnuj bossa
-        if (bossPrefab != null)
-        {
-            Vector3 bossSpawnPos = GetSpawnPositionOutsideCamera();
-            GameObject boss = Instantiate(bossPrefab, bossSpawnPos, Quaternion.identity);
-            boss.name = $"BOSS_Leszy_Wave{currentWave}";
+        activeEnemies.Add(boss);
+        Debug.Log($"👑 BOSS SPAWNOWANY!");
 
-            enemyHealth bossScript = boss.GetComponent<enemyHealth>();
-            if (bossScript != null)
-            {
-                if (levelSystem != null)
-                    bossScript.levelSystem = levelSystem;
-
-                // Skaluj bossa
-                bossScript.maxHealth = Mathf.RoundToInt(bossScript.maxHealth * bossHealthMultiplier);
-                bossScript.currentHealth = bossScript.maxHealth;
-                bossScript.damage = Mathf.RoundToInt(bossScript.damage * bossDamageMultiplier);
-                bossScript.expReward = 500;
-
-                // Wizualne powiększenie bossa
-                boss.transform.localScale = Vector3.one * 2.5f;
-            }
-
-            activeEnemies.Add(boss);
-            Debug.Log($"!!! BOSS LESZY POJAWIŁ SIĘ !!! HP: {bossScript.maxHealth}");
-        }
-        else
-        {
-            Debug.LogWarning("Brak prefaba bossa! Użyto zwykłego przeciwnika.");
-            Vector3 bossSpawnPos = GetSpawnPositionOutsideCamera();
-            GameObject boss = Instantiate(enemyPrefabs[0], bossSpawnPos, Quaternion.identity);
-            boss.name = $"BOSS_Wave{currentWave}";
-            boss.transform.localScale = Vector3.one * 2f;
-            activeEnemies.Add(boss);
-        }
-
-        isSpawning = false;
-        Debug.Log($"Fala {currentWave} (BOSS) rozpoczęta!");
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
-    IEnumerator SpawnWave(int enemyCount, float spawnDelay)
+    public void TestSpawnBoss()
     {
-        isSpawning = true;
-        waveInProgress = true;
-
-        for (int i = 0; i < enemyCount; i++)
+        if (bossTemplate == null)
         {
-            Vector3 spawnPos = GetSpawnPositionOutsideCamera();
-            GameObject enemyToSpawn = GetRandomEnemy();
+            Debug.LogError("❌ BOSS NIE JEST PRZYPISANY!");
+            return;
+        }
+        if (player == null) return;
 
-            if (enemyToSpawn != null)
-            {
-                GameObject enemy = Instantiate(enemyToSpawn, spawnPos, Quaternion.identity);
-                enemy.name = $"Enemy_Wave{currentWave}_{i + 1}";
+        Vector3 spawnPos = player.position + player.forward * 5f;
+        GameObject boss = Instantiate(bossTemplate, spawnPos, Quaternion.identity);
+        boss.name = "TEST_BOSS";
 
-                enemyHealth enemyScript = enemy.GetComponent<enemyHealth>();
-                if (enemyScript != null)
-                {
-                    if (levelSystem != null)
-                        enemyScript.levelSystem = levelSystem;
+        if (enemiesContainer != null)
+            boss.transform.SetParent(enemiesContainer);
 
-                    // Skaluj zdrowie z falą
-                    float healthMultiplier = 1f + (currentWave - 1) * 0.1f;
-                    enemyScript.maxHealth = Mathf.RoundToInt(enemyScript.maxHealth * healthMultiplier);
-                    enemyScript.currentHealth = enemyScript.maxHealth;
-                    enemyScript.expReward = Mathf.RoundToInt(enemyScript.expReward * healthMultiplier);
-
-                    // Skaluj obrażenia
-                    enemyScript.damage = Mathf.RoundToInt(enemyScript.damage * (1f + (currentWave - 1) * 0.05f));
-                }
-
-                activeEnemies.Add(enemy);
-            }
-
-            yield return new WaitForSeconds(spawnDelay);
+        Leszy leszyScript = boss.GetComponent<Leszy>();
+        if (leszyScript != null)
+        {
+            leszyScript.levelSystem = levelSystem;
+            leszyScript.currentHealth = leszyScript.maxHealth;
         }
 
-        isSpawning = false;
-        Debug.Log($"Fala {currentWave} rozpoczęta! {activeEnemies.Count} przeciwników");
+        activeEnemies.Add(boss);
+        Debug.Log($"🧪 TESTOWY BOSS SPAWNOWANY!");
+
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
-    Vector3 GetSpawnPositionOutsideCamera()
+    void SpawnEnemy()
     {
-        Vector3 center = GetPlayerPosition();
-        int maxAttempts = 30;
+        List<GameObject> validTemplates = new List<GameObject>();
+        foreach (var t in enemyTemplates)
+            if (t != null) validTemplates.Add(t);
 
-        for (int i = 0; i < maxAttempts; i++)
+        if (validTemplates.Count == 0) return;
+
+        int randomIndex = 0;
+        if (currentWave >= 10 && validTemplates.Count > 2 && Random.Range(0, 100) < 30)
+            randomIndex = 2;
+        else if (currentWave >= 5 && validTemplates.Count > 1 && Random.Range(0, 100) < 20)
+            randomIndex = 1;
+
+        GameObject selectedTemplate = validTemplates[randomIndex];
+        Vector3 spawnPos = GetRandomPosition();
+
+        GameObject enemy = Instantiate(selectedTemplate, spawnPos, Quaternion.identity);
+        enemy.name = $"{selectedTemplate.name}_{currentWave}";
+
+        if (enemiesContainer != null)
+            enemy.transform.SetParent(enemiesContainer);
+
+        enemyHealth healthScript = enemy.GetComponent<enemyHealth>();
+        if (healthScript != null)
         {
-            float angle = Random.Range(0f, 360f);
-            float distance = Random.Range(minSpawnDistance, spawnRadius);
-            Vector3 spawnPos = center + new Vector3(Mathf.Cos(angle) * distance, 0, Mathf.Sin(angle) * distance);
-
-            if (mainCamera == null)
-                return spawnPos;
-
-            if (!IsPositionInCameraView(spawnPos))
-            {
-                UnityEngine.AI.NavMeshHit hit;
-                if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out hit, 2f, UnityEngine.AI.NavMesh.AllAreas))
-                {
-                    return hit.position;
-                }
-                return spawnPos;
-            }
+            healthScript.levelSystem = levelSystem;
+            float difficulty = 1f + (currentWave * 0.05f);
+            healthScript.maxHealth = Mathf.RoundToInt(healthScript.maxHealth * difficulty);
+            healthScript.currentHealth = healthScript.maxHealth;
         }
 
-        Vector3 fallbackPos = center - (mainCamera.transform.forward * spawnRadius);
-        fallbackPos.y = 0;
-        return fallbackPos;
+        activeEnemies.Add(enemy);
+
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(activeEnemies.Count);
     }
 
-    bool IsPositionInCameraView(Vector3 position)
+    Vector3 GetRandomPosition()
     {
-        Vector3 viewportPoint = mainCamera.WorldToViewportPoint(position);
-        return viewportPoint.x >= -cameraMargin && viewportPoint.x <= 1 + cameraMargin &&
-               viewportPoint.y >= -cameraMargin && viewportPoint.y <= 1 + cameraMargin &&
-               viewportPoint.z > 0;
+        if (player == null) return Vector3.zero;
+        float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        float distance = Random.Range(minSpawnDistance, maxSpawnDistance);
+        float x = player.position.x + Mathf.Cos(angle) * distance;
+        float z = player.position.z + Mathf.Sin(angle) * distance;
+        return new Vector3(x, 0, z);
     }
 
-    Vector3 GetPlayerPosition()
+    public int GetEnemyCount()
     {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-            return player.transform.position;
-        return Vector3.zero;
+        return activeEnemies.Count;
     }
 
-    GameObject GetRandomEnemy()
+    public int GetCurrentWave()
     {
-        if (enemyPrefabs.Count == 0) return null;
-
-        if (currentWave >= 10 && enemyPrefabs.Count > 2)
-        {
-            if (Random.Range(0, 100) < 30)
-                return enemyPrefabs[2];
-        }
-        if (currentWave >= 5 && enemyPrefabs.Count > 1)
-        {
-            if (Random.Range(0, 100) < 20)
-                return enemyPrefabs[1];
-        }
-
-        return enemyPrefabs[0];
+        return currentWave;
     }
 
     public void ClearAllEnemies()
     {
         foreach (GameObject enemy in activeEnemies)
-        {
-            if (enemy != null)
-                Destroy(enemy);
-        }
+            if (enemy != null) Destroy(enemy);
         activeEnemies.Clear();
-    }
 
-    void OnDrawGizmosSelected()
-    {
-        Vector3 center = GetPlayerPosition();
-        Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
-        Gizmos.DrawWireSphere(center, minSpawnDistance);
-        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-        Gizmos.DrawWireSphere(center, spawnRadius);
+        if (levelSystem != null)
+            levelSystem.UpdateEnemiesLeft(0);
     }
 }

@@ -20,10 +20,10 @@ public class Sheep : MonoBehaviour
     private float attackRange = 1.5f;
 
     [Header("═══════════════ AVOIDANCE SETTINGS ═══════════════")]
-    public float avoidanceRadius = 1.2f;      // Promień unikania innych owiec
-    public float avoidanceForce = 3f;         // Siła unikania
-    public float shepherdAvoidanceRadius = 2f; // Promień unikania pasterza
-    public float shepherdAvoidanceForce = 5f;  // Siła unikania pasterza
+    public float avoidanceRadius = 1.2f;
+    public float avoidanceForce = 3f;
+    public float shepherdAvoidanceRadius = 2f;
+    public float shepherdAvoidanceForce = 5f;
 
     [Header("═══════════════ HEALTH TEXT 3D ═══════════════")]
     public TextMeshPro healthText3D;
@@ -51,7 +51,6 @@ public class Sheep : MonoBehaviour
 
         gameObject.tag = "Sheep";
 
-        // Collider
         if (GetComponent<Collider>() == null)
         {
             CapsuleCollider col = gameObject.AddComponent<CapsuleCollider>();
@@ -59,7 +58,6 @@ public class Sheep : MonoBehaviour
             col.height = 1f;
         }
 
-        // Rigidbody
         if (GetComponent<Rigidbody>() == null)
         {
             Rigidbody rb = gameObject.AddComponent<Rigidbody>();
@@ -123,7 +121,6 @@ public class Sheep : MonoBehaviour
             return;
         }
 
-        // Szukaj najblizszego wroga
         if (currentTarget == null || (currentTarget != null && Vector3.Distance(transform.position, currentTarget.position) > 15f))
         {
             FindClosestEnemy();
@@ -131,17 +128,12 @@ public class Sheep : MonoBehaviour
 
         if (currentTarget != null && agent != null && agent.isOnNavMesh)
         {
-            // Oblicz kierunek do celu
             Vector3 directionToTarget = (currentTarget.position - transform.position).normalized;
             Vector3 avoidance = CalculateAvoidance();
-
-            // Połącz kierunek do celu z unikaniem
             Vector3 finalDirection = (directionToTarget + avoidance).normalized;
 
-            // Ustaw destination z uwzględnieniem unikania
             Vector3 newDestination = transform.position + finalDirection * 5f;
 
-            // Ogranicz destination do NavMesh
             NavMeshHit hit;
             if (NavMesh.SamplePosition(newDestination, out hit, 2f, NavMesh.AllAreas))
             {
@@ -166,7 +158,6 @@ public class Sheep : MonoBehaviour
     {
         Vector3 avoidanceForceVector = Vector3.zero;
 
-        // Unikanie innych owiec
         Collider[] nearbySheep = Physics.OverlapSphere(transform.position, avoidanceRadius);
         foreach (Collider sheep in nearbySheep)
         {
@@ -182,7 +173,6 @@ public class Sheep : MonoBehaviour
             }
         }
 
-        // Unikanie pasterza
         if (shepherd != null)
         {
             Transform shepherdTransform = shepherd.transform;
@@ -195,7 +185,6 @@ public class Sheep : MonoBehaviour
             }
         }
 
-        // Unikanie ścian i przeszkód (opcjonalne)
         RaycastHit hit;
         Vector3 rayDirection = transform.forward;
         if (Physics.Raycast(transform.position, rayDirection, out hit, 2f))
@@ -244,7 +233,7 @@ public class Sheep : MonoBehaviour
         }
     }
 
-    System.Collections.IEnumerator FlashRed()
+    IEnumerator FlashRed()
     {
         Renderer rend = GetComponentInChildren<Renderer>();
         if (rend != null)
@@ -286,7 +275,7 @@ public class Sheep : MonoBehaviour
             healthText3D.color = Color.red;
     }
 
-    System.Collections.IEnumerator DamageFlash()
+    IEnumerator DamageFlash()
     {
         if (healthText3D != null)
         {
@@ -326,14 +315,5 @@ public class Sheep : MonoBehaviour
         {
             TakeDamage(10f);
         }
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, avoidanceRadius);
-
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, shepherdAvoidanceRadius);
     }
 }

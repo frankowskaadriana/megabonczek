@@ -2495,7 +2495,7 @@ GameObject:
   - component: {fileID: 5085182455789182035}
   - component: {fileID: 2581450653970968937}
   m_Layer: 0
-  m_Name: CHARA_LESHY
+  m_Name: Leshy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

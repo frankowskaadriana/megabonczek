@@ -4301,10 +4301,15 @@ MonoBehaviour:
   currentLevel: 1
   currentXP: 0
   xpRequired: 10
+  xpPerEnemy: 1
   gameTime: 0
   levelText: {fileID: 0}
+  xpText: {fileID: 0}
+  xpFill: {fileID: 0}
   waveText: {fileID: 0}
-  perkSelectionPanel: {fileID: 0}
+  enemiesLeftText: {fileID: 0}
+  timerText: {fileID: 0}
+  perkPanel: {fileID: 0}
   perkButton1: {fileID: 0}
   perkButton2: {fileID: 0}
   perkButton3: {fileID: 0}
@@ -4314,9 +4319,6 @@ MonoBehaviour:
   perkDescription1: {fileID: 0}
   perkDescription2: {fileID: 0}
   perkDescription3: {fileID: 0}
-  mountainManAbilities: {fileID: 168664448}
-  seraphimAbilities: {fileID: 1167528297}
-  shepherdAbilities: {fileID: 287657805}
   playerHealth: {fileID: 2097285951}
   weaponUpgrade: {fileID: 2097285948}
   waveSpawner: {fileID: 2097285954}
@@ -4385,8 +4387,6 @@ MonoBehaviour:
   bossWave: 5
   spawnBossKey: 98
   enemiesContainer: {fileID: 2134442704}
-  currentMaxEnemies: 0
-  currentWave: 0
 --- !u!114 &2097285955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4400,7 +4400,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   masterVolume: 1
-  sfxVolume: 1
+  sfxVolume: 0.8
   musicVolume: 0.05
   footstepClips: []
   attackClips:

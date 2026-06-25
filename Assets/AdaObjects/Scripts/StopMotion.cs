@@ -1,117 +1,200 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Collections;
+using System.Linq;
 
-namespace GK {
-	public class StopMotion : MonoBehaviour {
+namespace GK
+{
+    public class StopMotion : MonoBehaviour
+    {
+        public List<Transform> RootBones = new List<Transform>();
+        public int StoppedFrameCount = 5;
+        public bool AutoFindBones = true;
 
-		public Transform RootBone;
-		public int StoppedFrameCount = 5;
+        int recordedFrame = -1;
+        List<Transform> transforms = null;
+        List<STransform> actualPositions = null;
+        List<STransform> renderedPositions = null;
+        IEnumerator endOfFrameCoroutine;
 
-		int recordedFrame = -1;
+        void OnEnable()
+        {
+            transforms = null;
+            actualPositions = null;
+            renderedPositions = null;
+            endOfFrameCoroutine = EndOfFrameCoroutine();
+            StartCoroutine(endOfFrameCoroutine);
+        }
 
-		List<Transform> transforms = null;
-		List<STransform> actualPositions = null;
-		List<STransform> renderedPositions = null;
+        void OnDisable()
+        {
+            StopCoroutine(endOfFrameCoroutine);
+        }
 
-		IEnumerator endOfFrameCoroutine;
+        void LateUpdate()
+        {
+            if (transforms == null)
+            {
+                GatherAllBones();
+            }
 
-		void OnEnable() {
-			transforms = null;
-			actualPositions = null;
-			renderedPositions = null;
+            RecordTransform(ref actualPositions);
 
-			endOfFrameCoroutine = EndOfFrameCoroutine();
+            if (renderedPositions == null || Time.frameCount - recordedFrame >= StoppedFrameCount)
+            {
+                recordedFrame = Time.frameCount;
+                RecordTransform(ref renderedPositions);
+            }
+            else
+            {
+                RestoreRecord(renderedPositions);
+            }
+        }
 
-			StartCoroutine(endOfFrameCoroutine);
-		}
+        void GatherAllBones()
+        {
+            transforms = new List<Transform>();
 
-		void OnDisable() {
-			StopCoroutine(endOfFrameCoroutine);
-		}
+            if (RootBones.Count > 0)
+            {
+                // Use manually specified root bones
+                foreach (var root in RootBones)
+                {
+                    if (root != null)
+                    {
+                        transforms.AddRange(root.GetComponentsInChildren<Transform>());
+                    }
+                }
+            }
+            else if (AutoFindBones)
+            {
+                // Auto-detect
+                var smrs = GetComponentsInChildren<SkinnedMeshRenderer>();
+                if (smrs.Length > 0)
+                {
+                    // Use skinned mesh bones
+                    foreach (var smr in smrs)
+                    {
+                        transforms.AddRange(smr.bones);
+                        if (smr.rootBone != null && !transforms.Contains(smr.rootBone))
+                        {
+                            transforms.Add(smr.rootBone);
+                        }
+                    }
+                }
+                else
+                {
+                    // Find all transforms with bone-like names or children
+                    var allTransforms = GetComponentsInChildren<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t.parent != null &&
+                            (t.name.ToLower().Contains("bone") ||
+                             t.parent.name.ToLower().Contains("armature") ||
+                             t.parent.name.ToLower().Contains("root")))
+                        {
+                            transforms.Add(t);
+                        }
+                    }
+                }
+            }
 
-		void LateUpdate() {
-			if(transforms == null) {
-				transforms = new List<Transform>(RootBone.GetComponentsInChildren<Transform>());
-			} 
+            // Remove duplicates while preserving order
+            var uniqueTransforms = new HashSet<Transform>();
+            transforms = transforms.Where(t => t != null && uniqueTransforms.Add(t)).ToList();
+        }
 
-			RecordTransform(ref actualPositions);
+        IEnumerator EndOfFrameCoroutine()
+        {
+            var endOfFrame = new WaitForEndOfFrame();
 
-			if(renderedPositions == null || Time.frameCount - recordedFrame >= StoppedFrameCount) {
-				recordedFrame = Time.frameCount;
+            while (true)
+            {
+                yield return endOfFrame;
+                RestoreRecord(actualPositions);
+            }
+        }
 
-				RecordTransform(ref renderedPositions);
-			} else {
-				RestoreRecord(renderedPositions);
-			}
-		}
+        void RecordTransform(ref List<STransform> record)
+        {
+            if (record == null)
+            {
+                record = new List<STransform>(transforms.Count);
 
-		IEnumerator EndOfFrameCoroutine() {
-			var endOfFrame = new WaitForEndOfFrame();
+                foreach (var t in transforms)
+                {
+                    record.Add(STransform.FromTransform(t));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < transforms.Count; i++)
+                {
+                    record[i] = STransform.FromTransform(transforms[i]);
+                }
+            }
 
-			while(true) {
-				yield return endOfFrame;
+            Debug.Assert(transforms.Count == record.Count);
+        }
 
-				RestoreRecord(actualPositions);
-			}
-		}
+        void RestoreRecord(List<STransform> record)
+        {
+            Debug.Assert(record != null);
+            Debug.Assert(record.Count == transforms.Count);
 
-		void RecordTransform(ref List<STransform> record) {
-			if(record == null) {
-				record = new List<STransform>(transforms.Count);
+            for (int i = 0; i < transforms.Count; i++)
+            {
+                record[i].WriteTo(transforms[i]);
+            }
+        }
 
-				foreach(var t in transforms) {
-					record.Add(STransform.FromTransform(t));
-				}
-			} else {
-				for(int i = 0; i < transforms.Count; i++) {
-					record[i] = STransform.FromTransform(transforms[i]);
-				}
-			}
+        void Reset()
+        {
+            var smr = GetComponentInChildren<SkinnedMeshRenderer>();
 
-			Debug.Assert(transforms.Count == record.Count);
-		}
+            if (smr != null)
+            {
+                // Try to get all root bones
+                var allBones = smr.bones;
+                if (allBones.Length > 0)
+                {
+                    RootBones.Clear();
+                    // Add unique root bones
+                    foreach (var bone in allBones)
+                    {
+                        if (bone.parent == null || !allBones.Contains(bone.parent))
+                        {
+                            RootBones.Add(bone);
+                        }
+                    }
+                }
+            }
 
-		void RestoreRecord(List<STransform> record) {
-			Debug.Assert(record != null);
-			Debug.Assert(record.Count == transforms.Count);
+            StoppedFrameCount = 5;
+        }
 
-			for(int i = 0; i < transforms.Count; i++) {
-				record[i].WriteTo(transforms[i]);
-			}
-		}
+        struct STransform
+        {
+            public Vector3 LocalPosition;
+            public Quaternion LocalRotation;
+            public Vector3 LocalScale;
 
+            public static STransform FromTransform(Transform t)
+            {
+                return new STransform
+                {
+                    LocalPosition = t.localPosition,
+                    LocalRotation = t.localRotation,
+                    LocalScale = t.localScale
+                };
+            }
 
-		void Reset() {
-			var smr = GetComponentInChildren<SkinnedMeshRenderer>();
-
-			if(smr != null) {
-				RootBone = smr.rootBone;
-			} else {
-				RootBone = null;
-			}
-
-			StoppedFrameCount = 5;
-		}
-
-		struct STransform {
-			public Vector3 LocalPosition;
-			public Quaternion LocalRotation;
-			public Vector3 LocalScale;
-
-			public static STransform FromTransform(Transform t) {
-				return new STransform {
-					LocalPosition = t.localPosition,
-					LocalRotation = t.localRotation,
-					LocalScale    = t.localScale
-				};
-			}
-
-			public void WriteTo(Transform t) {
-				t.localPosition = LocalPosition;
-				t.localRotation = LocalRotation;
-				t.localScale    = LocalScale;
-			}
-		}
-	}
+            public void WriteTo(Transform t)
+            {
+                t.localPosition = LocalPosition;
+                t.localRotation = LocalRotation;
+                t.localScale = LocalScale;
+            }
+        }
+    }
 }

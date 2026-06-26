@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using System.Collections.Generic;
 
 public enum SheepState
 {
@@ -8,6 +9,7 @@ public enum SheepState
     Following,
     Charging,
     Attacking,
+    AutoAttacking,
     Dead
 }
 
@@ -18,9 +20,27 @@ public class Sheep : MonoBehaviour
     public float attackRange = 2f;
     public float attackDamage = 15f;
     public float attackCooldown = 1f;
+    public float detectionRange = 10f;
+    public float followDistance = 3f;
+
+    [Header("Odrzut")]
+    public float pushbackForce = 4f;      // Zmniejszone z 6 na 4
+    public float pushbackUpForce = 0.3f;  // Zmniejszone z 1.5 na 0.3 (prawie poziomo)
+    public float pushbackRadius = 2.5f;
+
+    [Header("Odepchnięcie po kolizji")]
+    public float collisionPushForce = 2f;
+    public float collisionPushRadius = 1.5f;
+
+    [Header("Efekty wizualne")]
+    public Color hitColor = Color.red;
+    public float hitFlashDuration = 0.15f;
+    public Color attackColor = Color.yellow;
+    public float attackFlashDuration = 0.1f;
 
     private NavMeshAgent agent;
     private Transform targetEnemy;
+    private Transform currentTarget;
     private Vector3 targetPosition;
     private SheepState state = SheepState.Idle;
     private float attackTimer = 0f;
@@ -30,13 +50,50 @@ public class Sheep : MonoBehaviour
     private Color originalColor;
     private float health = 30f;
     private float maxHealth = 30f;
+    private float autoAttackInterval = 0.3f;
+    private bool hasNavMesh = false;
+    private Transform followTarget;
+    private Coroutine flashCoroutine;
+    private Rigidbody rb;
+    private float pushCooldown = 0f;
+    private float pushCooldownTime = 0.5f;
 
     void Start()
     {
-        agent = GetComponent<NavMeshAgent>();
-        if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
-        agent.speed = speed;
-        agent.stoppingDistance = attackRange;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null) followTarget = playerObj.transform;
+
+        // Ustaw gracza jako ignorowany przez owcę (brak kolizji)
+        if (playerObj != null)
+        {
+            Collider sheepCollider = GetComponent<Collider>();
+            Collider playerCollider = playerObj.GetComponent<Collider>();
+            if (sheepCollider != null && playerCollider != null)
+            {
+                Physics.IgnoreCollision(sheepCollider, playerCollider, true);
+                Debug.Log("🐑 Ignorowanie kolizji z graczem!");
+            }
+        }
+
+        NavMeshHit hit;
+        hasNavMesh = NavMesh.SamplePosition(transform.position, out hit, 2f, NavMesh.AllAreas);
+
+        if (!hasNavMesh)
+        {
+            Debug.LogWarning($"🐑 Owca nie ma NavMesh w pobliżu! Pozycja: {transform.position}");
+            StartCoroutine(RetryNavMesh());
+        }
+        else
+        {
+            SetupNavMeshAgent();
+        }
+
+        // Rigidbody dla fizyki
+        rb = GetComponent<Rigidbody>();
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+        rb.mass = 10f;
+        rb.isKinematic = true;
+        rb.useGravity = false;
 
         mesh = GetComponent<MeshRenderer>();
         if (mesh != null)
@@ -45,7 +102,105 @@ public class Sheep : MonoBehaviour
             mesh.material.color = Color.white;
         }
 
+        if (followTarget != null)
+            targetPosition = followTarget.position;
+
         StartCoroutine(StateMachine());
+        StartCoroutine(AutoFindEnemy());
+    }
+
+    IEnumerator RetryNavMesh()
+    {
+        yield return new WaitForSeconds(1f);
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
+        {
+            transform.position = hit.position;
+            SetupNavMeshAgent();
+            Debug.Log($"🐑 Owca naprawiona! Nowa pozycja: {transform.position}");
+        }
+        else
+        {
+            Debug.LogError($"🐑 Owca nie może znaleźć NavMesh! Pozycja: {transform.position}");
+        }
+    }
+
+    void SetupNavMeshAgent()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
+        agent.speed = speed;
+        agent.stoppingDistance = attackRange;
+        agent.autoBraking = true;
+        agent.enabled = true;
+        hasNavMesh = true;
+    }
+
+    IEnumerator AutoFindEnemy()
+    {
+        while (!isDead)
+        {
+            if (state != SheepState.Attacking && state != SheepState.Charging)
+            {
+                FindNearestEnemy();
+            }
+            yield return new WaitForSeconds(autoAttackInterval);
+        }
+    }
+
+    void FindNearestEnemy()
+    {
+        if (isDead) return;
+
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
+
+        if (enemies.Length == 0)
+        {
+            if (state == SheepState.AutoAttacking || state == SheepState.Idle)
+            {
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
+            }
+            return;
+        }
+
+        EnemyHealth closest = null;
+        float closestDist = Mathf.Infinity;
+
+        foreach (EnemyHealth enemy in enemies)
+        {
+            if (enemy == null) continue;
+            // Sprawdź czy wróg żyje
+            if (enemy.gameObject == null) continue;
+
+            float dist = Vector3.Distance(transform.position, enemy.transform.position);
+
+            if (dist < closestDist && dist <= detectionRange)
+            {
+                closestDist = dist;
+                closest = enemy;
+            }
+        }
+
+        if (closest != null)
+        {
+            currentTarget = closest.transform;
+            if (state != SheepState.Attacking && state != SheepState.Charging)
+            {
+                state = SheepState.AutoAttacking;
+                targetEnemy = currentTarget;
+            }
+        }
+        else
+        {
+            if (state == SheepState.AutoAttacking || state == SheepState.Idle)
+            {
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
+            }
+        }
     }
 
     IEnumerator StateMachine()
@@ -66,6 +221,9 @@ public class Sheep : MonoBehaviour
                 case SheepState.Attacking:
                     yield return StartCoroutine(AttackingState());
                     break;
+                case SheepState.AutoAttacking:
+                    yield return StartCoroutine(AutoAttackingState());
+                    break;
             }
             yield return null;
         }
@@ -75,6 +233,11 @@ public class Sheep : MonoBehaviour
     {
         while (state == SheepState.Idle && !isDead)
         {
+            if (followTarget != null && Vector3.Distance(transform.position, followTarget.position) > followDistance)
+            {
+                targetPosition = followTarget.position;
+                state = SheepState.Following;
+            }
             yield return new WaitForSeconds(0.1f);
         }
     }
@@ -83,60 +246,96 @@ public class Sheep : MonoBehaviour
     {
         while (state == SheepState.Following && !isDead)
         {
-            if (agent != null && agent.isOnNavMesh)
+            if (followTarget != null)
+            {
+                targetPosition = followTarget.position;
+
+                if (Vector3.Distance(transform.position, followTarget.position) <= followDistance)
+                {
+                    EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
+                    bool hasEnemy = false;
+                    foreach (EnemyHealth enemy in enemies)
+                    {
+                        if (enemy != null && Vector3.Distance(transform.position, enemy.transform.position) <= detectionRange)
+                        {
+                            hasEnemy = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasEnemy)
+                    {
+                        state = SheepState.Idle;
+                        if (agent != null) agent.isStopped = true;
+                        yield break;
+                    }
+                }
+            }
+
+            if (agent != null && agent.isOnNavMesh && agent.enabled)
             {
                 agent.SetDestination(targetPosition);
                 agent.isStopped = false;
             }
+
             yield return new WaitForSeconds(0.1f);
         }
     }
 
-    IEnumerator ChargingState()
+    IEnumerator AutoAttackingState()
     {
-        float chargeTime = 2f;
-        float startSpeed = speed;
-        agent.speed = speed * 2f;
-
-        while (state == SheepState.Charging && !isDead && chargeTime > 0)
+        while (state == SheepState.AutoAttacking && !isDead)
         {
-            chargeTime -= Time.deltaTime;
-
-            if (agent != null && agent.isOnNavMesh)
+            if (targetEnemy == null || targetEnemy.GetComponent<EnemyHealth>() == null)
             {
-                agent.SetDestination(targetPosition);
-                agent.isStopped = false;
-            }
-
-            if (Vector3.Distance(transform.position, targetPosition) < 1f)
-            {
-                Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange * 1.5f);
-                foreach (var hit in hitColliders)
-                {
-                    EnemyHealth enemy = hit.GetComponent<EnemyHealth>();
-                    if (enemy != null)
-                    {
-                        enemy.TakeDamage(attackDamage * 1.5f);
-                        Rigidbody rb = enemy.GetComponent<Rigidbody>();
-                        if (rb != null)
-                        {
-                            Vector3 dir = (enemy.transform.position - transform.position).normalized;
-                            dir.y = 1f;
-                            rb.AddForce(dir * 10f, ForceMode.Impulse);
-                        }
-                    }
-                }
-                state = SheepState.Idle;
-                agent.speed = speed;
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
                 break;
             }
 
+            float dist = Vector3.Distance(transform.position, targetEnemy.position);
+
+            if (dist > attackRange)
+            {
+                if (agent != null && agent.isOnNavMesh && agent.enabled)
+                {
+                    agent.SetDestination(targetEnemy.position);
+                    agent.isStopped = false;
+                }
+            }
+            else
+            {
+                if (agent != null) agent.isStopped = true;
+                attackTimer += Time.deltaTime;
+                if (attackTimer >= attackCooldown)
+                {
+                    attackTimer = 0f;
+                    EnemyHealth enemy = targetEnemy.GetComponent<EnemyHealth>();
+                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
+                    {
+                        enemy.TakeDamage(attackDamage);
+                        PushbackEnemy(enemy);
+                        FlashAttack();
+                        AudioManager.Instance?.PlayEnemyHit();
+                        Debug.Log($"🐑 Owca zadaje {attackDamage} obrażeń!");
+                    }
+                }
+            }
+
+            if (dist > detectionRange)
+            {
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
+                break;
+            }
+
+            if (state == SheepState.Charging || state == SheepState.Attacking)
+                break;
+
             yield return new WaitForSeconds(0.1f);
         }
-
-        agent.speed = speed;
-        if (state == SheepState.Charging)
-            state = SheepState.Idle;
     }
 
     IEnumerator AttackingState()
@@ -145,7 +344,9 @@ public class Sheep : MonoBehaviour
         {
             if (targetEnemy == null)
             {
-                state = SheepState.Idle;
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
                 break;
             }
 
@@ -153,7 +354,7 @@ public class Sheep : MonoBehaviour
 
             if (dist > attackRange)
             {
-                if (agent != null && agent.isOnNavMesh)
+                if (agent != null && agent.isOnNavMesh && agent.enabled)
                 {
                     agent.SetDestination(targetEnemy.position);
                     agent.isStopped = false;
@@ -161,28 +362,146 @@ public class Sheep : MonoBehaviour
             }
             else
             {
-                agent.isStopped = true;
+                if (agent != null) agent.isStopped = true;
                 attackTimer += Time.deltaTime;
                 if (attackTimer >= attackCooldown)
                 {
                     attackTimer = 0f;
                     EnemyHealth enemy = targetEnemy.GetComponent<EnemyHealth>();
-                    if (enemy != null)
+                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
                     {
                         enemy.TakeDamage(attackDamage);
-                        Debug.Log($"🐑 Owca atakuje! {attackDamage} obrażeń!");
+                        PushbackEnemy(enemy);
+                        FlashAttack();
+                        AudioManager.Instance?.PlayEnemyHit();
+                        Debug.Log($"🐑 Owca atakuje z rozkazu! {attackDamage} obrażeń!");
                     }
                 }
             }
 
             if (targetEnemy == null || targetEnemy.GetComponent<EnemyHealth>() == null)
             {
-                state = SheepState.Idle;
-                if (owner != null)
-                    targetPosition = owner.transform.position;
+                state = SheepState.Following;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
             }
 
             yield return new WaitForSeconds(0.1f);
+        }
+    }
+
+    IEnumerator ChargingState()
+    {
+        float chargeTime = 3f;
+        float startSpeed = speed;
+        if (agent != null) agent.speed = speed * 2f; // Zmniejszone z 2.5 na 2
+
+        if (mesh != null)
+            mesh.material.color = Color.red;
+
+        while (state == SheepState.Charging && !isDead && chargeTime > 0)
+        {
+            chargeTime -= Time.deltaTime;
+
+            if (agent != null && agent.isOnNavMesh && agent.enabled)
+            {
+                agent.SetDestination(targetPosition);
+                agent.isStopped = false;
+            }
+
+            if (Vector3.Distance(transform.position, targetPosition) < 1.5f)
+            {
+                Collider[] hitColliders = Physics.OverlapSphere(transform.position, pushbackRadius);
+                foreach (var hit in hitColliders)
+                {
+                    EnemyHealth enemy = hit.GetComponent<EnemyHealth>();
+                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
+                    {
+                        enemy.TakeDamage(attackDamage * 1.5f); // Zmniejszone z 2x na 1.5x
+                        PushbackEnemy(enemy, 1.5f); // Zmniejszone z 2x na 1.5x
+                        FlashAttack();
+                        AudioManager.Instance?.PlayEnemyHit();
+                        Debug.Log($"💥 Szarża owcy! {attackDamage * 1.5f} obrażeń!");
+                    }
+                }
+
+                state = SheepState.Following;
+                if (agent != null) agent.speed = speed;
+                if (followTarget != null)
+                    targetPosition = followTarget.position;
+                if (mesh != null)
+                    mesh.material.color = originalColor;
+                break;
+            }
+
+            yield return new WaitForSeconds(0.05f);
+        }
+
+        if (agent != null) agent.speed = speed;
+        if (state == SheepState.Charging)
+        {
+            state = SheepState.Following;
+            if (followTarget != null)
+                targetPosition = followTarget.position;
+        }
+        if (mesh != null)
+            mesh.material.color = originalColor;
+    }
+
+    void PushbackEnemy(EnemyHealth enemy, float forceMultiplier = 1f)
+    {
+        if (enemy == null) return;
+
+        Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
+        if (enemyRb != null)
+        {
+            // Odrzut POZIOMY - prawie bez składowej w górę
+            Vector3 direction = (enemy.transform.position - transform.position).normalized;
+            direction.y = pushbackUpForce; // Bardzo mała siła w górę
+
+            enemyRb.isKinematic = false;
+            enemyRb.useGravity = true;
+            enemyRb.AddForce(direction * pushbackForce * forceMultiplier, ForceMode.Impulse);
+
+            Debug.Log($"💥 Odrzut! Siła: {pushbackForce * forceMultiplier}, Kierunek: {direction}");
+        }
+    }
+
+    // Odepchnięcie po kolizji z przeciwnikiem
+    void OnCollisionEnter(Collision collision)
+    {
+        if (isDead) return;
+
+        // Sprawdź czy to przeciwnik
+        EnemyHealth enemy = collision.gameObject.GetComponent<EnemyHealth>();
+        if (enemy != null)
+        {
+            // Odepchnij owcę od przeciwnika
+            Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
+            pushDirection.y = 0.2f;
+
+            if (rb != null && pushCooldown <= 0)
+            {
+                rb.isKinematic = false;
+                rb.useGravity = true;
+                rb.AddForce(pushDirection * collisionPushForce, ForceMode.Impulse);
+                pushCooldown = pushCooldownTime;
+                Debug.Log($"🐑 Owca odepchnięta od {enemy.name}!");
+
+                // Przywróć kinematic po chwili
+                StartCoroutine(ResetKinematic());
+            }
+        }
+    }
+
+    IEnumerator ResetKinematic()
+    {
+        yield return new WaitForSeconds(0.3f);
+        if (rb != null && !isDead)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.linearVelocity = Vector3.zero;
         }
     }
 
@@ -190,15 +509,25 @@ public class Sheep : MonoBehaviour
     {
         if (isDead) return;
 
-        if (mesh != null)
+        // Cooldown odepchnięcia
+        if (pushCooldown > 0)
+            pushCooldown -= Time.deltaTime;
+
+        if (followTarget != null && (state == SheepState.Following || state == SheepState.Idle))
+        {
+            targetPosition = followTarget.position;
+        }
+
+        // Efekty stanów
+        if (mesh != null && flashCoroutine == null)
         {
             if (state == SheepState.Charging)
             {
-                mesh.material.color = Color.Lerp(Color.white, Color.red, Mathf.PingPong(Time.time * 2f, 1f));
+                mesh.material.color = Color.Lerp(Color.red, Color.white, Mathf.PingPong(Time.time * 3f, 1f));
             }
-            else if (state == SheepState.Attacking)
+            else if (state == SheepState.Attacking || state == SheepState.AutoAttacking)
             {
-                mesh.material.color = Color.Lerp(Color.white, Color.yellow, Mathf.PingPong(Time.time * 1.5f, 1f));
+                mesh.material.color = Color.Lerp(originalColor, attackColor, Mathf.PingPong(Time.time * 2f, 1f));
             }
             else
             {
@@ -215,13 +544,9 @@ public class Sheep : MonoBehaviour
         if (enemy != null && state == SheepState.Charging)
         {
             enemy.TakeDamage(attackDamage * 1.5f);
-            Rigidbody rb = enemy.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                Vector3 dir = (enemy.transform.position - transform.position).normalized;
-                dir.y = 1f;
-                rb.AddForce(dir * 15f, ForceMode.Impulse);
-            }
+            PushbackEnemy(enemy, 1.5f);
+            FlashAttack();
+            AudioManager.Instance?.PlayEnemyHit();
         }
     }
 
@@ -229,20 +554,61 @@ public class Sheep : MonoBehaviour
     {
         if (isDead) return;
         health -= damage;
+        FlashHit();
+        AudioManager.Instance?.PlayEnemyHit();
         if (health <= 0) Die();
     }
 
     void Die()
     {
+        if (isDead) return;
         isDead = true;
         state = SheepState.Dead;
         if (agent != null) agent.isStopped = true;
         if (mesh != null) mesh.material.color = Color.gray;
 
+        AudioManager.Instance?.PlayEnemyDeath();
+
         if (owner != null) owner.OnSheepDied(this);
 
         Destroy(gameObject, 1f);
         Debug.Log("🐑 Owca zginęła!");
+    }
+
+    public void FlashHit()
+    {
+        if (flashCoroutine != null) StopCoroutine(flashCoroutine);
+        flashCoroutine = StartCoroutine(FlashHitCoroutine());
+    }
+
+    IEnumerator FlashHitCoroutine()
+    {
+        if (mesh != null)
+        {
+            mesh.material.color = hitColor;
+            yield return new WaitForSeconds(hitFlashDuration);
+            mesh.material.color = originalColor;
+        }
+        flashCoroutine = null;
+    }
+
+    void FlashAttack()
+    {
+        if (mesh != null)
+        {
+            StartCoroutine(FlashAttackCoroutine());
+        }
+    }
+
+    IEnumerator FlashAttackCoroutine()
+    {
+        if (mesh != null)
+        {
+            Color tempColor = mesh.material.color;
+            mesh.material.color = attackColor;
+            yield return new WaitForSeconds(attackFlashDuration);
+            mesh.material.color = tempColor;
+        }
     }
 
     // ===== METODY PUBLICZNE =====
@@ -275,6 +641,10 @@ public class Sheep : MonoBehaviour
     public void SetTarget(Transform target)
     {
         targetEnemy = target;
+        if (target != null)
+        {
+            state = SheepState.Attacking;
+        }
     }
 
     public void SetTargetPosition(Vector3 position)
@@ -294,10 +664,31 @@ public class Sheep : MonoBehaviour
         this.maxHealth = maxHealth;
     }
 
+    public void SetDetectionRange(float range)
+    {
+        detectionRange = range;
+    }
+
+    public void SetFollowTarget(Transform target)
+    {
+        followTarget = target;
+        if (target != null && (state == SheepState.Idle || state == SheepState.Following))
+        {
+            targetPosition = target.position;
+            state = SheepState.Following;
+        }
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, followDistance);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, pushbackRadius);
         if (state == SheepState.Charging)
         {
             Gizmos.color = Color.red;

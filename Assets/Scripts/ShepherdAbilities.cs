@@ -21,6 +21,7 @@ public class ShepherdAbilities : MonoBehaviour
     public float sheepAttackDamage = 15f;
     public float sheepAttackCooldown = 1f;
     public float sheepSpawnCooldown = 10f;
+    public float sheepDetectionRange = 10f;
 
     private List<Sheep> sheep = new List<Sheep>();
     private float attackTimer = 0f;
@@ -28,7 +29,6 @@ public class ShepherdAbilities : MonoBehaviour
     private Transform player;
     private Camera mainCamera;
     private Vector3 targetPosition;
-    private bool isCommanding = false;
 
     void Start()
     {
@@ -43,6 +43,7 @@ public class ShepherdAbilities : MonoBehaviour
     {
         if (player == null) return;
 
+        // Automatyczny atak pasterza
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate)
         {
@@ -51,17 +52,20 @@ public class ShepherdAbilities : MonoBehaviour
             MeleeAttack();
         }
 
+        // SZARŻA OWIEC - PPM
         if (Input.GetMouseButtonDown(1))
         {
             CommandSheep();
         }
 
+        // Szczekanie
         if (Input.GetKeyDown(KeyCode.Q))
         {
             RotateToMouse();
             Bark();
         }
 
+        // Przywołanie owcy
         sheepSpawnTimer += Time.deltaTime;
         if (Input.GetKeyDown(KeyCode.E) && sheepSpawnTimer >= sheepSpawnCooldown && sheep.Count < maxSheep)
         {
@@ -69,6 +73,7 @@ public class ShepherdAbilities : MonoBehaviour
             SpawnSheep();
         }
 
+        // Aktualizuj owce
         UpdateSheep();
     }
 
@@ -129,6 +134,7 @@ public class ShepherdAbilities : MonoBehaviour
             {
                 sheep.SetTarget(target);
                 sheep.SetState(SheepState.Attacking);
+                AudioManager.Instance?.PlayAttack();
             }
         }
         Debug.Log("🐑 Owce atakują wroga!");
@@ -142,6 +148,7 @@ public class ShepherdAbilities : MonoBehaviour
             {
                 sheep.SetTargetPosition(position);
                 sheep.SetState(SheepState.Charging);
+                AudioManager.Instance?.PlayCharge();
             }
         }
         Debug.Log($"🐑 Owce szarżują do {position}!");
@@ -153,10 +160,15 @@ public class ShepherdAbilities : MonoBehaviour
 
         foreach (Sheep sheep in sheep)
         {
-            if (sheep != null && !sheep.IsDead() && sheep.GetState() == SheepState.Idle)
+            if (sheep != null && !sheep.IsDead())
             {
-                sheep.SetTargetPosition(transform.position);
-                sheep.SetState(SheepState.Following);
+                SheepState state = sheep.GetState();
+                if (state == SheepState.Idle || state == SheepState.AutoAttacking)
+                {
+                    sheep.SetTargetPosition(transform.position);
+                    if (state == SheepState.Idle)
+                        sheep.SetState(SheepState.Following);
+                }
             }
         }
     }
@@ -175,9 +187,12 @@ public class ShepherdAbilities : MonoBehaviour
         sheepScript.SetStats(sheepSpeed, sheepAttackRange, sheepAttackDamage, sheepAttackCooldown);
         sheepScript.SetOwner(this);
         sheepScript.SetTargetPosition(transform.position);
+        sheepScript.SetDetectionRange(sheepDetectionRange);
 
         sheep.Add(sheepScript);
         Debug.Log($"🐑 Owca przywołana! ({sheep.Count}/{maxSheep})");
+
+        AudioManager.Instance?.PlayHeal();
     }
 
     void MeleeAttack()
@@ -189,6 +204,7 @@ public class ShepherdAbilities : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(attackDamage);
+                AudioManager.Instance?.PlayAttack();
             }
         }
     }
@@ -221,6 +237,7 @@ public class ShepherdAbilities : MonoBehaviour
             }
         }
         Debug.Log("🐕 Shepherd: Bark!");
+        AudioManager.Instance?.PlaySpecialAbility();
     }
 
     public void OnSheepDied(Sheep sheep)
@@ -231,6 +248,9 @@ public class ShepherdAbilities : MonoBehaviour
             Debug.Log($"🐑 Owca zginęła! Pozostało: {this.sheep.Count}");
         }
     }
+
+    public int GetSheepCount() => sheep.Count;
+    public int GetMaxSheep() => maxSheep;
 
     void OnDrawGizmosSelected()
     {

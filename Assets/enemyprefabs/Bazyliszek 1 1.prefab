@@ -191,27 +191,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.33
+      value: 0.19873922
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.33
+      value: 0.19873922
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.33
+      value: 0.19873922
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -551.5581
+      value: -551.55
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -505.8612
+      value: -505.25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -7.28968
+      value: -7.3596
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       propertyPath: m_LocalRotation.w
@@ -284,9 +284,6 @@ PrefabInstance:
       addedObject: {fileID: 8312701651774338701}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3148435770196726490}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 8525213584263630668}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9ba01c5bf2af2b540885a1299ad56eea, type: 3}
       insertIndex: -1
@@ -343,21 +340,6 @@ MonoBehaviour:
   RootBones: []
   StoppedFrameCount: 5
   AutoFindBones: 1
---- !u!114 &3148435770196726490
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5103572908225030110}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: df0160089e30c494f8c17d3638472b78, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SimpleEnemy
-  moveSpeed: 3.5
-  stoppingDistance: 1.5
-  updateInterval: 0.5
 --- !u!114 &8525213584263630668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -371,7 +353,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bazyliszek
   maxHealth: 120
-  currentHealth: 0
   moveSpeed: 2
   damage: 25
   attackRange: 2
@@ -381,11 +362,10 @@ MonoBehaviour:
   laserCooldown: 3
   laserDamage: 35
   laserChargeTime: 0.8
-  trajectoryLine: {fileID: 3739795850958425828}
-  trajectoryColor: {r: 1, g: 0.5, b: 0, a: 0.8}
   deathEffect: {fileID: 0}
   hitEffect: {fileID: 0}
-  levelSystem: {fileID: 0}
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
+  hitFlashDuration: 0.1
   healthText: {fileID: 426190348817962775}
 --- !u!195 &4333128236927892272
 NavMeshAgent:
@@ -417,7 +397,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5103572908225030110}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 50
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}

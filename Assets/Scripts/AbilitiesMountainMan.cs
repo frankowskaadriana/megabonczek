@@ -24,6 +24,10 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float specialDamage = 60f;
     public float specialCooldown = 12f;
 
+    [Header("Odrzut")]
+    public float pushbackForce = 10f;
+    public float pushbackUpForce = 2f;
+
     private float attackTimer = 0f;
     private float stompTimer = 0f;
     private float ultimateTimer = 0f;
@@ -48,7 +52,6 @@ public class AbilitiesMountainMan : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        // AUTOMATYCZNY ATAK w kierunku myszki
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canAttack)
         {
@@ -57,7 +60,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             MeleeAttack();
         }
 
-        // Stomp
         stompTimer += Time.deltaTime;
         if (stompTimer >= stompCooldown && distance <= stompRange && Input.GetKeyDown(KeyCode.Q))
         {
@@ -65,7 +67,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             Stomp();
         }
 
-        // Ultimate
         ultimateTimer += Time.deltaTime;
         if (ultimateTimer >= ultimateCooldown && Input.GetKeyDown(KeyCode.R))
         {
@@ -74,7 +75,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             Ultimate();
         }
 
-        // Special
         specialTimer += Time.deltaTime;
         if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
         {
@@ -119,6 +119,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 if (angle <= attackAngle / 2)
                 {
                     enemy.TakeDamage(attackDamage);
+                    PushbackEnemy(enemy);
                 }
             }
         }
@@ -133,15 +134,10 @@ public class AbilitiesMountainMan : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(stompDamage);
-                Rigidbody rb = enemy.GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
-                    direction.y = 1f;
-                    rb.AddForce(direction * 10f, ForceMode.Impulse);
-                }
+                PushbackEnemy(enemy, 1.5f); // Większy odrzut
             }
         }
+        Debug.Log($"💥 Mountain Man: Stomp {stompDamage} obrażeń!");
     }
 
     void Ultimate()
@@ -153,15 +149,10 @@ public class AbilitiesMountainMan : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(ultimateDamage);
-                Rigidbody rb = enemy.GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
-                    direction.y = 2f;
-                    rb.AddForce(direction * 20f, ForceMode.Impulse);
-                }
+                PushbackEnemy(enemy, 2f); // Bardzo duży odrzut
             }
         }
+        Debug.Log($"🔥 ULTIMATE! {ultimateDamage} obrażeń w promieniu {ultimateRadius}!");
     }
 
     void SpecialAttack()
@@ -173,13 +164,26 @@ public class AbilitiesMountainMan : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(specialDamage);
-                Rigidbody rb = enemy.GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
-                    rb.AddForce(direction * 15f, ForceMode.Impulse);
-                }
+                PushbackEnemy(enemy);
             }
+        }
+        Debug.Log($"⚡ Special Attack: {specialDamage} obrażeń!");
+    }
+
+    void PushbackEnemy(EnemyHealth enemy, float forceMultiplier = 1f)
+    {
+        if (enemy == null) return;
+
+        Rigidbody rb = enemy.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            Vector3 direction = (enemy.transform.position - transform.position).normalized;
+            direction.y = pushbackUpForce;
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            rb.AddForce(direction * pushbackForce * forceMultiplier, ForceMode.Impulse);
+
+            Debug.Log($"💥 Odrzucono {enemy.name}! Siła: {pushbackForce * forceMultiplier}");
         }
     }
 

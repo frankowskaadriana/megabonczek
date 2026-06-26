@@ -15,7 +15,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI finalScoreText;
 
     [Header("Czas gry")]
-    public float gameDuration = 600f; // 10 minut (wpisz w Unity)
+    public float gameDuration = 600f;
     private float gameTimer = 0f;
 
     [Header("Referencje")]
@@ -54,7 +54,6 @@ public class GameManager : MonoBehaviour
             if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
         }
 
-        // Timer gry
         gameTimer += Time.deltaTime;
         score += Time.deltaTime * scoreMultiplier;
 
@@ -70,8 +69,11 @@ public class GameManager : MonoBehaviour
         if (playerHealth != null && playerHealth.currentHealth <= 0)
             GameOver("💀 ZGINĄŁEŚ!");
 
-        if (waveSpawner != null && waveSpawner.IsWaveComplete())
+        // Sprawdź czy wszystkie fale ukończone
+        if (waveSpawner != null && waveSpawner.IsWaveComplete() && waveSpawner.GetEnemyCount() == 0)
+        {
             Victory("🏆 WSZYSTKIE FALE UKOŃCZONE!");
+        }
     }
 
     void StartGame()

@@ -4,55 +4,72 @@ using System.Collections.Generic;
 
 public class WaveSpawner : MonoBehaviour
 {
-    [Header("Fale")]
+    [Header("═══════════════ USTAWIENIA FAL ═══════════════")]
     public int currentWave = 1;
-    public int enemiesPerWave = 5;
+    public int baseEnemiesPerWave = 5;
     public float timeBetweenWaves = 5f;
-    public float timeBetweenSpawns = 1f;
-    public int maxWaves = 10;
+    public float timeBetweenSpawns = 0.8f;
+    public int maxWaves = 999;
 
-    [Header("Prefaby")]
+    [Header("═══════════════ SKALOWANIE TRUDNOŚCI ═══════════════")]
+    public int enemiesPerLevel = 1;
+    public float spawnSpeedPerLevel = 0.02f;
+    public float waveMultiplier = 1.5f;
+    public int maxEnemiesPerWave = 50;
+
+    [Header("═══════════════ PREFABY ═══════════════")]
     public GameObject polnocnicaPrefab;
     public GameObject strzygaPrefab;
     public GameObject upiorPrefab;
     public GameObject bazyliszekPrefab;
     public GameObject leszyPrefab;
 
-    [Header("Szansę (0-100)")]
+    [Header("═══════════════ SZANSĘ (0-100) ═══════════════")]
     [Range(0, 100)] public float polnocnicaChance = 40f;
     [Range(0, 100)] public float strzygaChance = 25f;
     [Range(0, 100)] public float upiorChance = 20f;
     [Range(0, 100)] public float bazyliszekChance = 10f;
 
-    [Header("Boss")]
+    [Header("═══════════════ BOSS ═══════════════")]
     public float bossSpawnInterval = 240f;
     [Range(0, 100)] public float bossSpawnChance = 60f;
+    public int bossMinWave = 5;
 
-    [Header("Spawn wokół gracza")]
+    [Header("═══════════════ SPAWN WOKÓŁ GRACZA ═══════════════")]
     public float spawnRadiusMin = 8f;
     public float spawnRadiusMax = 20f;
     public LayerMask groundLayer = ~0;
 
-    [Header("Referencje")]
-    public GameManager gameManager;
+    [Header("═══════════════ REFERENCJE ═══════════════")]
+    public LevelSystem levelSystem;
 
+    // ===== ZMIENNE PRYWATNE =====
     private Transform player;
     private List<GameObject> enemies = new List<GameObject>();
     private bool isSpawning = false;
     private int enemiesKilled = 0;
     private int enemiesSpawned = 0;
+    private int enemiesThisWave = 0;
     private bool isWaveComplete = false;
     private float bossTimer = 0f;
     private bool bossSpawnedThisWave = false;
     private Camera mainCamera;
+    private Coroutine spawnCoroutine;
 
     void Start()
     {
         mainCamera = Camera.main;
-        gameManager = FindFirstObjectByType<GameManager>();
+        levelSystem = FindFirstObjectByType<LevelSystem>();
         FindPlayer();
         bossTimer = bossSpawnInterval;
-        StartCoroutine(StartWaves());
+
+        StartCoroutine(DelayedStart());
+    }
+
+    IEnumerator DelayedStart()
+    {
+        yield return new WaitForSeconds(2f);
+        StartCoroutine(SpawnWave());
     }
 
     void FindPlayer()
@@ -64,22 +81,18 @@ public class WaveSpawner : MonoBehaviour
     void Update()
     {
         if (player == null) FindPlayer();
+
         enemies.RemoveAll(e => e == null);
 
         if (isSpawning || enemies.Count > 0)
             bossTimer += Time.deltaTime;
 
-        if (!isSpawning && enemies.Count == 0 && enemiesKilled >= enemiesPerWave && !isWaveComplete)
+        if (!isSpawning && enemies.Count == 0 && !isWaveComplete && enemiesKilled >= enemiesThisWave)
         {
             isWaveComplete = true;
+            AudioManager.Instance?.PlayWaveComplete();
             StartCoroutine(NextWave());
         }
-    }
-
-    IEnumerator StartWaves()
-    {
-        yield return new WaitForSeconds(2f);
-        StartCoroutine(SpawnWave());
     }
 
     IEnumerator SpawnWave()
@@ -90,13 +103,18 @@ public class WaveSpawner : MonoBehaviour
         enemiesKilled = 0;
         bossSpawnedThisWave = false;
 
-        int count = enemiesPerWave + (currentWave - 1) * 2;
-        count = Mathf.Min(count, 30);
+        enemiesThisWave = CalculateEnemiesForWave();
 
-        Debug.Log($"🌊 Fala {currentWave}: {count} wrogów");
+        Debug.Log($"🌊 FALA {currentWave} START! ({enemiesThisWave} wrogów)");
+        AudioManager.Instance?.PlayWaveStart();
 
-        for (int i = 0; i < count; i++)
+        float spawnDelay = Mathf.Max(0.2f, timeBetweenSpawns - (levelSystem != null ? levelSystem.currentLevel * spawnSpeedPerLevel : 0));
+        spawnDelay = Mathf.Max(0.2f, spawnDelay);
+
+        for (int i = 0; i < enemiesThisWave; i++)
         {
+            if (player == null) break;
+
             GameObject prefab = GetRandomEnemy();
             if (prefab != null)
             {
@@ -106,13 +124,40 @@ public class WaveSpawner : MonoBehaviour
                     GameObject enemy = Instantiate(prefab, pos, Quaternion.identity);
                     enemies.Add(enemy);
                     enemiesSpawned++;
+                    AudioManager.Instance?.OnEnemySpawned();
                 }
             }
-            yield return new WaitForSeconds(timeBetweenSpawns);
+
+            float dynamicDelay = spawnDelay * (1f + (i / (float)enemiesThisWave) * 0.3f);
+            yield return new WaitForSeconds(dynamicDelay);
         }
 
         isSpawning = false;
-        Debug.Log($"✅ Fala {currentWave} zakończona!");
+        Debug.Log($"✅ FALA {currentWave} zakończona! Spawnowano: {enemiesSpawned} wrogów");
+    }
+
+    int CalculateEnemiesForWave()
+    {
+        int baseCount = baseEnemiesPerWave;
+        int levelBonus = levelSystem != null ? levelSystem.currentLevel * enemiesPerLevel : 0;
+        int waveBonus = Mathf.FloorToInt((currentWave - 1) * waveMultiplier);
+        int total = baseCount + levelBonus + waveBonus;
+        total = Mathf.Min(total, maxEnemiesPerWave);
+        total = Mathf.Max(1, total);
+        return total;
+    }
+
+    IEnumerator NextWave()
+    {
+        Debug.Log($"⏳ Czekam {timeBetweenWaves}s na następną falę...");
+        yield return new WaitForSeconds(timeBetweenWaves);
+
+        currentWave++;
+        Debug.Log($"🌊 ROZPOCZYNAM FALĘ {currentWave}!");
+
+        if (levelSystem != null) levelSystem.UpdateUI();
+
+        StartCoroutine(SpawnWave());
     }
 
     Vector3 GetSpawnPosition()
@@ -146,26 +191,33 @@ public class WaveSpawner : MonoBehaviour
 
     GameObject GetRandomEnemy()
     {
-        // Boss
-        if (bossTimer >= bossSpawnInterval && !bossSpawnedThisWave && currentWave > 3 && leszyPrefab != null)
+        if (bossTimer >= bossSpawnInterval && !bossSpawnedThisWave && currentWave >= bossMinWave && leszyPrefab != null)
         {
             if (Random.Range(0f, 100f) < bossSpawnChance)
             {
                 bossSpawnedThisWave = true;
                 bossTimer = 0f;
+                AudioManager.Instance?.OnBossSpawned();
                 Debug.Log($"👑 BOSS w fali {currentWave}!");
                 return leszyPrefab;
             }
         }
 
+        int playerLevel = levelSystem != null ? levelSystem.currentLevel : 1;
+        float difficultyMultiplier = 1f + (playerLevel - 1) * 0.05f;
+        difficultyMultiplier = Mathf.Min(difficultyMultiplier, 3f);
+
         float total = polnocnicaChance + strzygaChance + upiorChance + bazyliszekChance;
         if (total <= 0) return polnocnicaPrefab;
 
-        float mult = Mathf.Min(1f + (currentWave - 1) * 0.05f, 2.5f);
-        float p = polnocnicaChance / mult;
+        float p = polnocnicaChance / difficultyMultiplier;
         float s = strzygaChance * Mathf.Lerp(1f, 1.5f, (currentWave - 1) / 10f);
         float u = upiorChance * Mathf.Lerp(1f, 2f, (currentWave - 1) / 10f);
         float b = bazyliszekChance * Mathf.Lerp(1f, 2.5f, (currentWave - 1) / 10f);
+
+        s *= (1f + (playerLevel - 1) * 0.02f);
+        u *= (1f + (playerLevel - 1) * 0.03f);
+        b *= (1f + (playerLevel - 1) * 0.04f);
 
         float newTotal = p + s + u + b;
         float rand = Random.Range(0f, newTotal);
@@ -179,30 +231,66 @@ public class WaveSpawner : MonoBehaviour
         return polnocnicaPrefab;
     }
 
-    IEnumerator NextWave()
-    {
-        yield return new WaitForSeconds(timeBetweenWaves);
-        currentWave++;
-
-        if (currentWave > maxWaves)
-        {
-            if (gameManager != null) gameManager.Victory("🏆 WSZYSTKIE FALE UKOŃCZONE!");
-            yield break;
-        }
-
-        StartCoroutine(SpawnWave());
-    }
+    // ============================================
+    // METODY PUBLICZNE - POPRAWIONE NAZWY
+    // ============================================
 
     public void EnemyDied()
     {
         enemiesKilled++;
+        AudioManager.Instance?.OnEnemyDied();
+
+        if (!isSpawning && enemies.Count == 0 && enemiesKilled >= enemiesThisWave && !isWaveComplete)
+        {
+            isWaveComplete = true;
+            AudioManager.Instance?.PlayWaveComplete();
+            StartCoroutine(NextWave());
+        }
     }
+
+    public void StartNextWave()
+    {
+        if (!isSpawning && enemies.Count == 0 && isWaveComplete)
+        {
+            StartCoroutine(NextWave());
+        }
+    }
+
+    public void ClearAllEnemies()
+    {
+        foreach (GameObject e in enemies)
+            if (e != null) Destroy(e);
+        enemies.Clear();
+        enemiesKilled = 0;
+        enemiesSpawned = 0;
+        isWaveComplete = true;
+        Debug.Log("🗑️ Wszyscy wrogowie usunięci!");
+    }
+
+    public void SkipWave()
+    {
+        if (isSpawning && spawnCoroutine != null)
+            StopCoroutine(spawnCoroutine);
+        ClearAllEnemies();
+        isWaveComplete = true;
+        StartCoroutine(NextWave());
+    }
+
+    // ============================================
+    // GETTERY - DLA INNYCH SKRYPTÓW
+    // ============================================
 
     public int GetCurrentWave() => currentWave;
     public int GetEnemyCount() => enemies.Count;
-    public int GetMaxWaves() => maxWaves;
-    public bool IsWaveComplete() => currentWave > maxWaves && enemies.Count == 0 && !isSpawning;
     public bool IsWaveActive() => isSpawning || enemies.Count > 0;
+    public bool IsWaveComplete() => isWaveComplete;
+    public int GetEnemiesKilled() => enemiesKilled;
+    public int GetEnemiesSpawned() => enemiesSpawned;
+    public int GetEnemiesThisWave() => enemiesThisWave;
+
+    // ============================================
+    // METODY TESTOWE
+    // ============================================
 
     public void TestSpawnBoss()
     {
@@ -228,23 +316,6 @@ public class WaveSpawner : MonoBehaviour
                 Debug.Log("🐉 Bazyliszek spawned!");
             }
         }
-    }
-
-    public void SkipWave()
-    {
-        if (isSpawning) StopAllCoroutines();
-        ClearAllEnemies();
-        isWaveComplete = true;
-        StartCoroutine(NextWave());
-    }
-
-    public void ClearAllEnemies()
-    {
-        foreach (GameObject e in enemies)
-            if (e != null) Destroy(e);
-        enemies.Clear();
-        enemiesKilled = 0;
-        enemiesSpawned = 0;
     }
 
     void OnDrawGizmosSelected()

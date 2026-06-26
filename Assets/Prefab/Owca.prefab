@@ -243,6 +243,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f18c4501f5a74c64fb02e25cc1ddc07d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3793413455135414241}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f18c4501f5a74c64fb02e25cc1ddc07d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1931031365561549896}
   m_SourcePrefab: {fileID: 100100000, guid: f18c4501f5a74c64fb02e25cc1ddc07d, type: 3}
 --- !u!1 &1596844968420686778 stripped
 GameObject:
@@ -261,13 +264,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 832078bb293b2d846bf2dc7989d751b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Sheep
-  avoidanceRadius: 1.2
-  avoidanceForce: 3
-  shepherdAvoidanceRadius: 2
-  shepherdAvoidanceForce: 5
-  healthText3D: {fileID: 6084190039837747713}
-  textHeight: 1.2
-  textOffset: {x: 0, y: 1.2, z: 0}
+  speed: 5
+  attackRange: 2
+  attackDamage: 15
+  attackCooldown: 1
+  detectionRange: 10
+  pushbackForce: 6
+  pushbackUpForce: 1.5
+  pushbackRadius: 2.5
+--- !u!195 &1931031365561549896
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596844968420686778}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!4 &2117521566553465088 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f18c4501f5a74c64fb02e25cc1ddc07d, type: 3}

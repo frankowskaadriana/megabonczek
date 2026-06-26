@@ -7,8 +7,13 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float attackRange = 10f;
     public float attackDamage = 15f;
     public float attackRate = 0.8f;
-    public GameObject projectilePrefab;
+    public GameObject lightBeamPrefab;
     public Transform firePoint;
+
+    [Header("Odrzut LightBeam")]
+    public float beamPushbackForce = 6f;
+    public float beamPushbackUpForce = 1.5f;
+    public float beamPushbackInterval = 0.1f;
 
     [Header("Umiejętności")]
     public float healAmount = 30f;
@@ -64,12 +69,11 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (player == null) return;
 
-        // AUTOMATYCZNY STRZAŁ w kierunku myszki
+        // AUTOMATYCZNY STRZAŁ LightBeam
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canShoot)
         {
             attackTimer = 0f;
-            // Obróć w stronę myszki przed strzałem
             RotateToMouse();
             RangedAttack();
         }
@@ -135,19 +139,23 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void RangedAttack()
     {
-        if (projectilePrefab == null || firePoint == null) return;
+        if (lightBeamPrefab == null || firePoint == null) return;
 
-        // Celowanie w kursor
         Vector3 targetPosition = GetMouseWorldPosition();
         if (targetPosition == Vector3.zero) return;
 
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
-        // Wystrzel pocisk w kierunku kursora
-        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
-        Bullet bullet = projectile.GetComponent<Bullet>();
-        if (bullet != null) bullet.damage = attackDamage;
+        GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, Quaternion.LookRotation(direction));
+        LightBeam lightBeam = beam.GetComponent<LightBeam>();
+        if (lightBeam != null)
+        {
+            lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
+            lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce, beamPushbackInterval);
+        }
+
+        AudioManager.Instance?.PlayLaser();
     }
 
     Vector3 GetMouseWorldPosition()
@@ -174,12 +182,14 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Heal(healAmount);
-            Debug.Log($"💚 Seraphim: Heal {healAmount} HP!");
+            AudioManager.Instance?.PlayHeal();
         }
     }
 
     IEnumerator Judgment()
     {
+        AudioManager.Instance?.PlayUltimate();
+
         if (judgmentEffect != null)
         {
             GameObject effect = Instantiate(judgmentEffect, transform.position, Quaternion.identity);
@@ -199,6 +209,16 @@ public class AbilitiesSeraphim : MonoBehaviour
                 if (enemy != null)
                 {
                     enemy.TakeDamage(judgmentDamage * Time.deltaTime);
+
+                    Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        Vector3 dir = (enemy.transform.position - transform.position).normalized;
+                        dir.y = 2f;
+                        rb.isKinematic = false;
+                        rb.useGravity = true;
+                        rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
+                    }
                 }
 
                 PlayerHealth playerHealth = hitCollider.GetComponent<PlayerHealth>();
@@ -216,6 +236,8 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void SpecialAttack()
     {
+        AudioManager.Instance?.PlaySpecialAbility();
+
         RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, specialRange);
         foreach (var hit in hits)
         {
@@ -223,6 +245,16 @@ public class AbilitiesSeraphim : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(specialDamage);
+
+                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 dir = (enemy.transform.position - transform.position).normalized;
+                    dir.y = 1.5f;
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
+                }
             }
         }
     }
@@ -230,6 +262,8 @@ public class AbilitiesSeraphim : MonoBehaviour
     IEnumerator Charge()
     {
         if (isCharging) yield break;
+
+        AudioManager.Instance?.PlayCharge();
 
         isCharging = true;
         chargeDirection = transform.forward;
@@ -273,6 +307,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                     Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
                     if (enemyRb != null)
                     {
+                        enemyRb.isKinematic = false;
+                        enemyRb.useGravity = true;
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
                 }

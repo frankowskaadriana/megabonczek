@@ -3,26 +3,40 @@ using System.Collections;
 
 public class AbilityVisuals : MonoBehaviour
 {
-    [Header("Ustawienia")]
-    public float showDuration = 0.2f;
-    public Color attackColor = new Color(1f, 1f, 0f, 0.9f);
-    public Color specialColor = new Color(0f, 1f, 1f, 0.8f);
-    public Color ultimateColor = new Color(1f, 0f, 0f, 0.8f);
+    [Header("═══════════════ USTAWIENIA WIZUALIZACJI ═══════════════")]
+    public float showDuration = 0.3f;
     public float lineWidth = 0.08f;
-    public float trajectoryLength = 12f;
-    public int trajectoryPoints = 20;
+    public int segments = 50;
+
+    [Header("═══════════════ KOLORY ═══════════════")]
+    public Color attackColor = new Color(1f, 0f, 0f, 0.7f);
+    public Color specialColor = new Color(0f, 1f, 1f, 0.6f);
+    public Color ultimateColor = new Color(1f, 0f, 0f, 0.6f);
+    public Color stompColor = new Color(1f, 0.6f, 0f, 0.6f);
+    public Color rangeColor = new Color(0f, 1f, 0f, 0.3f);
+
+    [Header("═══════════════ REFERENCJE ═══════════════")]
     public Transform firePoint;
 
     private AbilitiesMountainMan mountainMan;
     private AbilitiesSeraphim seraphim;
+    private bool isMountainMan = false;
+
+    // Linie
     private LineRenderer attackLine;
     private LineRenderer specialLine;
     private LineRenderer ultimateLine;
+    private LineRenderer stompLine;
+
+    // Obiekty
     private GameObject attackObj;
     private GameObject specialObj;
     private GameObject ultimateObj;
-    private bool isMountainMan = false;
+    private GameObject stompObj;
+    private GameObject rangeObj;
+
     private Camera mainCamera;
+    private bool isVisible = false;
 
     void Start()
     {
@@ -30,113 +44,82 @@ public class AbilityVisuals : MonoBehaviour
         mountainMan = GetComponent<AbilitiesMountainMan>();
         seraphim = GetComponent<AbilitiesSeraphim>();
 
-        if (firePoint == null && seraphim != null)
-        {
-            firePoint = seraphim.firePoint;
-            if (firePoint == null) firePoint = transform;
-        }
+        if (firePoint == null)
+            firePoint = transform;
 
         if (mountainMan != null)
         {
             isMountainMan = true;
-            attackColor = new Color(1f, 0f, 0f, 0.8f);
-            CreateAttackCone();
-            CreateCircleIndicator(ref specialLine, ref specialObj, GetSpecialRange(), specialColor, "SpecialIndicator");
-            CreateCircleIndicator(ref ultimateLine, ref ultimateObj, GetUltimateRange(), ultimateColor, "UltimateIndicator");
+            Debug.Log("🎯 AbilityVisuals dla Górala - aktywowane!");
 
-            attackObj.SetActive(false);
-            specialObj.SetActive(false);
-            ultimateObj.SetActive(false);
+            // Stwórz wszystkie wizualizacje
+            CreateAttackCone();
+            CreateCircleIndicator(ref stompLine, ref stompObj, mountainMan.stompRange, stompColor, "StompRange");
+            CreateCircleIndicator(ref specialLine, ref specialObj, mountainMan.specialRange, specialColor, "SpecialRange");
+            CreateCircleIndicator(ref ultimateLine, ref ultimateObj, mountainMan.ultimateRadius, ultimateColor, "UltimateRange");
+            CreateRangeCircle();
+
+            // Ukryj wszystko na starcie
+            SetAllVisible(false);
         }
         else if (seraphim != null)
         {
-            CreateTrajectoryLine();
-            CreateCircleIndicator(ref specialLine, ref specialObj, GetSpecialRange(), specialColor, "SpecialIndicator");
-            CreateCircleIndicator(ref ultimateLine, ref ultimateObj, GetUltimateRange(), ultimateColor, "UltimateIndicator");
-
-            attackObj.SetActive(false);
-            specialObj.SetActive(false);
-            ultimateObj.SetActive(false);
+            Debug.Log("🎯 AbilityVisuals dla Seraphima");
+            // Tutaj możesz dodać wizualizacje dla Seraphima
         }
         else
         {
-            Debug.LogError("AbilityVisuals wymaga AbilitiesMountainMan lub AbilitiesSeraphim!");
+            Debug.LogWarning("⚠️ AbilityVisuals wymaga AbilitiesMountainMan lub AbilitiesSeraphim!");
             enabled = false;
         }
     }
 
-    void CreateTrajectoryLine()
+    void Update()
     {
-        attackObj = new GameObject("TrajectoryLine");
-        attackObj.transform.SetParent(transform);
-        attackObj.transform.localPosition = Vector3.zero;
-        attackLine = attackObj.AddComponent<LineRenderer>();
+        if (!isMountainMan || mountainMan == null) return;
 
-        attackLine.startWidth = lineWidth;
-        attackLine.endWidth = lineWidth * 0.5f;
-        attackLine.useWorldSpace = true;
-        attackLine.positionCount = trajectoryPoints;
+        // Pokaż/ukryj zasięgi na klawisze
+        if (Input.GetKeyDown(KeyCode.Alpha1)) // 1 - Atak
+        {
+            ToggleAttackRange();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2)) // 2 - Stomp
+        {
+            ToggleStompRange();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3)) // 3 - Special
+        {
+            ToggleSpecialRange();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha4)) // 4 - Ultimate
+        {
+            ToggleUltimateRange();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha5)) // 5 - Wszystkie
+        {
+            ToggleAllRanges();
+        }
 
-        Material mat = new Material(Shader.Find("Sprites/Default"));
-        mat.color = attackColor;
-        attackLine.material = mat;
-
-        attackLine.startColor = attackColor;
-        attackLine.endColor = new Color(attackColor.r, attackColor.g, attackColor.b, 0f);
+        // Aktualizuj pozycję wizualizacji
+        UpdateAllVisuals();
     }
 
-    void UpdateTrajectoryLine()
+    void LateUpdate()
     {
-        if (attackLine == null || seraphim == null) return;
+        if (!isMountainMan || mountainMan == null) return;
 
-        Vector3 startPoint = firePoint != null ? firePoint.position : transform.position;
-        Vector3 direction = GetMouseDirection();
-
-        attackLine.positionCount = trajectoryPoints;
-
-        for (int i = 0; i < trajectoryPoints; i++)
+        // Aktualizuj stożek ataku gdy widoczny
+        if (attackObj != null && attackObj.activeSelf)
         {
-            float t = (float)i / (trajectoryPoints - 1);
-            Vector3 point = startPoint + direction * (t * trajectoryLength);
-            attackLine.SetPosition(i, point);
+            UpdateAttackCone();
         }
     }
 
-    Vector3 GetMouseDirection()
-    {
-        if (mainCamera == null) mainCamera = Camera.main;
-
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up, transform.position);
-
-        float distance;
-        if (groundPlane.Raycast(ray, out distance))
-        {
-            Vector3 hitPoint = ray.GetPoint(distance);
-            Vector3 startPoint = firePoint != null ? firePoint.position : transform.position;
-            return (hitPoint - startPoint).normalized;
-        }
-
-        return transform.forward;
-    }
-
-    float GetSpecialRange()
-    {
-        if (mountainMan != null) return mountainMan.specialRange;
-        if (seraphim != null) return seraphim.chargeRange;
-        return 3f;
-    }
-
-    float GetUltimateRange()
-    {
-        if (mountainMan != null) return mountainMan.ultimateRadius;
-        if (seraphim != null) return seraphim.judgmentRadius;
-        return 5f;
-    }
+    // ===== TWORZENIE WIZUALIZACJI =====
 
     void CreateAttackCone()
     {
-        attackObj = new GameObject("AttackIndicator");
+        attackObj = new GameObject("AttackCone");
         attackObj.transform.SetParent(transform);
         attackObj.transform.localPosition = Vector3.zero;
         attackObj.transform.localRotation = Quaternion.identity;
@@ -145,16 +128,18 @@ public class AbilityVisuals : MonoBehaviour
         attackLine.startWidth = lineWidth;
         attackLine.endWidth = lineWidth;
         attackLine.useWorldSpace = false;
+        attackLine.loop = false;
+        attackLine.sortingOrder = -1;
 
         Material mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = attackColor;
         attackLine.material = mat;
 
         attackLine.startColor = attackColor;
-        attackLine.endColor = attackColor;
-        attackLine.sortingOrder = -1;
+        attackLine.endColor = new Color(attackColor.r, attackColor.g, attackColor.b, 0.3f);
 
         UpdateAttackCone();
+        attackObj.SetActive(false);
     }
 
     void UpdateAttackCone()
@@ -167,23 +152,28 @@ public class AbilityVisuals : MonoBehaviour
         float angle = mountainMan.attackAngle;
         float halfAngle = angle / 2f;
 
-        int segments = 30;
-        attackLine.positionCount = segments + 3;
+        int points = segments;
+        attackLine.positionCount = points + 3;
 
-        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        // Początek stożka
         attackLine.SetPosition(0, center);
+
+        // Lewa krawędź
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
         attackLine.SetPosition(1, center + leftDir * range);
 
+        // Łuk
         int pointIndex = 2;
-        for (int i = 1; i <= segments; i++)
+        for (int i = 1; i <= points; i++)
         {
-            float t = (float)i / segments;
+            float t = (float)i / points;
             float currentAngle = -halfAngle + (angle * t);
             Vector3 dir = Quaternion.Euler(0, currentAngle, 0) * forward;
             Vector3 point = center + dir * range;
             attackLine.SetPosition(pointIndex++, point);
         }
 
+        // Prawa krawędź
         Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
         attackLine.SetPosition(attackLine.positionCount - 1, center + rightDir * range);
     }
@@ -200,85 +190,261 @@ public class AbilityVisuals : MonoBehaviour
         line.endWidth = lineWidth;
         line.loop = true;
         line.useWorldSpace = false;
+        line.sortingOrder = -1;
 
         Material mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = color;
         line.material = mat;
 
         line.startColor = color;
-        line.endColor = color;
-        line.sortingOrder = -1;
+        line.endColor = new Color(color.r, color.g, color.b, 0.3f);
 
         UpdateCircleLine(line, radius);
+        obj.SetActive(false);
     }
 
     void UpdateCircleLine(LineRenderer line, float radius)
     {
         if (line == null) return;
 
-        int segments = 50;
-        line.positionCount = segments;
+        int points = segments;
+        line.positionCount = points;
 
-        for (int i = 0; i < segments; i++)
+        for (int i = 0; i < points; i++)
         {
-            float angle = 2f * Mathf.PI * i / segments;
+            float angle = 2f * Mathf.PI * i / points;
             float x = Mathf.Sin(angle) * radius;
             float z = Mathf.Cos(angle) * radius;
             line.SetPosition(i, new Vector3(x, 0.02f, z));
         }
     }
 
-    void LateUpdate()
+    void CreateRangeCircle()
     {
-        if (mountainMan != null)
+        rangeObj = new GameObject("RangeIndicator");
+        rangeObj.transform.SetParent(transform);
+        rangeObj.transform.localPosition = Vector3.zero;
+        rangeObj.transform.localRotation = Quaternion.identity;
+
+        // Użyjemy wielu linii dla efektu
+        for (int i = 0; i < 4; i++)
         {
-            if (attackObj != null && attackObj.activeSelf) UpdateAttackCone();
-            if (specialObj != null && specialObj.activeSelf) UpdateCircleLine(specialLine, GetSpecialRange());
-            if (ultimateObj != null && ultimateObj.activeSelf) UpdateCircleLine(ultimateLine, GetUltimateRange());
+            float angle = i * 90f;
+            GameObject lineObj = new GameObject($"RangeLine_{i}");
+            lineObj.transform.SetParent(rangeObj.transform);
+            lineObj.transform.localPosition = Vector3.zero;
+
+            LineRenderer line = lineObj.AddComponent<LineRenderer>();
+            line.startWidth = 0.03f;
+            line.endWidth = 0.03f;
+            line.useWorldSpace = false;
+            line.positionCount = 2;
+
+            Material mat = new Material(Shader.Find("Sprites/Default"));
+            mat.color = rangeColor;
+            line.material = mat;
+
+            float rad = angle * Mathf.Deg2Rad;
+            float x = Mathf.Sin(rad) * 2f;
+            float z = Mathf.Cos(rad) * 2f;
+
+            line.SetPosition(0, Vector3.zero);
+            line.SetPosition(1, new Vector3(x, 0f, z));
         }
-        else if (seraphim != null)
-        {
-            if (attackObj != null && attackObj.activeSelf) UpdateTrajectoryLine();
-            if (specialObj != null && specialObj.activeSelf) UpdateCircleLine(specialLine, GetSpecialRange());
-            if (ultimateObj != null && ultimateObj.activeSelf) UpdateCircleLine(ultimateLine, GetUltimateRange());
-        }
+
+        rangeObj.SetActive(false);
     }
 
-    public void ShowAttackRange()
-    {
-        if (attackObj != null)
-        {
-            if (mountainMan != null) UpdateAttackCone();
-            else if (seraphim != null) UpdateTrajectoryLine();
+    // ===== METODY DO POKAZYWANIA/UKRYWANIA =====
 
-            attackObj.SetActive(true);
-            StartCoroutine(HideAfterDelay(attackObj));
-        }
+    void SetAllVisible(bool visible)
+    {
+        if (attackObj != null) attackObj.SetActive(visible);
+        if (stompObj != null) stompObj.SetActive(visible);
+        if (specialObj != null) specialObj.SetActive(visible);
+        if (ultimateObj != null) ultimateObj.SetActive(visible);
+        if (rangeObj != null) rangeObj.SetActive(visible);
+        isVisible = visible;
     }
 
-    public void ShowSpecialRange()
+    void ToggleAttackRange()
     {
-        if (specialObj != null)
-        {
-            UpdateCircleLine(specialLine, GetSpecialRange());
-            specialObj.SetActive(true);
-            StartCoroutine(HideAfterDelay(specialObj));
-        }
+        if (attackObj == null) return;
+        bool newState = !attackObj.activeSelf;
+        attackObj.SetActive(newState);
+        if (newState) UpdateAttackCone();
+        Debug.Log($"🔴 Stożek ataku: {(newState ? "WIDOCZNY" : "UKRYTY")}");
     }
 
-    public void ShowUltimateRange()
+    void ToggleStompRange()
     {
-        if (ultimateObj != null)
-        {
-            UpdateCircleLine(ultimateLine, GetUltimateRange());
-            ultimateObj.SetActive(true);
-            StartCoroutine(HideAfterDelay(ultimateObj));
-        }
+        if (stompObj == null) return;
+        bool newState = !stompObj.activeSelf;
+        stompObj.SetActive(newState);
+        if (newState) UpdateCircleLine(stompLine, mountainMan.stompRange);
+        Debug.Log($"🟠 Zasięg Stomp: {(newState ? "WIDOCZNY" : "UKRYTY")}");
     }
 
-    IEnumerator HideAfterDelay(GameObject obj)
+    void ToggleSpecialRange()
     {
-        yield return new WaitForSeconds(showDuration);
+        if (specialObj == null) return;
+        bool newState = !specialObj.activeSelf;
+        specialObj.SetActive(newState);
+        if (newState) UpdateCircleLine(specialLine, mountainMan.specialRange);
+        Debug.Log($"🔵 Zasięg Special: {(newState ? "WIDOCZNY" : "UKRYTY")}");
+    }
+
+    void ToggleUltimateRange()
+    {
+        if (ultimateObj == null) return;
+        bool newState = !ultimateObj.activeSelf;
+        ultimateObj.SetActive(newState);
+        if (newState) UpdateCircleLine(ultimateLine, mountainMan.ultimateRadius);
+        Debug.Log($"🔴 Zasięg Ultimate: {(newState ? "WIDOCZNY" : "UKRYTY")}");
+    }
+
+    void ToggleAllRanges()
+    {
+        bool allVisible = !isVisible;
+        SetAllVisible(allVisible);
+        if (allVisible)
+        {
+            UpdateAttackCone();
+            UpdateCircleLine(stompLine, mountainMan.stompRange);
+            UpdateCircleLine(specialLine, mountainMan.specialRange);
+            UpdateCircleLine(ultimateLine, mountainMan.ultimateRadius);
+        }
+        Debug.Log($"🎯 WSZYSTKIE zasięgi: {(allVisible ? "WIDOCZNE" : "UKRYTE")}");
+    }
+
+    void UpdateAllVisuals()
+    {
+        if (!isVisible) return;
+
+        // Aktualizuj tylko te które są widoczne
+        if (attackObj != null && attackObj.activeSelf) UpdateAttackCone();
+        if (stompObj != null && stompObj.activeSelf) UpdateCircleLine(stompLine, mountainMan.stompRange);
+        if (specialObj != null && specialObj.activeSelf) UpdateCircleLine(specialLine, mountainMan.specialRange);
+        if (ultimateObj != null && ultimateObj.activeSelf) UpdateCircleLine(ultimateLine, mountainMan.ultimateRadius);
+    }
+
+    // ===== METODY PUBLICZNE =====
+
+    public void ShowAttackRange(float duration = -1f)
+    {
+        if (attackObj == null) return;
+        attackObj.SetActive(true);
+        UpdateAttackCone();
+        if (duration > 0) StartCoroutine(HideAfterDelay(attackObj, duration));
+    }
+
+    public void ShowStompRange(float duration = -1f)
+    {
+        if (stompObj == null) return;
+        stompObj.SetActive(true);
+        UpdateCircleLine(stompLine, mountainMan.stompRange);
+        if (duration > 0) StartCoroutine(HideAfterDelay(stompObj, duration));
+    }
+
+    public void ShowSpecialRange(float duration = -1f)
+    {
+        if (specialObj == null) return;
+        specialObj.SetActive(true);
+        UpdateCircleLine(specialLine, mountainMan.specialRange);
+        if (duration > 0) StartCoroutine(HideAfterDelay(specialObj, duration));
+    }
+
+    public void ShowUltimateRange(float duration = -1f)
+    {
+        if (ultimateObj == null) return;
+        ultimateObj.SetActive(true);
+        UpdateCircleLine(ultimateLine, mountainMan.ultimateRadius);
+        if (duration > 0) StartCoroutine(HideAfterDelay(ultimateObj, duration));
+    }
+
+    public void ShowAllRanges(float duration = -1f)
+    {
+        SetAllVisible(true);
+        UpdateAllVisuals();
+        if (duration > 0) StartCoroutine(HideAllAfterDelay(duration));
+    }
+
+    public void HideAllRanges()
+    {
+        SetAllVisible(false);
+    }
+
+    IEnumerator HideAfterDelay(GameObject obj, float delay)
+    {
+        yield return new WaitForSeconds(delay);
         if (obj != null) obj.SetActive(false);
+    }
+
+    IEnumerator HideAllAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        SetAllVisible(false);
+    }
+
+    void OnDrawGizmos()
+    {
+        if (mountainMan == null) return;
+
+        // Rysuj w Scene View (tylko gdy zaznaczony)
+        Gizmos.color = attackColor;
+        Vector3 forward = transform.forward;
+        float halfAngle = mountainMan.attackAngle / 2f;
+        float range = mountainMan.attackRange;
+
+        // Stożek ataku
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
+
+        Gizmos.DrawLine(transform.position, transform.position + leftDir * range);
+        Gizmos.DrawLine(transform.position, transform.position + rightDir * range);
+
+        // Łuk
+        int points = 20;
+        for (int i = 0; i <= points; i++)
+        {
+            float t = (float)i / points;
+            float angle = -halfAngle + (mountainMan.attackAngle * t);
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
+            Vector3 point = transform.position + dir * range;
+
+            if (i > 0)
+            {
+                float prevAngle = -halfAngle + (mountainMan.attackAngle * ((float)(i - 1) / points));
+                Vector3 prevDir = Quaternion.Euler(0, prevAngle, 0) * forward;
+                Vector3 prevPoint = transform.position + prevDir * range;
+                Gizmos.DrawLine(prevPoint, point);
+            }
+        }
+
+        // Koła zasięgów
+        Gizmos.color = stompColor;
+        DrawCircle(transform.position, mountainMan.stompRange);
+
+        Gizmos.color = specialColor;
+        DrawCircle(transform.position, mountainMan.specialRange);
+
+        Gizmos.color = ultimateColor;
+        DrawCircle(transform.position, mountainMan.ultimateRadius);
+    }
+
+    void DrawCircle(Vector3 center, float radius)
+    {
+        int points = 30;
+        Vector3 prevPoint = center + new Vector3(0, 0, radius);
+
+        for (int i = 1; i <= points; i++)
+        {
+            float angle = 2f * Mathf.PI * i / points;
+            float x = Mathf.Sin(angle) * radius;
+            float z = Mathf.Cos(angle) * radius;
+            Vector3 point = center + new Vector3(x, 0, z);
+            Gizmos.DrawLine(prevPoint, point);
+            prevPoint = point;
+        }
     }
 }

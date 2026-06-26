@@ -24,6 +24,15 @@ public class EnemyHealth : MonoBehaviour
     public float pushForce = 3f;
     public float pushRadius = 1.5f;
 
+    [Header("Odrzut po obrażeniach")]
+    public float hitPushForce = 5f;
+    public float hitPushUpForce = 1f;
+    public float hitStunDuration = 0.3f;
+
+    [Header("Efekty wizualne")]
+    public Color hitColor = Color.white;
+    public float hitFlashDuration = 0.1f;
+
     [Header("UI")]
     public TextMeshPro healthText;
 
@@ -32,26 +41,55 @@ public class EnemyHealth : MonoBehaviour
     private NavMeshAgent agent;
     private float attackTimer = 0f;
     private bool isDead = false;
+    private bool isStunned = false;
     private MeshRenderer mesh;
     private Color originalColor;
     private LevelSystem levelSystem;
+    private Rigidbody rb;
+    private Coroutine pushbackCoroutine;
+    private Coroutine flashCoroutine;
+    private float searchTimer = 0f;
+    private float searchInterval = 0.5f;
 
     void Start()
     {
         currentHealth = maxHealth;
         levelSystem = FindFirstObjectByType<LevelSystem>();
-        player = GameObject.FindWithTag("Player")?.transform;
+        FindPlayer();
 
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
-        agent.stoppingDistance = attackRange;
+        agent.stoppingDistance = attackRange * 0.8f;
+        agent.autoBraking = true;
+        agent.updatePosition = true;
+        agent.updateRotation = true;
+        agent.angularSpeed = 360f;
+
+        rb = GetComponent<Rigidbody>();
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
 
         mesh = GetComponent<MeshRenderer>();
         if (mesh != null) originalColor = mesh.material.color;
 
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
         ApplyVisuals();
+    }
+
+    void FindPlayer()
+    {
+        GameObject p = GameObject.FindWithTag("Player");
+        if (p != null)
+        {
+            player = p.transform;
+            Debug.Log($"🎯 {gameObject.name} znalazł gracza: {player.name}");
+        }
+        else
+        {
+            Debug.LogWarning($"⚠️ {gameObject.name} nie znalazł gracza!");
+        }
     }
 
     void ApplyVisuals()
@@ -65,20 +103,60 @@ public class EnemyHealth : MonoBehaviour
             case EnemyType.Leszy: mesh.material.color = new Color(0.2f, 0.7f, 0.2f); transform.localScale = Vector3.one * 1.8f; expReward = 100; break;
             case EnemyType.Bazyliszek: mesh.material.color = new Color(0.9f, 0.7f, 0.2f); transform.localScale = Vector3.one * 1.2f; expReward = 50; break;
         }
+        originalColor = mesh.material.color;
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
     }
 
     void Update()
     {
-        if (player == null || isDead) return;
+        if (isDead || isStunned) return;
 
-        float dist = Vector3.Distance(transform.position, player.position);
-        if (agent != null && agent.isOnNavMesh)
+        // Szukaj gracza co jakiś czas
+        searchTimer += Time.deltaTime;
+        if (searchTimer >= searchInterval)
         {
-            agent.SetDestination(player.position);
-            agent.isStopped = dist <= agent.stoppingDistance;
+            searchTimer = 0f;
+            if (player == null)
+            {
+                FindPlayer();
+                if (player == null) return;
+            }
         }
 
+        if (player == null) return;
+
+        float dist = Vector3.Distance(transform.position, player.position);
+
+        // Poruszanie się tylko jeśli jest NavMesh
+        if (agent != null && agent.isOnNavMesh && agent.enabled)
+        {
+            if (dist > attackRange)
+            {
+                agent.SetDestination(player.position);
+                agent.isStopped = false;
+            }
+            else
+            {
+                agent.isStopped = true;
+                // Obróć się w stronę gracza
+                Vector3 direction = (player.position - transform.position).normalized;
+                direction.y = 0;
+                if (direction != Vector3.zero)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(direction);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 5f);
+                }
+            }
+        }
+        else if (agent != null && !agent.isOnNavMesh)
+        {
+            // Jeśli nie ma NavMesh, spróbuj odzyskać
+            Debug.LogWarning($"⚠️ {gameObject.name} nie ma NavMesh! Próba naprawy...");
+            agent.enabled = false;
+            agent.enabled = true;
+        }
+
+        // Atak
         if (dist <= attackRange)
         {
             attackTimer += Time.deltaTime;
@@ -99,19 +177,27 @@ public class EnemyHealth : MonoBehaviour
     void MeleeAttack()
     {
         if (player == null) return;
+
+        // Sprawdź czy gracz jest w zasięgu
+        float dist = Vector3.Distance(transform.position, player.position);
+        if (dist > attackRange * 1.2f) return;
+
         PlayerHealth ph = player.GetComponent<PlayerHealth>();
         if (ph != null)
         {
             ph.TakeDamage(damage);
-            float dist = Vector3.Distance(transform.position, player.position);
+            AudioManager.Instance?.PlayEnemyAttack();
+            Debug.Log($"⚔️ {gameObject.name} atakuje! {damage} obrażeń!");
+
+            // Odepchnij gracza
             if (dist < pushRadius)
             {
-                Rigidbody rb = player.GetComponent<Rigidbody>();
-                if (rb != null)
+                Rigidbody playerRb = player.GetComponent<Rigidbody>();
+                if (playerRb != null)
                 {
                     Vector3 dir = (player.position - transform.position).normalized;
                     dir.y = 0.5f;
-                    rb.AddForce(dir * pushForce * 0.5f, ForceMode.Impulse);
+                    playerRb.AddForce(dir * pushForce * 0.5f, ForceMode.Impulse);
                 }
             }
         }
@@ -120,31 +206,117 @@ public class EnemyHealth : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (isDead) return;
+
         currentHealth -= amount;
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
-        StartCoroutine(Flash());
+
+        FlashHit();
+        AudioManager.Instance?.PlayEnemyHit();
+
+        if (pushbackCoroutine != null) StopCoroutine(pushbackCoroutine);
+        pushbackCoroutine = StartCoroutine(HitPushback());
+
         if (currentHealth <= 0) Die();
     }
 
-    IEnumerator Flash()
+    public void FlashHit()
+    {
+        if (flashCoroutine != null) StopCoroutine(flashCoroutine);
+        flashCoroutine = StartCoroutine(FlashHitCoroutine());
+    }
+
+    IEnumerator FlashHitCoroutine()
     {
         if (mesh != null)
         {
-            mesh.material.color = Color.white;
-            yield return new WaitForSeconds(0.1f);
+            mesh.material.color = hitColor;
+            yield return new WaitForSeconds(hitFlashDuration);
             mesh.material.color = originalColor;
         }
+        flashCoroutine = null;
+    }
+
+    IEnumerator HitPushback()
+    {
+        if (isDead) yield break;
+
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj == null) yield break;
+
+        Vector3 direction = (transform.position - playerObj.transform.position).normalized;
+        direction.y = hitPushUpForce;
+
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.enabled = false;
+        }
+
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            rb.AddForce(direction * hitPushForce, ForceMode.Impulse);
+        }
+
+        isStunned = true;
+
+        yield return new WaitForSeconds(hitStunDuration);
+
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.linearVelocity = Vector3.zero;
+        }
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+            agent.isStopped = false;
+            if (agent.isOnNavMesh)
+            {
+                agent.Warp(transform.position);
+            }
+        }
+
+        isStunned = false;
+        pushbackCoroutine = null;
     }
 
     void Die()
     {
         if (isDead) return;
         isDead = true;
+
+        AudioManager.Instance?.PlayEnemyDeath();
+        AudioManager.Instance?.OnEnemyDied();
+
         if (levelSystem != null)
         {
-            for (int i = 0; i < expReward / 10; i++)
-                levelSystem.EnemyDied();
+            levelSystem.EnemyDied();
         }
-        Destroy(gameObject);
+
+        WaveSpawner waveSpawner = FindFirstObjectByType<WaveSpawner>();
+        if (waveSpawner != null)
+            waveSpawner.EnemyDied();
+
+        Destroy(gameObject, 0.5f);
+    }
+
+    void OnDestroy()
+    {
+        if (pushbackCoroutine != null)
+            StopCoroutine(pushbackCoroutine);
+        if (flashCoroutine != null)
+            StopCoroutine(flashCoroutine);
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, pushRadius);
     }
 }

@@ -1,98 +1,94 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
 using System.Collections.Generic;
 
 public class LevelSystem : MonoBehaviour
 {
-    [Header("═══════════════ POZIOM I XP ═══════════════")]
+    [Header("Poziom i XP")]
     public int currentLevel = 1;
     public int currentXP = 0;
     public int xpRequired = 10;
     public int xpPerEnemy = 1;
-    public float gameTime = 0f;
 
-    [Header("═══════════════ UI REFERENCES ═══════════════")]
+    [Header("UI")]
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI xpText;
     public Image xpFill;
     public TextMeshProUGUI waveText;
     public TextMeshProUGUI enemiesLeftText;
-    public TextMeshProUGUI timerText;
+    public Image healthFill;
+    public TextMeshProUGUI healthText;
 
-    [Header("═══════════════ PERK SELECTION UI ═══════════════")]
+    [Header("Perki")]
     public GameObject perkPanel;
-    public Button perkButton1;
-    public Button perkButton2;
-    public Button perkButton3;
-    public TextMeshProUGUI perkText1;
-    public TextMeshProUGUI perkText2;
-    public TextMeshProUGUI perkText3;
-    public TextMeshProUGUI perkDescription1;
-    public TextMeshProUGUI perkDescription2;
-    public TextMeshProUGUI perkDescription3;
+    public Button[] perkButtons;
+    public TextMeshProUGUI[] perkTexts;
+    public TextMeshProUGUI[] perkDescriptions;
 
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public PlayerHealth playerHealth;
-    public WeaponUpgradeSystem weaponUpgrade;
+    [Header("Referencje")]
     public WaveSpawner waveSpawner;
 
-    private bool gameStarted = false;
+    private PlayerHealth playerHealth;
     private bool isChoosingPerk = false;
-    private CursorLockMode previousCursorState;
     private float targetXpFill = 0f;
     private float currentXpFill = 0f;
-    private float smoothSpeed = 5f;
-
+    private float targetHealthFill = 1f;
+    private float currentHealthFill = 1f;
+    private const float SMOOTH_SPEED = 5f;
     private List<Perk> allPerks = new List<Perk>();
     private List<Perk> currentPerks = new List<Perk>();
+    private bool gameStarted = false;
 
-    [System.Serializable]
-    public class Perk
+    private class Perk
     {
-        public string name;
-        public string description;
+        public string name, description;
         public System.Action apply;
-
-        public Perk(string name, string description, System.Action apply)
-        {
-            this.name = name;
-            this.description = description;
-            this.apply = apply;
-        }
+        public Perk(string n, string d, System.Action a) { name = n; description = d; apply = a; }
     }
 
     void Start()
     {
-        CreatePerksList();
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
 
+        if (waveSpawner == null) waveSpawner = FindFirstObjectByType<WaveSpawner>();
+
+        CreatePerks();
         if (perkPanel != null) perkPanel.SetActive(false);
 
-        if (perkButton1 != null) perkButton1.onClick.AddListener(() => ChoosePerk(0));
-        if (perkButton2 != null) perkButton2.onClick.AddListener(() => ChoosePerk(1));
-        if (perkButton3 != null) perkButton3.onClick.AddListener(() => ChoosePerk(2));
+        for (int i = 0; i < perkButtons.Length && i < perkTexts.Length; i++)
+        {
+            int index = i;
+            perkButtons[i].onClick.AddListener(() => ChoosePerk(index));
+        }
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        targetXpFill = 0f;
-        currentXpFill = 0f;
         UpdateUI();
-        Debug.Log("LevelSystem gotowy!");
     }
 
     void Update()
     {
         if (!gameStarted) return;
 
-        gameTime += Time.deltaTime;
-        UpdateTimerUI();
+        if (playerHealth == null)
+        {
+            GameObject p = GameObject.FindWithTag("Player");
+            if (p != null) playerHealth = p.GetComponent<PlayerHealth>();
+        }
 
         if (xpFill != null)
         {
-            currentXpFill = Mathf.Lerp(currentXpFill, targetXpFill, Time.deltaTime * smoothSpeed);
+            currentXpFill = Mathf.Lerp(currentXpFill, targetXpFill, Time.deltaTime * SMOOTH_SPEED);
             xpFill.fillAmount = currentXpFill;
+        }
+
+        if (healthFill != null && playerHealth != null)
+        {
+            currentHealthFill = Mathf.Lerp(currentHealthFill, targetHealthFill, Time.deltaTime * SMOOTH_SPEED);
+            healthFill.fillAmount = currentHealthFill;
+
+            float hp = playerHealth.currentHealth / playerHealth.maxHealth;
+            healthFill.color = hp > 0.6f ? Color.green : (hp > 0.3f ? Color.yellow : Color.red);
         }
 
         if (isChoosingPerk)
@@ -105,112 +101,58 @@ public class LevelSystem : MonoBehaviour
         UpdateUI();
     }
 
-    void CreatePerksList()
+    void CreatePerks()
     {
         allPerks.Clear();
-
-        allPerks.Add(new Perk("⚔️ Więcej obrażeń", "+10 do obrażeń", () => {
-            if (weaponUpgrade != null) weaponUpgrade.UpgradeDamage();
-        }));
-
-        allPerks.Add(new Perk("❤️ Więcej zdrowia", "+20 maksymalnego zdrowia", () => {
-            if (playerHealth != null) playerHealth.AddMaxHealth(20);
-        }));
-
-        allPerks.Add(new Perk("⚡ Szybszy atak", "Szybsze ataki", () => {
-            AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
-            if (mountain != null) mountain.attackRate = Mathf.Max(0.4f, mountain.attackRate - 0.1f);
-        }));
-
-        allPerks.Add(new Perk("👟 Szybkie nogi", "+10% prędkości ruchu", () => {
-            PlayerMovement movement = FindFirstObjectByType<PlayerMovement>();
-            if (movement != null) movement.maxSpeed += 0.5f;
-        }));
-
-        allPerks.Add(new Perk("🔄 Szybszy cooldown", "-1s cooldown zdolności", () => {
-            if (weaponUpgrade != null) weaponUpgrade.UpgradeSpecialCooldown();
-        }));
-
-        allPerks.Add(new Perk("📚 Więcej XP", "+1 XP za wroga", () => {
-            xpPerEnemy++;
-        }));
-
-        allPerks.Add(new Perk("🛡️ Więcej pancerza", "+10 pancerza", () => {
-            if (playerHealth != null) playerHealth.AddArmor(10);
-        }));
+        allPerks.Add(new Perk("⚔️ Obrażenia", "+10 dmg", () => { /* logika */ }));
+        allPerks.Add(new Perk("❤️ Zdrowie", "+20 HP", () => { if (playerHealth != null) playerHealth.AddMaxHealth(20); }));
+        allPerks.Add(new Perk("⚡ Szybkość", "Szybszy atak", () => { /* logika */ }));
+        allPerks.Add(new Perk("👟 Prędkość", "+10% ruchu", () => { /* logika */ }));
+        allPerks.Add(new Perk("📚 XP", "+1 XP", () => { xpPerEnemy++; }));
+        allPerks.Add(new Perk("🛡️ Pancerz", "+10 pancerza", () => { if (playerHealth != null) playerHealth.AddArmor(10); }));
     }
 
     void ShowPerkSelection()
     {
         isChoosingPerk = true;
         Time.timeScale = 0f;
-
-        previousCursorState = Cursor.lockState;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         currentPerks.Clear();
-        List<Perk> tempPerks = new List<Perk>(allPerks);
+        List<Perk> temp = new List<Perk>(allPerks);
 
-        while (currentPerks.Count < 3 && tempPerks.Count > 0)
+        while (currentPerks.Count < 3 && temp.Count > 0)
         {
-            int randomIndex = Random.Range(0, tempPerks.Count);
-            currentPerks.Add(tempPerks[randomIndex]);
-            tempPerks.RemoveAt(randomIndex);
+            int idx = Random.Range(0, temp.Count);
+            currentPerks.Add(temp[idx]);
+            temp.RemoveAt(idx);
         }
 
-        if (perkText1 != null && currentPerks.Count > 0)
-            perkText1.text = currentPerks[0].name;
-        if (perkDescription1 != null && currentPerks.Count > 0)
-            perkDescription1.text = currentPerks[0].description;
-
-        if (perkText2 != null && currentPerks.Count > 1)
-            perkText2.text = currentPerks[1].name;
-        if (perkDescription2 != null && currentPerks.Count > 1)
-            perkDescription2.text = currentPerks[1].description;
-
-        if (perkText3 != null && currentPerks.Count > 2)
-            perkText3.text = currentPerks[2].name;
-        if (perkDescription3 != null && currentPerks.Count > 2)
-            perkDescription3.text = currentPerks[2].description;
+        for (int i = 0; i < currentPerks.Count && i < perkTexts.Length; i++)
+        {
+            if (perkTexts[i] != null) perkTexts[i].text = currentPerks[i].name;
+            if (perkDescriptions[i] != null) perkDescriptions[i].text = currentPerks[i].description;
+        }
 
         if (perkPanel != null) perkPanel.SetActive(true);
-
-        Debug.Log("=== WYBIERZ PERK ===");
-        for (int i = 0; i < currentPerks.Count; i++)
-            Debug.Log($"{i + 1}. {currentPerks[i].name}");
     }
 
     void ChoosePerk(int index)
     {
-        if (!isChoosingPerk) return;
-        if (index < 0 || index >= currentPerks.Count) return;
+        if (!isChoosingPerk || index >= currentPerks.Count) return;
 
         currentPerks[index].apply();
-        Debug.Log($"✅ WYBRANO: {currentPerks[index].name}");
-
         isChoosingPerk = false;
         if (perkPanel != null) perkPanel.SetActive(false);
 
-        Cursor.lockState = previousCursorState;
+        Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         Time.timeScale = 1f;
     }
 
-    void UpdateTimerUI()
-    {
-        if (timerText != null)
-        {
-            int minutes = Mathf.FloorToInt(gameTime / 60f);
-            int seconds = Mathf.FloorToInt(gameTime % 60f);
-            timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
-        }
-    }
-
     public void EnemyDied()
     {
-        if (!gameStarted) return;
-
         currentXP += xpPerEnemy;
         targetXpFill = (float)currentXP / xpRequired;
 
@@ -222,57 +164,45 @@ public class LevelSystem : MonoBehaviour
             targetXpFill = 0f;
             currentXpFill = 0f;
 
-            if (playerHealth != null) playerHealth.LevelUpHealth();
+            if (playerHealth != null)
+            {
+                playerHealth.LevelUpHealth();
+                targetHealthFill = playerHealth.currentHealth / playerHealth.maxHealth;
+            }
 
-            Debug.Log($"🎉 AWANS! Poziom {currentLevel} 🎉");
             ShowPerkSelection();
         }
 
         UpdateUI();
     }
 
-    public void UpdateEnemiesLeft(int count)
-    {
-        if (enemiesLeftText != null)
-            enemiesLeftText.text = $"Wrogowie: {count}";
-    }
-
     public void StartGame()
     {
-        if (!gameStarted)
-        {
-            gameStarted = true;
-            gameTime = 0f;
-            Debug.Log("Gra rozpoczęta!");
-        }
-    }
-
-    public void OnPortalEnter()
-    {
-        Debug.Log("Gracz wszedł do portalu!");
-        Time.timeScale = 0f;
+        gameStarted = true;
     }
 
     public void UpdateUI()
     {
-        if (levelText != null)
-            levelText.text = $"Poziom: {currentLevel}";
-
-        if (xpText != null)
-            xpText.text = $"{currentXP} / {xpRequired}";
-
-        if (xpFill != null)
+        if (playerHealth == null)
         {
-            targetXpFill = (float)currentXP / xpRequired;
+            GameObject p = GameObject.FindWithTag("Player");
+            if (p != null) playerHealth = p.GetComponent<PlayerHealth>();
         }
 
-        if (waveSpawner != null && waveText != null)
-            waveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
+        if (levelText != null) levelText.text = $"Poziom: {currentLevel}";
+        if (xpText != null) xpText.text = $"{currentXP} / {xpRequired}";
+        if (xpFill != null) targetXpFill = (float)currentXP / xpRequired;
 
-        if (enemiesLeftText != null)
+        if (playerHealth != null)
         {
-            int enemyCount = waveSpawner != null ? waveSpawner.GetEnemyCount() : 0;
-            enemiesLeftText.text = $"Wrogowie: {enemyCount}";
+            targetHealthFill = playerHealth.currentHealth / playerHealth.maxHealth;
+            if (healthText != null) healthText.text = $"{Mathf.Round(playerHealth.currentHealth)} / {Mathf.Round(playerHealth.maxHealth)}";
+        }
+
+        if (waveSpawner != null)
+        {
+            if (waveText != null) waveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
+            if (enemiesLeftText != null) enemiesLeftText.text = $"Wrogowie: {waveSpawner.GetEnemyCount()}";
         }
     }
 }

@@ -2,17 +2,12 @@
 
 public class CharacterSelector : MonoBehaviour
 {
-    [Header("═══════════════ POSTACIE ═══════════════")]
+    [Header("Postacie")]
     public GameObject mountainMan;
     public GameObject seraphim;
     public GameObject shepherd;
 
-    [Header("═══════════════ GROUND CHECK ═══════════════")]
-    public Transform mountainManGroundCheck;
-    public Transform seraphimGroundCheck;
-    public Transform shepherdGroundCheck;
-
-    [Header("═══════════════ SYSTEMY ═══════════════")]
+    [Header("Systemy")]
     public CameraController cameraController;
     public LevelSystem levelSystem;
     public PlayerStats playerStats;
@@ -22,10 +17,7 @@ public class CharacterSelector : MonoBehaviour
 
     void Start()
     {
-        if (mountainMan != null) mountainMan.SetActive(false);
-        if (seraphim != null) seraphim.SetActive(false);
-        if (shepherd != null) shepherd.SetActive(false);
-
+        SetActiveAll(false);
         Debug.Log("Wcisnij 1 - Goral, 2 - Seraphim, 3 - Pasterz");
     }
 
@@ -33,62 +25,59 @@ public class CharacterSelector : MonoBehaviour
     {
         if (hasSelected) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, mountainManGroundCheck, "Goral");
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, seraphimGroundCheck, "Seraphim");
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(shepherd, shepherdGroundCheck, "Pasterz");
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, "Goral");
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, "Seraphim");
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(shepherd, "Pasterz");
     }
 
-    void SelectCharacter(GameObject character, Transform groundCheck, string name)
+    void SetActiveAll(bool active)
+    {
+        if (mountainMan != null) mountainMan.SetActive(active);
+        if (seraphim != null) seraphim.SetActive(active);
+        if (shepherd != null) shepherd.SetActive(active);
+    }
+
+    void SelectCharacter(GameObject character, string name)
     {
         if (character == null)
         {
-            Debug.LogError(name + " nie jest przypisany!");
+            Debug.LogError($"{name} nie jest przypisany!");
             return;
         }
 
-        if (currentCharacter != null) currentCharacter.SetActive(false);
-
+        SetActiveAll(false);
         currentCharacter = character;
         currentCharacter.SetActive(true);
         currentCharacter.tag = "Player";
 
         if (cameraController != null) cameraController.SetTarget(currentCharacter.transform);
 
-        PlayerMovement movement = currentCharacter.GetComponent<PlayerMovement>();
-        if (movement == null) movement = currentCharacter.AddComponent<PlayerMovement>();
+        AddMissingComponents(name);
 
-        if (groundCheck != null && movement != null)
-            movement.SetGroundCheck(groundCheck);
-
-        if (playerStats != null)
-            playerStats.AssignToPlayer(currentCharacter);
+        PlayerHealth health = currentCharacter.GetComponent<PlayerHealth>();
+        if (health == null) health = currentCharacter.AddComponent<PlayerHealth>();
 
         if (levelSystem != null)
         {
-            if (name == "Goral")
-            {
-                if (currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
-                    currentCharacter.AddComponent<AbilitiesMountainMan>();
-            }
-            else if (name == "Seraphim")
-            {
-                if (currentCharacter.GetComponent<SeraphimAbilities>() == null)
-                    currentCharacter.AddComponent<SeraphimAbilities>();
-            }
-            else if (name == "Pasterz")
-            {
-                if (currentCharacter.GetComponent<ShepherdAbilities>() == null)
-                    currentCharacter.AddComponent<ShepherdAbilities>();
-            }
-
-            if (currentCharacter.GetComponent<PlayerHealth>() == null)
-                currentCharacter.AddComponent<PlayerHealth>();
-
-            levelSystem.playerHealth = currentCharacter.GetComponent<PlayerHealth>();
             levelSystem.StartGame();
         }
 
+        if (playerStats != null) playerStats.AssignToPlayer(currentCharacter);
+
         hasSelected = true;
-        Debug.Log("Aktywny: " + name);
+        Debug.Log($"Aktywny: {name}");
+    }
+
+    void AddMissingComponents(string name)
+    {
+        if (currentCharacter.GetComponent<PlayerMovement>() == null)
+            currentCharacter.AddComponent<PlayerMovement>();
+
+        if (name == "Goral" && currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
+            currentCharacter.AddComponent<AbilitiesMountainMan>();
+        else if (name == "Seraphim" && currentCharacter.GetComponent<AbilitiesSeraphim>() == null)
+            currentCharacter.AddComponent<AbilitiesSeraphim>();
+        else if (name == "Pasterz" && currentCharacter.GetComponent<ShepherdAbilities>() == null)
+            currentCharacter.AddComponent<ShepherdAbilities>();
     }
 }

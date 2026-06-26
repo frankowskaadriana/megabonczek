@@ -4,233 +4,241 @@ using System.Collections.Generic;
 
 public class ShepherdAbilities : MonoBehaviour
 {
-    [Header("═══════════════ PASTERZ STATS ═══════════════")]
-    public float maxHealth = 50f;
-    public float armor = 20f;
+    [Header("Atak")]
+    public float attackRange = 2.5f;
+    public float attackDamage = 20f;
+    public float attackRate = 1.2f;
 
-    [Header("═══════════════ PRZYZYWANIE OWCY ═══════════════")]
+    [Header("Umiejętności")]
+    public float barkRange = 5f;
+    public float barkFearDuration = 3f;
+
+    [Header("Owce")]
     public GameObject sheepPrefab;
-    public int maxSheepCount = 10;
-    public float sheepSpawnCooldown = 3f;
-    public float sheepDamage = 20f;
+    public int maxSheep = 3;
+    public float sheepSpeed = 5f;
+    public float sheepAttackRange = 2f;
+    public float sheepAttackDamage = 15f;
+    public float sheepAttackCooldown = 1f;
+    public float sheepSpawnCooldown = 10f;
 
-    [Header("═══════════════ ZMARTWYCHWSTANIE (Q) ═══════════════")]
-    public float resurrectionCooldown = 45f;
-
-    [Header("═══════════════ WILCZA UCZTA (R) ═══════════════")]
-    public float feastRadius = 3f;
-    public float feastDamage = 350f;
-    public float explosionRadius = 1f;
-    public int remainingSheepAfterFeast = 1;
-
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public PlayerHealth playerHealth;
-    public WeaponUpgradeSystem weaponUpgrade;
-    public Transform spawnPoint;
-
-    private List<GameObject> activeSheep = new List<GameObject>();
-    private List<GameObject> deadSheep = new List<GameObject>();
-    private float spawnTimer = 0f;
-    private bool isResurrecting = false;
-    private bool isFeasting = false;
-    private float resurrectCooldownTimer = 0f;
-    private float feastCooldownTimer = 0f;
+    private List<Sheep> sheep = new List<Sheep>();
+    private float attackTimer = 0f;
+    private float sheepSpawnTimer = 0f;
+    private Transform player;
+    private Camera mainCamera;
+    private Vector3 targetPosition;
+    private bool isCommanding = false;
 
     void Start()
     {
-        Debug.Log("🐑 PASTERZ START");
-        Debug.Log($"✅ SheepPrefab: {(sheepPrefab != null ? sheepPrefab.name : "NULL")}");
+        mainCamera = Camera.main;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null) player = playerObj.transform;
 
-        if (playerHealth != null)
-            playerHealth.SetBaseHealth(maxHealth, armor);
-
-        if (sheepPrefab == null)
-        {
-            Debug.LogError("❌ SheepPrefab NIE JEST PRZYPISANY! Przeciągnij SheepVar!");
-            return;
-        }
-
-        if (spawnPoint == null) spawnPoint = transform;
-
-        StartCoroutine(SpawnLoop());
-    }
-
-    IEnumerator SpawnLoop()
-    {
-        Debug.Log("🐑 Uruchamiam pętlę spawnu");
-
-        yield return new WaitForSeconds(0.5f);
         SpawnSheep();
-
-        while (true)
-        {
-            yield return new WaitForSeconds(sheepSpawnCooldown);
-
-            if (!isResurrecting && !isFeasting && activeSheep.Count < maxSheepCount)
-                SpawnSheep();
-        }
     }
 
     void Update()
     {
-        // TEST: Spawn na K
-        if (Input.GetKeyDown(KeyCode.K))
+        if (player == null) return;
+
+        attackTimer += Time.deltaTime;
+        if (attackTimer >= attackRate)
         {
-            Debug.Log("🔴 Ręczny spawn (K)!");
+            attackTimer = 0f;
+            RotateToMouse();
+            MeleeAttack();
+        }
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            CommandSheep();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            RotateToMouse();
+            Bark();
+        }
+
+        sheepSpawnTimer += Time.deltaTime;
+        if (Input.GetKeyDown(KeyCode.E) && sheepSpawnTimer >= sheepSpawnCooldown && sheep.Count < maxSheep)
+        {
+            sheepSpawnTimer = 0f;
             SpawnSheep();
         }
 
-        // TEST: Info na F1
-        if (Input.GetKeyDown(KeyCode.F1))
+        UpdateSheep();
+    }
+
+    void RotateToMouse()
+    {
+        if (mainCamera == null) return;
+
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
         {
-            Debug.Log($"🐑 Owce: {activeSheep.Count}/{maxSheepCount} | Martwe: {deadSheep.Count}");
-            Debug.Log($"   Prefab: {(sheepPrefab != null ? sheepPrefab.name : "NULL")}");
+            Vector3 hitPoint = ray.GetPoint(distance);
+            Vector3 direction = hitPoint - transform.position;
+            direction.y = 0f;
+
+            if (direction.magnitude > 0.1f)
+            {
+                transform.rotation = Quaternion.LookRotation(direction);
+            }
         }
+    }
 
-        // Cooldowny
-        if (resurrectCooldownTimer > 0)
-            resurrectCooldownTimer -= Time.deltaTime;
-        if (feastCooldownTimer > 0)
-            feastCooldownTimer -= Time.deltaTime;
+    void CommandSheep()
+    {
+        if (sheep.Count == 0) return;
 
-        // ZMARTWYCHWSTANIE (Q)
-        if (Input.GetKeyDown(KeyCode.Q) && resurrectCooldownTimer <= 0 && !isResurrecting)
-            StartCoroutine(SheepResurrection());
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
 
-        // WILCZA UCZTA (R)
-        if (Input.GetKeyDown(KeyCode.R) && feastCooldownTimer <= 0 && !isFeasting && activeSheep.Count > 0)
-            StartCoroutine(WolfsFeast());
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            targetPosition = ray.GetPoint(distance);
+            targetPosition.y = 0f;
+
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit, 100f))
+            {
+                EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
+                if (enemy != null)
+                {
+                    CommandSheepAttack(enemy.transform);
+                    return;
+                }
+            }
+
+            CommandSheepCharge(targetPosition);
+        }
+    }
+
+    void CommandSheepAttack(Transform target)
+    {
+        foreach (Sheep sheep in sheep)
+        {
+            if (sheep != null && !sheep.IsDead())
+            {
+                sheep.SetTarget(target);
+                sheep.SetState(SheepState.Attacking);
+            }
+        }
+        Debug.Log("🐑 Owce atakują wroga!");
+    }
+
+    void CommandSheepCharge(Vector3 position)
+    {
+        foreach (Sheep sheep in sheep)
+        {
+            if (sheep != null && !sheep.IsDead())
+            {
+                sheep.SetTargetPosition(position);
+                sheep.SetState(SheepState.Charging);
+            }
+        }
+        Debug.Log($"🐑 Owce szarżują do {position}!");
+    }
+
+    void UpdateSheep()
+    {
+        sheep.RemoveAll(s => s == null || s.IsDead());
+
+        foreach (Sheep sheep in sheep)
+        {
+            if (sheep != null && !sheep.IsDead() && sheep.GetState() == SheepState.Idle)
+            {
+                sheep.SetTargetPosition(transform.position);
+                sheep.SetState(SheepState.Following);
+            }
+        }
     }
 
     void SpawnSheep()
     {
-        if (sheepPrefab == null)
-        {
-            Debug.LogError("❌ sheepPrefab NULL!");
-            return;
-        }
+        if (sheepPrefab == null) return;
 
-        Vector3 pos = spawnPoint.position + new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
-        GameObject sheep = Instantiate(sheepPrefab, pos, Quaternion.identity);
-        sheep.name = $"Sheep_{activeSheep.Count + 1}";
+        Vector3 spawnPos = transform.position + Random.insideUnitSphere * 2f;
+        spawnPos.y = 0f;
 
-        Sheep script = sheep.GetComponent<Sheep>();
-        if (script == null) script = sheep.AddComponent<Sheep>();
+        GameObject sheepObj = Instantiate(sheepPrefab, spawnPos, Quaternion.identity);
+        Sheep sheepScript = sheepObj.GetComponent<Sheep>();
+        if (sheepScript == null) sheepScript = sheepObj.AddComponent<Sheep>();
 
-        script.Initialize(this, sheepDamage, false, 30f);
+        sheepScript.SetStats(sheepSpeed, sheepAttackRange, sheepAttackDamage, sheepAttackCooldown);
+        sheepScript.SetOwner(this);
+        sheepScript.SetTargetPosition(transform.position);
 
-        activeSheep.Add(sheep);
-        Debug.Log($"✅ Owca przyzwana! ({activeSheep.Count}/{maxSheepCount})");
+        sheep.Add(sheepScript);
+        Debug.Log($"🐑 Owca przywołana! ({sheep.Count}/{maxSheep})");
     }
 
-    public void SheepDied(GameObject sheep)
+    void MeleeAttack()
     {
-        if (activeSheep.Contains(sheep))
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange);
+        foreach (var hitCollider in hitColliders)
         {
-            activeSheep.Remove(sheep);
-            deadSheep.Add(sheep);
-        }
-        Debug.Log($"💀 Owca umarła. Żywych: {activeSheep.Count}, Martwych: {deadSheep.Count}");
-    }
-
-    IEnumerator SheepResurrection()
-    {
-        isResurrecting = true;
-        resurrectCooldownTimer = resurrectionCooldown;
-
-        Debug.Log("🔄 Zmartwychwstanie...");
-
-        yield return new WaitForSeconds(1f);
-
-        int count = 0;
-        foreach (GameObject sheep in deadSheep)
-        {
-            if (sheep != null)
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
             {
-                Sheep script = sheep.GetComponent<Sheep>();
-                if (script != null)
+                enemy.TakeDamage(attackDamage);
+            }
+        }
+    }
+
+    void Bark()
+    {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, barkRange);
+        foreach (var hitCollider in hitColliders)
+        {
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                if (rb != null)
                 {
-                    script.Resurrect();
-                    activeSheep.Add(sheep);
-                    count++;
+                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
+                    direction.y = 1f;
+                    rb.AddForce(direction * 15f, ForceMode.Impulse);
                 }
-            }
-        }
+                enemy.TakeDamage(5f);
 
-        deadSheep.Clear();
-        isResurrecting = false;
-        Debug.Log($"✨ Zmartwychwstało {count} owiec!");
-    }
-
-    IEnumerator WolfsFeast()
-    {
-        isFeasting = true;
-        feastCooldownTimer = 60f;
-
-        Debug.Log($"🐺 Wilcza Uczta! ({activeSheep.Count} owiec)");
-
-        if (activeSheep.Count == 0)
-        {
-            isFeasting = false;
-            yield break;
-        }
-
-        // Ustaw owce w kole
-        float angleStep = 360f / activeSheep.Count;
-        for (int i = 0; i < activeSheep.Count; i++)
-        {
-            if (activeSheep[i] != null)
-            {
-                float angle = angleStep * i;
-                Vector3 pos = transform.position + new Vector3(
-                    Mathf.Sin(angle * Mathf.Deg2Rad) * feastRadius,
-                    0,
-                    Mathf.Cos(angle * Mathf.Deg2Rad) * feastRadius
-                );
-                activeSheep[i].transform.position = pos;
-
-                Sheep script = activeSheep[i].GetComponent<Sheep>();
-                if (script != null) script.SetFormationMode(true);
-            }
-        }
-
-        yield return new WaitForSeconds(1.5f);
-
-        // Eksplozje
-        int totalDamage = 0;
-        foreach (GameObject sheep in activeSheep)
-        {
-            if (sheep != null)
-            {
-                Collider[] enemies = Physics.OverlapSphere(sheep.transform.position, explosionRadius);
-                foreach (Collider enemy in enemies)
+                foreach (Sheep sheep in sheep)
                 {
-                    if (enemy.CompareTag("Enemy"))
+                    if (sheep != null && !sheep.IsDead())
                     {
-                        enemyHealth e = enemy.GetComponent<enemyHealth>();
-                        if (e != null)
-                        {
-                            e.TakeDamage(feastDamage);
-                            totalDamage++;
-                        }
+                        sheep.SetTarget(enemy.transform);
+                        sheep.SetState(SheepState.Attacking);
                     }
                 }
-                Destroy(sheep);
             }
         }
-
-        activeSheep.Clear();
-
-        // Zostań z kilkoma owcami
-        for (int i = 0; i < remainingSheepAfterFeast; i++)
-            SpawnSheep();
-
-        isFeasting = false;
-        Debug.Log($"🐺 Wilcza Uczta: {totalDamage} obrażeń!");
+        Debug.Log("🐕 Shepherd: Bark!");
     }
 
-    public void DisableAbilities() { isEnabled = false; }
-    public void EnableAbilities() { isEnabled = true; }
+    public void OnSheepDied(Sheep sheep)
+    {
+        if (this.sheep.Contains(sheep))
+        {
+            this.sheep.Remove(sheep);
+            Debug.Log($"🐑 Owca zginęła! Pozostało: {this.sheep.Count}");
+        }
+    }
 
-    private bool isEnabled = true;
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, barkRange);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, 5f);
+    }
 }

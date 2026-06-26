@@ -20,7 +20,11 @@ public class PlayerStats : MonoBehaviour
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         PlayerMovement movement = player.GetComponent<PlayerMovement>();
 
-        if (health == null || movement == null) return;
+        if (health == null || movement == null)
+        {
+            Debug.LogWarning("PlayerHealth lub PlayerMovement nie znaleziony!");
+            return;
+        }
 
         if (player.name.Contains("Mountain") || player.name.Contains("Goral"))
         {

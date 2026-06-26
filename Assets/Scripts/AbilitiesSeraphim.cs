@@ -1,158 +1,120 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SeraphimAbilities : MonoBehaviour
+public class AbilitiesSeraphim : MonoBehaviour
 {
-    [Header("═══════════════ PODSTAWOWY ATAK ═══════════════")]
-    public float damage = 30f;
-    public float fireRate = 0.6f;
+    [Header("Atak")]
     public float attackRange = 10f;
-    public GameObject bulletPrefab;
+    public float attackDamage = 15f;
+    public float attackRate = 0.8f;
+    public GameObject projectilePrefab;
     public Transform firePoint;
 
-    [Header("═══════════════ INACCURACY (NIECELNOŚĆ) ═══════════════")]
-    public float inaccuracyAngle = 5f;
-    public float maxInaccuracy = 15f;
-    public float inaccuracyRecoveryRate = 2f;
+    [Header("Umiejętności")]
+    public float healAmount = 30f;
+    public float healCooldown = 10f;
+    public float shieldDuration = 5f;
+    public float chargeRange = 8f;
+    public float chargeDamage = 30f;
+    public float chargeSpeed = 15f;
+    public float chargeCooldown = 6f;
 
-    [Header("═══════════════ Heavenly Charge (Q) ═══════════════")]
-    public float chargeDamage = 60f;
-    public float chargeCooldown = 15f;
-    public float chargeRange = 7.5f;
-    public float chargeDuration = 2f;
+    [Header("Ultimate - Osąd")]
+    public float judgmentRadius = 12f;
+    public float judgmentDamage = 80f;
+    public float judgmentCooldown = 25f;
+    public float judgmentDuration = 3f;
+    public GameObject judgmentEffect;
 
-    [Header("═══════════════ Divine Judgment (R) ═══════════════")]
-    public float judgmentRadius = 25f;
-    public float judgmentStunDuration = 2f;
+    [Header("Special")]
+    public float specialRange = 12f;
+    public float specialDamage = 40f;
+    public float specialCooldown = 8f;
 
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public PlayerHealth playerHealth;
-    public WeaponUpgradeSystem weaponUpgrade;
-    public AbilityVisuals abilityVisuals;
-    public SeraphimAnimationController animController;
-
-    private float fireTimer = 0f;
-    private bool isChargeOnCooldown = false;
-    private bool isJudgmentOnCooldown = false;
-    private float chargeCooldownTimer = 0f;
-    private float judgmentCooldownTimer = 0f;
-    private float originalMoveSpeed;
-    private bool isCastingJudgment = false;
-    private PlayerMovement playerMovement;
+    private float attackTimer = 0f;
+    private float healTimer = 0f;
+    private float ultimateTimer = 0f;
+    private float specialTimer = 0f;
+    private float chargeTimer = 0f;
+    private Transform player;
+    private bool isShielded = false;
+    private bool isCharging = false;
+    private Vector3 chargeDirection;
+    private Rigidbody rb;
     private Camera mainCamera;
-    private AudioManager audioManager;
-    private float currentInaccuracy = 0f;
-    private bool isShooting = false;
+    private bool canShoot = true;
 
     void Start()
     {
-        playerMovement = GetComponent<PlayerMovement>();
-        if (playerMovement != null)
-            originalMoveSpeed = playerMovement.maxSpeed;
-
         mainCamera = Camera.main;
-        audioManager = AudioManager.Instance;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null) player = playerObj.transform;
 
-        if (playerHealth != null)
-        {
-            playerHealth.maxHealth = 40f;
-            playerHealth.currentHealth = 40f;
-            playerHealth.UpdateUI();
-        }
+        rb = GetComponent<Rigidbody>();
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
 
-        if (weaponUpgrade != null)
-        {
-            damage = weaponUpgrade.currentDamage;
-            chargeDamage = weaponUpgrade.currentSpecialDamage;
-            chargeCooldown = weaponUpgrade.currentSpecialCooldown;
-        }
+        ultimateTimer = judgmentCooldown;
+        specialTimer = specialCooldown;
+        chargeTimer = chargeCooldown;
 
-        if (firePoint == null)
-            firePoint = transform;
-
-        if (abilityVisuals == null)
-            abilityVisuals = GetComponent<AbilityVisuals>();
-
-        // Znajdź kontroler animacji
-        if (animController == null)
-            animController = GetComponent<SeraphimAnimationController>();
-        if (animController == null)
-            animController = GetComponentInChildren<SeraphimAnimationController>();
-        if (animController == null)
-            animController = gameObject.AddComponent<SeraphimAnimationController>();
-
-        if (bulletPrefab == null)
-        {
-            Debug.LogError("❌ BULLET PREFAB NIE JEST PRZYPISANY!");
-        }
-
-        Debug.Log("Seraphim gotowy!");
+        if (firePoint == null) firePoint = transform;
     }
 
     void Update()
     {
-        if (isCastingJudgment) return;
+        if (player == null) return;
 
-        currentInaccuracy = Mathf.Max(0, currentInaccuracy - inaccuracyRecoveryRate * Time.deltaTime);
-
-        fireTimer += Time.deltaTime;
-        if (fireTimer >= fireRate)
+        // AUTOMATYCZNY STRZAŁ w kierunku myszki
+        attackTimer += Time.deltaTime;
+        if (attackTimer >= attackRate && canShoot)
         {
-            fireTimer = 0f;
-            Shoot();
+            attackTimer = 0f;
+            // Obróć w stronę myszki przed strzałem
+            RotateToMouse();
+            RangedAttack();
         }
 
-        if (isChargeOnCooldown)
+        // Heal
+        healTimer += Time.deltaTime;
+        if (healTimer >= healCooldown && Input.GetKeyDown(KeyCode.Q))
         {
-            chargeCooldownTimer -= Time.deltaTime;
-            if (chargeCooldownTimer <= 0) isChargeOnCooldown = false;
+            healTimer = 0f;
+            Heal();
         }
 
-        if (isJudgmentOnCooldown)
+        // Ultimate
+        ultimateTimer += Time.deltaTime;
+        if (ultimateTimer >= judgmentCooldown && Input.GetKeyDown(KeyCode.R))
         {
-            judgmentCooldownTimer -= Time.deltaTime;
-            if (judgmentCooldownTimer <= 0) isJudgmentOnCooldown = false;
+            ultimateTimer = 0f;
+            StartCoroutine(Judgment());
         }
 
-        if (Input.GetKeyDown(KeyCode.Q) && !isChargeOnCooldown && !isCastingJudgment)
-            StartCoroutine(HeavenlyCharge());
+        // Special
+        specialTimer += Time.deltaTime;
+        if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
+        {
+            specialTimer = 0f;
+            SpecialAttack();
+        }
 
-        if (Input.GetKeyDown(KeyCode.R) && !isJudgmentOnCooldown && !isCastingJudgment)
-            StartCoroutine(DivineJudgment());
+        // Charge
+        chargeTimer += Time.deltaTime;
+        if (chargeTimer >= chargeCooldown && Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            chargeTimer = 0f;
+            StartCoroutine(Charge());
+        }
+
+        if (isCharging && rb != null)
+        {
+            rb.linearVelocity = chargeDirection * chargeSpeed;
+        }
     }
 
-    void Shoot()
+    void RotateToMouse()
     {
-        if (bulletPrefab == null) return;
-
-        currentInaccuracy = Mathf.Min(maxInaccuracy, currentInaccuracy + inaccuracyAngle);
-
-        if (abilityVisuals != null)
-            abilityVisuals.ShowAttackRange();
-
-        if (audioManager != null)
-            audioManager.PlayAttack();
-
-        // ANIMACJA STRZAŁU
-        if (animController != null)
-            animController.TriggerShoot();
-
-        Vector3 direction = GetAimDirection();
-        Vector3 finalDirection = ApplyInaccuracy(direction);
-
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(finalDirection));
-
-        LightBeam beam = bullet.GetComponent<LightBeam>();
-        if (beam != null)
-            beam.damage = damage;
-
-        Destroy(bullet, 3f);
-    }
-
-    Vector3 GetAimDirection()
-    {
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        if (mainCamera == null) return;
 
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -161,123 +123,200 @@ public class SeraphimAbilities : MonoBehaviour
         if (groundPlane.Raycast(ray, out distance))
         {
             Vector3 hitPoint = ray.GetPoint(distance);
-            return (hitPoint - firePoint.position).normalized;
-        }
+            Vector3 direction = hitPoint - transform.position;
+            direction.y = 0f;
 
-        return transform.forward;
+            if (direction.magnitude > 0.1f)
+            {
+                transform.rotation = Quaternion.LookRotation(direction);
+            }
+        }
     }
 
-    Vector3 ApplyInaccuracy(Vector3 direction)
+    void RangedAttack()
     {
-        if (currentInaccuracy <= 0) return direction;
+        if (projectilePrefab == null || firePoint == null) return;
 
-        float randomAngle = Random.Range(0f, 360f);
-        float randomOffset = Random.Range(0f, currentInaccuracy);
+        // Celowanie w kursor
+        Vector3 targetPosition = GetMouseWorldPosition();
+        if (targetPosition == Vector3.zero) return;
 
-        Vector3 horizontalOffset = Quaternion.Euler(0, randomAngle, 0) * Vector3.right * randomOffset;
-        Vector3 finalDirection = direction + (horizontalOffset * 0.01f);
+        Vector3 direction = (targetPosition - firePoint.position).normalized;
+        direction.y = 0f;
 
-        return finalDirection.normalized;
+        // Wystrzel pocisk w kierunku kursora
+        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
+        Bullet bullet = projectile.GetComponent<Bullet>();
+        if (bullet != null) bullet.damage = attackDamage;
     }
 
-    IEnumerator HeavenlyCharge()
+    Vector3 GetMouseWorldPosition()
     {
-        isChargeOnCooldown = true;
-        chargeCooldownTimer = chargeCooldown;
+        if (mainCamera == null) return Vector3.zero;
 
-        if (abilityVisuals != null)
-            abilityVisuals.ShowSpecialRange();
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, firePoint.position);
 
-        if (audioManager != null)
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
         {
-            audioManager.PlayCharge();
-            audioManager.PlaySpecialAbility();
+            return ray.GetPoint(distance);
         }
 
-        // ANIMACJA UMIEJĘTNOŚCI
-        if (animController != null)
-            animController.TriggerAbility();
+        return Vector3.zero;
+    }
 
-        if (playerMovement != null)
-            playerMovement.maxSpeed = originalMoveSpeed * 1.5f;
+    void Heal()
+    {
+        if (player == null) return;
 
-        float elapsed = 0f;
-        Vector3 startPos = transform.position;
-        Vector3 endPos = transform.position + transform.forward * chargeRange;
-
-        while (elapsed < chargeDuration)
+        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
         {
-            float t = elapsed / chargeDuration;
-            transform.position = Vector3.Lerp(startPos, endPos, t);
+            playerHealth.Heal(healAmount);
+            Debug.Log($"💚 Seraphim: Heal {healAmount} HP!");
+        }
+    }
+
+    IEnumerator Judgment()
+    {
+        if (judgmentEffect != null)
+        {
+            GameObject effect = Instantiate(judgmentEffect, transform.position, Quaternion.identity);
+            effect.transform.localScale = Vector3.one * judgmentRadius * 2f;
+            Destroy(effect, judgmentDuration);
+        }
+
+        float timer = 0f;
+        while (timer < judgmentDuration)
+        {
+            timer += Time.deltaTime;
+
+            Collider[] hitColliders = Physics.OverlapSphere(transform.position, judgmentRadius);
+            foreach (var hitCollider in hitColliders)
+            {
+                EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(judgmentDamage * Time.deltaTime);
+                }
+
+                PlayerHealth playerHealth = hitCollider.GetComponent<PlayerHealth>();
+                if (playerHealth != null)
+                {
+                    playerHealth.Heal(5f * Time.deltaTime);
+                }
+            }
+
+            yield return null;
+        }
+
+        Debug.Log($"⚖️ SERAPHIM OSĄD!");
+    }
+
+    void SpecialAttack()
+    {
+        RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, specialRange);
+        foreach (var hit in hits)
+        {
+            EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(specialDamage);
+            }
+        }
+    }
+
+    IEnumerator Charge()
+    {
+        if (isCharging) yield break;
+
+        isCharging = true;
+        chargeDirection = transform.forward;
+
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, chargeRange);
+        float closestDistance = Mathf.Infinity;
+        Vector3 closestEnemy = transform.position + transform.forward * chargeRange;
+
+        foreach (var hitCollider in hitColliders)
+        {
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                float distance = Vector3.Distance(transform.position, enemy.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestEnemy = enemy.transform.position;
+                }
+            }
+        }
+
+        if (closestDistance < chargeRange)
+        {
+            chargeDirection = (closestEnemy - transform.position).normalized;
+            transform.rotation = Quaternion.LookRotation(chargeDirection);
+        }
+
+        float chargeTime = 0.3f;
+        while (chargeTime > 0)
+        {
+            chargeTime -= Time.deltaTime;
 
             Collider[] enemies = Physics.OverlapSphere(transform.position, 2f);
-            foreach (Collider enemy in enemies)
+            foreach (var enemyCollider in enemies)
             {
-                if (enemy.CompareTag("Enemy"))
+                EnemyHealth enemy = enemyCollider.GetComponent<EnemyHealth>();
+                if (enemy != null)
                 {
-                    enemyHealth e = enemy.GetComponent<enemyHealth>();
-                    if (e != null) e.TakeDamage(chargeDamage);
+                    enemy.TakeDamage(chargeDamage);
+                    Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
+                    if (enemyRb != null)
+                    {
+                        enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
+                    }
                 }
             }
 
-            elapsed += Time.deltaTime;
             yield return null;
         }
 
-        if (playerMovement != null)
-            playerMovement.maxSpeed = originalMoveSpeed;
+        isCharging = false;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
 
-        Debug.Log("Heavenly Charge zakończone!");
+        Debug.Log($"⚡ Seraphim Charge: {chargeDamage} obrażeń!");
     }
 
-    IEnumerator DivineJudgment()
+    public void ActivateShield()
     {
-        isJudgmentOnCooldown = true;
-        isCastingJudgment = true;
-        judgmentCooldownTimer = 60f;
-
-        if (abilityVisuals != null)
-            abilityVisuals.ShowUltimateRange();
-
-        if (audioManager != null)
-            audioManager.PlayUltimate();
-
-        // ANIMACJA ULTIMATE
-        if (animController != null)
-            animController.TriggerUltimate();
-
-        float castTimer = 0f;
-        while (castTimer < 5f)
+        if (!isShielded)
         {
-            castTimer += Time.deltaTime;
-            yield return null;
+            isShielded = true;
+            StartCoroutine(ShieldDuration());
         }
+    }
 
-        Collider[] enemies = Physics.OverlapSphere(transform.position, judgmentRadius);
-        int hitCount = 0;
+    IEnumerator ShieldDuration()
+    {
+        yield return new WaitForSeconds(shieldDuration);
+        isShielded = false;
+        Debug.Log("🛡️ Tarcza wygasła!");
+    }
 
-        foreach (Collider enemy in enemies)
-        {
-            if (enemy.CompareTag("Enemy"))
-            {
-                enemyHealth e = enemy.GetComponent<enemyHealth>();
-                if (e != null)
-                {
-                    e.TakeDamage(999999f);
-                    hitCount++;
-                }
-            }
-        }
+    public void SetCanShoot(bool value)
+    {
+        canShoot = value;
+    }
 
-        if (playerMovement != null)
-        {
-            float originalSpeed = playerMovement.maxSpeed;
-            playerMovement.maxSpeed = 0f;
-            yield return new WaitForSeconds(judgmentStunDuration);
-            playerMovement.maxSpeed = originalSpeed;
-        }
-
-        isCastingJudgment = false;
-        Debug.Log($"Boski Osad zabił {hitCount} wrogów!");
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, judgmentRadius);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, chargeRange);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawLine(transform.position, transform.position + transform.forward * specialRange);
     }
 }

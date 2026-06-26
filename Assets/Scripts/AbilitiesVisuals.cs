@@ -3,7 +3,7 @@ using System.Collections;
 
 public class AbilityVisuals : MonoBehaviour
 {
-    [Header("═══════════════ USTAWIENIA ═══════════════")]
+    [Header("Ustawienia")]
     public float showDuration = 0.2f;
     public Color attackColor = new Color(1f, 1f, 0f, 0.9f);
     public Color specialColor = new Color(0f, 1f, 1f, 0.8f);
@@ -11,10 +11,10 @@ public class AbilityVisuals : MonoBehaviour
     public float lineWidth = 0.08f;
     public float trajectoryLength = 12f;
     public int trajectoryPoints = 20;
-    public Transform firePoint;  // DODANE - punkt startowy linii
+    public Transform firePoint;
 
     private AbilitiesMountainMan mountainMan;
-    private SeraphimAbilities seraphim;
+    private AbilitiesSeraphim seraphim;
     private LineRenderer attackLine;
     private LineRenderer specialLine;
     private LineRenderer ultimateLine;
@@ -28,22 +28,19 @@ public class AbilityVisuals : MonoBehaviour
     {
         mainCamera = Camera.main;
         mountainMan = GetComponent<AbilitiesMountainMan>();
-        seraphim = GetComponent<SeraphimAbilities>();
+        seraphim = GetComponent<AbilitiesSeraphim>();
 
-        // Znajdź firePoint jeśli nie podpięty
         if (firePoint == null && seraphim != null)
         {
             firePoint = seraphim.firePoint;
-            if (firePoint == null)
-                firePoint = transform;
+            if (firePoint == null) firePoint = transform;
         }
 
         if (mountainMan != null)
         {
             isMountainMan = true;
             attackColor = new Color(1f, 0f, 0f, 0.8f);
-            Debug.Log("AbilityVisuals dla Górala - stożek");
-            CreateAttackIndicator();
+            CreateAttackCone();
             CreateCircleIndicator(ref specialLine, ref specialObj, GetSpecialRange(), specialColor, "SpecialIndicator");
             CreateCircleIndicator(ref ultimateLine, ref ultimateObj, GetUltimateRange(), ultimateColor, "UltimateIndicator");
 
@@ -53,7 +50,6 @@ public class AbilityVisuals : MonoBehaviour
         }
         else if (seraphim != null)
         {
-            Debug.Log("AbilityVisuals dla Seraphima - linia trajektorii");
             CreateTrajectoryLine();
             CreateCircleIndicator(ref specialLine, ref specialObj, GetSpecialRange(), specialColor, "SpecialIndicator");
             CreateCircleIndicator(ref ultimateLine, ref ultimateObj, GetUltimateRange(), ultimateColor, "UltimateIndicator");
@@ -64,7 +60,7 @@ public class AbilityVisuals : MonoBehaviour
         }
         else
         {
-            Debug.LogError("AbilityVisuals wymaga AbilitiesMountainMan lub SeraphimAbilities!");
+            Debug.LogError("AbilityVisuals wymaga AbilitiesMountainMan lub AbilitiesSeraphim!");
             enabled = false;
         }
     }
@@ -78,7 +74,7 @@ public class AbilityVisuals : MonoBehaviour
 
         attackLine.startWidth = lineWidth;
         attackLine.endWidth = lineWidth * 0.5f;
-        attackLine.useWorldSpace = true;  // ZMIENIONE na true - współrzędne świata
+        attackLine.useWorldSpace = true;
         attackLine.positionCount = trajectoryPoints;
 
         Material mat = new Material(Shader.Find("Sprites/Default"));
@@ -93,10 +89,7 @@ public class AbilityVisuals : MonoBehaviour
     {
         if (attackLine == null || seraphim == null) return;
 
-        // Punkt startowy - firePoint lub pozycja postaci
         Vector3 startPoint = firePoint != null ? firePoint.position : transform.position;
-
-        // Kierunek do kursora
         Vector3 direction = GetMouseDirection();
 
         attackLine.positionCount = trajectoryPoints;
@@ -111,8 +104,7 @@ public class AbilityVisuals : MonoBehaviour
 
     Vector3 GetMouseDirection()
     {
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        if (mainCamera == null) mainCamera = Camera.main;
 
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -142,7 +134,7 @@ public class AbilityVisuals : MonoBehaviour
         return 5f;
     }
 
-    void CreateAttackIndicator()
+    void CreateAttackCone()
     {
         attackObj = new GameObject("AttackIndicator");
         attackObj.transform.SetParent(transform);
@@ -240,21 +232,15 @@ public class AbilityVisuals : MonoBehaviour
     {
         if (mountainMan != null)
         {
-            if (attackObj != null && attackObj.activeSelf)
-                UpdateAttackCone();
-            if (specialObj != null && specialObj.activeSelf)
-                UpdateCircleLine(specialLine, GetSpecialRange());
-            if (ultimateObj != null && ultimateObj.activeSelf)
-                UpdateCircleLine(ultimateLine, GetUltimateRange());
+            if (attackObj != null && attackObj.activeSelf) UpdateAttackCone();
+            if (specialObj != null && specialObj.activeSelf) UpdateCircleLine(specialLine, GetSpecialRange());
+            if (ultimateObj != null && ultimateObj.activeSelf) UpdateCircleLine(ultimateLine, GetUltimateRange());
         }
         else if (seraphim != null)
         {
-            if (attackObj != null && attackObj.activeSelf)
-                UpdateTrajectoryLine();
-            if (specialObj != null && specialObj.activeSelf)
-                UpdateCircleLine(specialLine, GetSpecialRange());
-            if (ultimateObj != null && ultimateObj.activeSelf)
-                UpdateCircleLine(ultimateLine, GetUltimateRange());
+            if (attackObj != null && attackObj.activeSelf) UpdateTrajectoryLine();
+            if (specialObj != null && specialObj.activeSelf) UpdateCircleLine(specialLine, GetSpecialRange());
+            if (ultimateObj != null && ultimateObj.activeSelf) UpdateCircleLine(ultimateLine, GetUltimateRange());
         }
     }
 
@@ -262,10 +248,8 @@ public class AbilityVisuals : MonoBehaviour
     {
         if (attackObj != null)
         {
-            if (mountainMan != null)
-                UpdateAttackCone();
-            else if (seraphim != null)
-                UpdateTrajectoryLine();
+            if (mountainMan != null) UpdateAttackCone();
+            else if (seraphim != null) UpdateTrajectoryLine();
 
             attackObj.SetActive(true);
             StartCoroutine(HideAfterDelay(attackObj));

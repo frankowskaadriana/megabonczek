@@ -5,7 +5,7 @@ public class SeraphimAnimationController : MonoBehaviour
 {
     [Header("═══════════════ REFERENCJE ═══════════════")]
     public Animator animator;
-    public SeraphimAbilities seraphimAbilities;
+    public AbilitiesSeraphim abilitiesSeraphim;
     public PlayerMovement playerMovement;
     public PlayerHealth playerHealth;
 
@@ -32,8 +32,8 @@ public class SeraphimAnimationController : MonoBehaviour
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
-        if (seraphimAbilities == null)
-            seraphimAbilities = GetComponent<SeraphimAbilities>();
+        if (abilitiesSeraphim == null)
+            abilitiesSeraphim = GetComponent<AbilitiesSeraphim>();
 
         if (playerMovement == null)
             playerMovement = GetComponent<PlayerMovement>();
@@ -84,7 +84,7 @@ public class SeraphimAnimationController : MonoBehaviour
 
         // Sprawdź czy postać strzela
         bool isShootingNow = false;
-        if (seraphimAbilities != null)
+        if (abilitiesSeraphim != null)
         {
             // Możesz dodać flagę w SeraphimAbilities
             // isShootingNow = seraphimAbilities.IsShooting;

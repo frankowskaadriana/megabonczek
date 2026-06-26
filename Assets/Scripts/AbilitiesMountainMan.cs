@@ -3,197 +3,210 @@ using System.Collections;
 
 public class AbilitiesMountainMan : MonoBehaviour
 {
-    [Header("═══════════════ PODSTAWOWY ATAK ═══════════════")]
-    public float attackDamage = 50f;
-    public float attackRange = 1.5f;
-    public float attackAngle = 90f;
-    public float attackRate = 0.8f;
+    [Header("Atak")]
+    public float attackRange = 3f;
+    public float attackDamage = 25f;
+    public float attackRate = 1f;
+    public float attackAngle = 60f;
 
-    [Header("═══════════════ GNIEW TATR (Q) ═══════════════")]
-    public float specialDamage = 80f;
-    public float specialCooldown = 20f;
-    public int specialRotations = 1;
-    public float healValue = 30f;
-    public float specialRange = 3f;
+    [Header("Umiejętności")]
+    public float stompRange = 5f;
+    public float stompDamage = 40f;
+    public float stompCooldown = 8f;
 
-    [Header("═══════════════ ORLI GROM (R) ═══════════════")]
-    public float ultimateDuration = 10f;
-    public float ultimateRadius = 1.25f;
-    public float ultimateDamage = 50f;
+    [Header("Ultimate")]
+    public float ultimateRadius = 10f;
+    public float ultimateDamage = 100f;
+    public float ultimateCooldown = 30f;
 
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public PlayerHealth playerHealth;
-    public WeaponUpgradeSystem weaponUpgrade;
-    public AbilityVisuals abilityVisuals;
+    [Header("Special")]
+    public float specialRange = 8f;
+    public float specialDamage = 60f;
+    public float specialCooldown = 12f;
 
     private float attackTimer = 0f;
-    private bool isSpecialOnCooldown = false;
-    private bool isUltimateOnCooldown = false;
-    private float specialCooldownTimer = 0f;
-    private float ultimateCooldownTimer = 0f;
-    private AudioManager audioManager;
+    private float stompTimer = 0f;
+    private float ultimateTimer = 0f;
+    private float specialTimer = 0f;
+    private Transform player;
+    private Camera mainCamera;
+    private bool canAttack = true;
 
     void Start()
     {
-        if (weaponUpgrade != null)
-        {
-            attackDamage = weaponUpgrade.currentDamage;
-            attackRange = weaponUpgrade.currentRange;
-            attackAngle = weaponUpgrade.currentSwingAngle;
-            specialDamage = weaponUpgrade.currentSpecialDamage;
-            specialCooldown = weaponUpgrade.currentSpecialCooldown;
-            specialRotations = weaponUpgrade.currentSpecialRotations;
-            ultimateDuration = weaponUpgrade.currentUltimateDuration;
-            ultimateRadius = weaponUpgrade.currentUltimateRadius;
-            ultimateDamage = weaponUpgrade.currentUltimateDamage;
-        }
+        mainCamera = Camera.main;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null) player = playerObj.transform;
 
-        if (abilityVisuals == null)
-            abilityVisuals = GetComponent<AbilityVisuals>();
-
-        audioManager = AudioManager.Instance;
-        Debug.Log("AbilitiesMountainMan zainicjalizowany!");
+        ultimateTimer = ultimateCooldown;
+        specialTimer = specialCooldown;
     }
 
     void Update()
     {
+        if (player == null) return;
+
+        float distance = Vector3.Distance(transform.position, player.position);
+
+        // AUTOMATYCZNY ATAK w kierunku myszki
         attackTimer += Time.deltaTime;
-        if (attackTimer >= attackRate)
+        if (attackTimer >= attackRate && canAttack)
         {
             attackTimer = 0f;
-            PerformBasicAttack();
+            RotateToMouse();
+            MeleeAttack();
         }
 
-        if (isSpecialOnCooldown)
+        // Stomp
+        stompTimer += Time.deltaTime;
+        if (stompTimer >= stompCooldown && distance <= stompRange && Input.GetKeyDown(KeyCode.Q))
         {
-            specialCooldownTimer -= Time.deltaTime;
-            if (specialCooldownTimer <= 0)
-            {
-                isSpecialOnCooldown = false;
-                Debug.Log("Gniew Tatr gotowy do użycia!");
-            }
+            stompTimer = 0f;
+            Stomp();
         }
 
-        if (isUltimateOnCooldown)
+        // Ultimate
+        ultimateTimer += Time.deltaTime;
+        if (ultimateTimer >= ultimateCooldown && Input.GetKeyDown(KeyCode.R))
         {
-            ultimateCooldownTimer -= Time.deltaTime;
-            if (ultimateCooldownTimer <= 0)
-            {
-                isUltimateOnCooldown = false;
-                Debug.Log("Orli Grom gotowy do użycia!");
-            }
+            ultimateTimer = 0f;
+            RotateToMouse();
+            Ultimate();
         }
 
-        if (Input.GetKeyDown(KeyCode.Q))
+        // Special
+        specialTimer += Time.deltaTime;
+        if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
         {
-            if (!isSpecialOnCooldown)
-            {
-                StartCoroutine(PerformSpecial());
-            }
+            specialTimer = 0f;
+            RotateToMouse();
+            SpecialAttack();
         }
+    }
 
-        if (Input.GetKeyDown(KeyCode.R))
+    void RotateToMouse()
+    {
+        if (mainCamera == null) return;
+
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
         {
-            if (!isUltimateOnCooldown)
+            Vector3 hitPoint = ray.GetPoint(distance);
+            Vector3 direction = hitPoint - transform.position;
+            direction.y = 0f;
+
+            if (direction.magnitude > 0.1f)
             {
-                StartCoroutine(PerformUltimate());
+                transform.rotation = Quaternion.LookRotation(direction);
             }
         }
     }
 
-    void PerformBasicAttack()
+    void MeleeAttack()
     {
-        if (abilityVisuals != null)
-            abilityVisuals.ShowAttackRange();
-
-        if (audioManager != null) audioManager.PlayAttack();
-
-        Collider[] hits = Physics.OverlapSphere(transform.position, attackRange);
-        int hitCount = 0;
-
-        foreach (var hit in hits)
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange);
+        foreach (var hitCollider in hitColliders)
         {
-            if (hit.CompareTag("Enemy"))
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
             {
-                Vector3 dir = (hit.transform.position - transform.position).normalized;
-                float angle = Vector3.Angle(transform.forward, dir);
+                Vector3 directionToEnemy = (enemy.transform.position - transform.position).normalized;
+                float angle = Vector3.Angle(transform.forward, directionToEnemy);
+
                 if (angle <= attackAngle / 2)
                 {
-                    enemyHealth enemy = hit.GetComponent<enemyHealth>();
-                    if (enemy != null)
-                    {
-                        enemy.TakeDamage(attackDamage);
-                        hitCount++;
-                    }
+                    enemy.TakeDamage(attackDamage);
                 }
             }
-        }
-
-        if (hitCount > 0)
-            Debug.Log($"Ciupaga! Trafiono {hitCount} wrogów za {attackDamage} obrażeń");
-    }
-
-    IEnumerator PerformSpecial()
-    {
-        isSpecialOnCooldown = true;
-        specialCooldownTimer = specialCooldown;
-
-        if (abilityVisuals != null)
-            abilityVisuals.ShowSpecialRange();
-
-        if (audioManager != null) audioManager.PlaySpecialAbility();
-
-        if (playerHealth != null)
-        {
-            playerHealth.Heal(healValue);
-        }
-
-        for (int i = 0; i < specialRotations; i++)
-        {
-            Collider[] enemies = Physics.OverlapSphere(transform.position, specialRange);
-            foreach (Collider enemy in enemies)
-            {
-                if (enemy.CompareTag("Enemy"))
-                {
-                    enemyHealth e = enemy.GetComponent<enemyHealth>();
-                    if (e != null)
-                    {
-                        e.TakeDamage(specialDamage);
-                    }
-                }
-            }
-            yield return new WaitForSeconds(0.3f);
         }
     }
 
-    IEnumerator PerformUltimate()
+    void Stomp()
     {
-        isUltimateOnCooldown = true;
-        ultimateCooldownTimer = ultimateDuration;
-
-        if (abilityVisuals != null)
-            abilityVisuals.ShowUltimateRange();
-
-        if (audioManager != null) audioManager.PlayUltimate();
-
-        float elapsed = 0f;
-
-        while (elapsed < ultimateDuration)
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, stompRange);
+        foreach (var hitCollider in hitColliders)
         {
-            Collider[] enemies = Physics.OverlapSphere(transform.position, ultimateRadius);
-            foreach (Collider enemy in enemies)
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
             {
-                if (enemy.CompareTag("Enemy"))
+                enemy.TakeDamage(stompDamage);
+                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                if (rb != null)
                 {
-                    enemyHealth e = enemy.GetComponent<enemyHealth>();
-                    if (e != null)
-                    {
-                        e.TakeDamage(ultimateDamage * Time.deltaTime);
-                    }
+                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
+                    direction.y = 1f;
+                    rb.AddForce(direction * 10f, ForceMode.Impulse);
                 }
             }
-            elapsed += Time.deltaTime;
-            yield return null;
         }
+    }
+
+    void Ultimate()
+    {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, ultimateRadius);
+        foreach (var hitCollider in hitColliders)
+        {
+            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(ultimateDamage);
+                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
+                    direction.y = 2f;
+                    rb.AddForce(direction * 20f, ForceMode.Impulse);
+                }
+            }
+        }
+    }
+
+    void SpecialAttack()
+    {
+        RaycastHit[] hits = Physics.SphereCastAll(transform.position, 0.5f, transform.forward, specialRange);
+        foreach (var hit in hits)
+        {
+            EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(specialDamage);
+                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 direction = (enemy.transform.position - transform.position).normalized;
+                    rb.AddForce(direction * 15f, ForceMode.Impulse);
+                }
+            }
+        }
+    }
+
+    public void SetCanAttack(bool value)
+    {
+        canAttack = value;
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, stompRange);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, ultimateRadius);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, specialRange);
+
+        Vector3 forward = transform.forward;
+        Quaternion leftRotation = Quaternion.Euler(0, -attackAngle / 2, 0);
+        Quaternion rightRotation = Quaternion.Euler(0, attackAngle / 2, 0);
+        Vector3 leftDirection = leftRotation * forward * attackRange;
+        Vector3 rightDirection = rightRotation * forward * attackRange;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + leftDirection);
+        Gizmos.DrawLine(transform.position, transform.position + rightDirection);
     }
 }

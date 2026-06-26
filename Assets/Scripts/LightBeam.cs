@@ -1,64 +1,43 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class LightBeam : MonoBehaviour
 {
-    [Header("═══════════════ STATYSTYKI POCISKU ═══════════════")]
-    public float damage = 30f;
-    public float speed = 20f;
-    public float lifetime = 3f;
+    public float damage = 10f;
+    public float range = 10f;
+    public float duration = 0.5f;
+    public float speed = 25f;
 
-    private Rigidbody rb;
-    private bool hasHit = false;
+    private float traveled = 0f;
+    private bool hitSomething = false;
 
-    void Start()
+    void Start() => StartCoroutine(Lifetime());
+
+    void Update()
     {
-        rb = GetComponent<Rigidbody>();
-        if (rb == null)
-            rb = gameObject.AddComponent<Rigidbody>();
+        if (hitSomething) return;
 
-        rb.useGravity = false;
-        rb.linearVelocity = transform.forward * speed;
+        float move = speed * Time.deltaTime;
+        transform.Translate(Vector3.forward * move);
+        traveled += move;
 
-        SphereCollider collider = GetComponent<SphereCollider>();
-        if (collider == null)
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, transform.forward, out hit, 1f))
         {
-            collider = gameObject.AddComponent<SphereCollider>();
-            collider.isTrigger = true;
-            collider.radius = 0.3f;
-        }
-        else
-        {
-            collider.isTrigger = true;
-        }
-
-        Destroy(gameObject, lifetime);
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (hasHit) return;
-
-        // Trafienie w wroga
-        if (other.CompareTag("Enemy"))
-        {
-            enemyHealth enemy = other.GetComponent<enemyHealth>();
+            EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
-                Debug.Log($"💥 LightBeam trafił wroga! Obrażenia: {damage}");
-                hasHit = true;
+                hitSomething = true;
             }
-            Destroy(gameObject);
         }
-        // Trafienie w ścianę lub przeszkodę
-        else if (!other.CompareTag("Player") && !other.CompareTag("Sheep"))
-        {
-            Destroy(gameObject);
-        }
+
+        if (traveled >= range) hitSomething = true;
     }
 
-    public void SetDamage(float newDamage)
+    IEnumerator Lifetime()
     {
-        damage = newDamage;
+        yield return new WaitForSeconds(duration);
+        Destroy(gameObject);
     }
 }

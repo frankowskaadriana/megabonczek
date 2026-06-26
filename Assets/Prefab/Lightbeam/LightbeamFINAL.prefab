@@ -155,8 +155,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightBeam
   damage: 30
-  speed: 20
-  lifetime: 3
+  range: 10
+  duration: 0.5
+  lineRenderer: {fileID: 0}
 --- !u!96 &1756470878182193374
 TrailRenderer:
   serializedVersion: 4

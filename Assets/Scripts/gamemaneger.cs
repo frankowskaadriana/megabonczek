@@ -1,131 +1,177 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.SceneManagement;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;
+    [Header("UI")]
+    public GameObject gameOverPanel;
+    public GameObject pausePanel;
+    public GameObject victoryPanel;
+    public TextMeshProUGUI gameOverText;
+    public TextMeshProUGUI victoryText;
+    public TextMeshProUGUI finalLevelText;
+    public TextMeshProUGUI finalWaveText;
+    public TextMeshProUGUI finalScoreText;
 
-    [Header("═══════════════ STAN GRY ═══════════════")]
-    public bool isGameRunning = false;
-    public bool isPaused = false;
-    public float gameTime = 0f;
+    [Header("Czas gry")]
+    public float gameDuration = 600f; // 10 minut (wpisz w Unity)
+    private float gameTimer = 0f;
 
-    [Header("═══════════════ REFERENCES ═══════════════")]
-    public LevelSystem levelSystem;
+    [Header("Referencje")]
     public WaveSpawner waveSpawner;
-    public AudioManager audioManager;
-    public CameraController cameraController;
-    public CharacterSelector characterSelector;
 
-    private float previousTimeScale = 1f;
-
-    void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            Debug.Log("🎮 GameManager utworzony");
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
-    }
+    private LevelSystem levelSystem;
+    private PlayerHealth playerHealth;
+    private GameObject player;
+    private float score = 0f;
+    private float scoreMultiplier = 1f;
+    private bool isGameActive = false;
+    private bool isPaused = false;
+    private int totalEnemiesKilled = 0;
 
     void Start()
     {
-        FindMissingReferences();
-        Debug.Log("🎮 GameManager gotowy! Wciśnij B aby spawnić testowego bossa");
+        levelSystem = FindFirstObjectByType<LevelSystem>();
+        waveSpawner = FindFirstObjectByType<WaveSpawner>();
+        player = GameObject.FindWithTag("Player");
+        if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
+
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (victoryPanel != null) victoryPanel.SetActive(false);
+
+        StartGame();
     }
 
     void Update()
     {
-        if (isGameRunning && !isPaused)
-            gameTime += Time.deltaTime;
+        if (!isGameActive) return;
 
-        if (Input.GetKeyDown(KeyCode.Escape))
-            TogglePause();
+        if (player == null)
+        {
+            player = GameObject.FindWithTag("Player");
+            if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
+        }
 
-        if (Input.GetKeyDown(KeyCode.B) && waveSpawner != null)
-            waveSpawner.TestSpawnBoss();
+        // Timer gry
+        gameTimer += Time.deltaTime;
+        score += Time.deltaTime * scoreMultiplier;
+
+        // Sprawdź czy czas minął
+        if (gameTimer >= gameDuration)
+        {
+            Victory("⏰ CZAS MINĄŁ!");
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape)) TogglePause();
+
+        if (playerHealth != null && playerHealth.currentHealth <= 0)
+            GameOver("💀 ZGINĄŁEŚ!");
+
+        if (waveSpawner != null && waveSpawner.IsWaveComplete())
+            Victory("🏆 WSZYSTKIE FALE UKOŃCZONE!");
     }
 
-    void FindMissingReferences()
+    void StartGame()
     {
-        if (levelSystem == null) levelSystem = GetComponent<LevelSystem>();
-        if (waveSpawner == null) waveSpawner = GetComponent<WaveSpawner>();
-        if (audioManager == null) audioManager = GetComponent<AudioManager>();
-        if (cameraController == null && Camera.main != null)
-            cameraController = Camera.main.GetComponent<CameraController>();
-        if (characterSelector == null) characterSelector = FindFirstObjectByType<CharacterSelector>();
-    }
-
-    public void StartGame()
-    {
-        if (isGameRunning) return;
-        isGameRunning = true;
-        isPaused = false;
-        gameTime = 0f;
+        isGameActive = true;
+        gameTimer = 0f;
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         if (levelSystem != null) levelSystem.StartGame();
-        if (waveSpawner != null) waveSpawner.enabled = true;
-        Debug.Log("🚀 GRA ROZPOCZĘTA!");
     }
 
-    public void EndGame()
+    void TogglePause()
     {
-        isGameRunning = false;
-        Time.timeScale = 0f;
-        Debug.Log("💀 GRA ZAKOŃCZONA!");
+        isPaused = !isPaused;
+        Time.timeScale = isPaused ? 0f : 1f;
+        Cursor.lockState = isPaused ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = isPaused;
+        if (pausePanel != null) pausePanel.SetActive(isPaused);
     }
 
-    public void PauseGame()
+    public void EnemyKilled()
     {
-        if (!isGameRunning || isPaused) return;
-        isPaused = true;
-        previousTimeScale = Time.timeScale;
+        totalEnemiesKilled++;
+        scoreMultiplier = Mathf.Min(1f + totalEnemiesKilled * 0.01f, 5f);
+        if (waveSpawner != null) waveSpawner.EnemyDied();
+        if (levelSystem != null) levelSystem.EnemyDied();
+    }
+
+    public void GameOver(string reason)
+    {
+        if (!isGameActive) return;
+        isGameActive = false;
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Debug.Log("⏸️ PAUZA");
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+            if (gameOverText != null) gameOverText.text = reason;
+            if (finalLevelText != null && levelSystem != null) finalLevelText.text = $"Poziom: {levelSystem.currentLevel}";
+            if (finalWaveText != null && waveSpawner != null) finalWaveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
+            if (finalScoreText != null) finalScoreText.text = $"Wynik: {Mathf.RoundToInt(score)}";
+        }
     }
 
-    public void ResumeGame()
+    public void Victory(string reason)
     {
-        if (!isGameRunning || !isPaused) return;
-        isPaused = false;
-        Time.timeScale = previousTimeScale;
+        if (!isGameActive) return;
+        isGameActive = false;
+        Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Debug.Log("▶️ GRA WZNOWIONA");
-    }
 
-    public void TogglePause()
-    {
-        if (isPaused) ResumeGame();
-        else PauseGame();
+        if (victoryPanel != null)
+        {
+            victoryPanel.SetActive(true);
+            if (victoryText != null) victoryText.text = reason;
+            if (finalLevelText != null && levelSystem != null) finalLevelText.text = $"Poziom: {levelSystem.currentLevel}";
+            if (finalWaveText != null && waveSpawner != null) finalWaveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
+            if (finalScoreText != null) finalScoreText.text = $"Wynik: {Mathf.RoundToInt(score)}";
+        }
     }
 
     public void RestartGame()
     {
-        Debug.Log("🔄 RESTART...");
-        if (waveSpawner != null) waveSpawner.ClearAllEnemies();
-        isGameRunning = false;
-        isPaused = false;
-        gameTime = 0f;
         Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
-        );
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void LoadMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    public void ResumeGame()
+    {
+        if (isPaused) TogglePause();
     }
 
     public void QuitGame()
     {
-        Debug.Log("👋 ZAMYKANIE GRY");
+        Time.timeScale = 1f;
         Application.Quit();
     }
+
+    public float GetGameTime() => gameTimer;
+    public float GetGameDuration() => gameDuration;
+    public float GetScore() => score;
+    public int GetScoreInt() => Mathf.RoundToInt(score);
+    public GameObject GetPlayer() => player;
+
+    public void OnRestartButton() => RestartGame();
+    public void OnMainMenuButton() => LoadMainMenu();
+    public void OnResumeButton() => ResumeGame();
+    public void OnQuitButton() => QuitGame();
+    public void SpawnTestBoss() => waveSpawner?.TestSpawnBoss();
+    public void SpawnTestBazyliszek() => waveSpawner?.TestSpawnBazyliszek();
+    public void SkipWave() => waveSpawner?.SkipWave();
+    public void ClearEnemies() => waveSpawner?.ClearAllEnemies();
 }

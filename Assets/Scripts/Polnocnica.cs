@@ -1,28 +1,21 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
 
-public enum EnemyType { Polnocnica, Strzyga, Upior, Leszy, Bazyliszek }
-
-public class EnemyHealth : MonoBehaviour
+public class Polnocnica : MonoBehaviour
 {
-    [Header("Typ")]
-    public EnemyType enemyType = EnemyType.Polnocnica;
-
     [Header("Statystyki")]
-    public float maxHealth = 50f;
-    public float moveSpeed = 3f;
-    public float damage = 20f;
-    public int expReward = 10;
+    public float maxHealth = 30f;
+    public float moveSpeed = 2.5f;
+    public float damage = 10f;
 
     [Header("Atak")]
-    public float attackRange = 1.8f;
-    public float attackCooldown = 1f;
+    public float attackRange = 1.5f;
+    public float attackCooldown = 1.5f;
 
-    [Header("Odepchnięcie")]
-    public float pushForce = 3f;
-    public float pushRadius = 1.5f;
+    [Header("Efekty")]
+    public GameObject deathEffect;
 
     [Header("UI")]
     public TextMeshPro healthText;
@@ -48,23 +41,12 @@ public class EnemyHealth : MonoBehaviour
         agent.stoppingDistance = attackRange;
 
         mesh = GetComponent<MeshRenderer>();
-        if (mesh != null) originalColor = mesh.material.color;
-
-        if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
-        ApplyVisuals();
-    }
-
-    void ApplyVisuals()
-    {
-        if (mesh == null) return;
-        switch (enemyType)
+        if (mesh != null)
         {
-            case EnemyType.Polnocnica: mesh.material.color = new Color(0.6f, 0.3f, 0.8f); expReward = 10; break;
-            case EnemyType.Strzyga: mesh.material.color = new Color(0.5f, 0.2f, 0.1f); expReward = 15; break;
-            case EnemyType.Upior: mesh.material.color = new Color(0.4f, 0.6f, 0.3f); expReward = 20; break;
-            case EnemyType.Leszy: mesh.material.color = new Color(0.2f, 0.7f, 0.2f); transform.localScale = Vector3.one * 1.8f; expReward = 100; break;
-            case EnemyType.Bazyliszek: mesh.material.color = new Color(0.9f, 0.7f, 0.2f); transform.localScale = Vector3.one * 1.2f; expReward = 50; break;
+            originalColor = mesh.material.color;
+            mesh.material.color = new Color(0.6f, 0.3f, 0.8f);
         }
+
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
     }
 
@@ -100,21 +82,7 @@ public class EnemyHealth : MonoBehaviour
     {
         if (player == null) return;
         PlayerHealth ph = player.GetComponent<PlayerHealth>();
-        if (ph != null)
-        {
-            ph.TakeDamage(damage);
-            float dist = Vector3.Distance(transform.position, player.position);
-            if (dist < pushRadius)
-            {
-                Rigidbody rb = player.GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    Vector3 dir = (player.position - transform.position).normalized;
-                    dir.y = 0.5f;
-                    rb.AddForce(dir * pushForce * 0.5f, ForceMode.Impulse);
-                }
-            }
-        }
+        if (ph != null) ph.TakeDamage(damage);
     }
 
     public void TakeDamage(float amount)
@@ -140,11 +108,8 @@ public class EnemyHealth : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        if (levelSystem != null)
-        {
-            for (int i = 0; i < expReward / 10; i++)
-                levelSystem.EnemyDied();
-        }
+        if (deathEffect != null) Instantiate(deathEffect, transform.position, Quaternion.identity);
+        if (levelSystem != null) levelSystem.EnemyDied();
         Destroy(gameObject);
     }
 }

@@ -1,15 +1,14 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
     public float speed = 20f;
-    public float damage = 10f;
-    public float lifetime = 2f;
-    // private float timer; // zakomentuj lub usuñ tê liniê
+    public float damage = 15f;
+    public float lifeTime = 3f;
 
     void Start()
     {
-        Destroy(gameObject, lifetime);
+        Destroy(gameObject, lifeTime);
     }
 
     void Update()
@@ -19,13 +18,16 @@ public class Bullet : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Enemy"))
+        EnemyHealth enemy = other.GetComponent<EnemyHealth>();
+        if (enemy == null) enemy = other.GetComponentInParent<EnemyHealth>();
+
+        if (enemy != null)
         {
-            enemyHealth enemy = other.GetComponent<enemyHealth>();
-            if (enemy != null)
-            {
-                enemy.TakeDamage(damage);
-            }
+            enemy.TakeDamage(damage);
+            Destroy(gameObject);
+        }
+        else if (!other.isTrigger)
+        {
             Destroy(gameObject);
         }
     }

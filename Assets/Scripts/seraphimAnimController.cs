@@ -3,13 +3,13 @@ using System.Collections;
 
 public class SeraphimAnimationController : MonoBehaviour
 {
-    [Header("═══════════════ REFERENCJE ═══════════════")]
+    [Header("Referencje")]
     public Animator animator;
-    public AbilitiesSeraphim abilitiesSeraphim;
+    public AbilitiesSeraphim abilitiesSeraphim; // ✅ POPRAWIONE
     public PlayerMovement playerMovement;
     public PlayerHealth playerHealth;
 
-    [Header("═══════════════ USTAWIENIA ANIMACJI ═══════════════")]
+    [Header("Ustawienia Animacji")]
     public float movementSmoothTime = 0.1f;
     public float floatAmplitude = 0.02f;
     public float floatSpeed = 2f;
@@ -33,7 +33,7 @@ public class SeraphimAnimationController : MonoBehaviour
             animator = GetComponentInChildren<Animator>();
 
         if (abilitiesSeraphim == null)
-            abilitiesSeraphim = GetComponent<AbilitiesSeraphim>();
+            abilitiesSeraphim = GetComponent<AbilitiesSeraphim>(); // ✅ POPRAWIONE
 
         if (playerMovement == null)
             playerMovement = GetComponent<PlayerMovement>();
@@ -41,7 +41,6 @@ public class SeraphimAnimationController : MonoBehaviour
         if (playerHealth == null)
             playerHealth = GetComponent<PlayerHealth>();
 
-        // Ustaw domyślne parametry
         if (animator != null)
         {
             animator.SetFloat("Speed", 0f);
@@ -66,14 +65,11 @@ public class SeraphimAnimationController : MonoBehaviour
     {
         if (playerMovement == null || animator == null) return;
 
-        // Pobierz prędkość z PlayerMovement
         Vector3 velocity = playerMovement.GetVelocity();
         targetSpeed = velocity.magnitude;
 
-        // Płynne przejście
         currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, movementSmoothTime);
 
-        // Ustaw parametry animatora
         animator.SetFloat("Speed", currentSpeed);
         animator.SetBool("IsGrounded", playerMovement.IsGrounded());
     }
@@ -82,11 +78,9 @@ public class SeraphimAnimationController : MonoBehaviour
     {
         if (animator == null) return;
 
-        // Sprawdź czy postać strzela
         bool isShootingNow = false;
         if (abilitiesSeraphim != null)
         {
-            // Możesz dodać flagę w SeraphimAbilities
             // isShootingNow = seraphimAbilities.IsShooting;
         }
 
@@ -97,15 +91,11 @@ public class SeraphimAnimationController : MonoBehaviour
     {
         if (animator == null) return;
 
-        // Seraphim unosi się w powietrzu
         animator.SetBool("IsFloating", true);
 
-        // Dodaj lekkie unoszenie (efekt latania)
         floatOffset = Mathf.Sin(Time.time * floatSpeed) * floatAmplitude;
         transform.position += Vector3.up * floatOffset * Time.deltaTime * 0.5f;
     }
-
-    // ========== METODY WYWOŁYWANE Z INNYCH SKRYPTÓW ==========
 
     public void TriggerShoot()
     {
@@ -177,8 +167,6 @@ public class SeraphimAnimationController : MonoBehaviour
         }
         Debug.Log("🎬 Animacja: Odrodzenie");
     }
-
-    // ========== GETTERY ==========
 
     public bool IsDying() => isDying;
     public bool IsCasting() => isCasting;

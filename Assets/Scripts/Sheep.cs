@@ -24,8 +24,8 @@ public class Sheep : MonoBehaviour
     public float followDistance = 3f;
 
     [Header("Odrzut")]
-    public float pushbackForce = 4f;      // Zmniejszone z 6 na 4
-    public float pushbackUpForce = 0.3f;  // Zmniejszone z 1.5 na 0.3 (prawie poziomo)
+    public float pushbackForce = 4f;
+    public float pushbackUpForce = 0.3f;
     public float pushbackRadius = 2.5f;
 
     [Header("Odepchnięcie po kolizji")]
@@ -63,7 +63,6 @@ public class Sheep : MonoBehaviour
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) followTarget = playerObj.transform;
 
-        // Ustaw gracza jako ignorowany przez owcę (brak kolizji)
         if (playerObj != null)
         {
             Collider sheepCollider = GetComponent<Collider>();
@@ -72,6 +71,21 @@ public class Sheep : MonoBehaviour
             {
                 Physics.IgnoreCollision(sheepCollider, playerCollider, true);
                 Debug.Log("🐑 Ignorowanie kolizji z graczem!");
+            }
+        }
+
+        // Ignoruj kolizje z innymi owcami
+        Sheep[] allSheep = FindObjectsByType<Sheep>(FindObjectsSortMode.None);
+        Collider myCollider = GetComponent<Collider>();
+        foreach (Sheep otherSheep in allSheep)
+        {
+            if (otherSheep != null && otherSheep.gameObject != gameObject)
+            {
+                Collider otherCollider = otherSheep.GetComponent<Collider>();
+                if (myCollider != null && otherCollider != null)
+                {
+                    Physics.IgnoreCollision(myCollider, otherCollider, true);
+                }
             }
         }
 
@@ -88,7 +102,6 @@ public class Sheep : MonoBehaviour
             SetupNavMeshAgent();
         }
 
-        // Rigidbody dla fizyki
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 10f;
@@ -171,7 +184,6 @@ public class Sheep : MonoBehaviour
         foreach (EnemyHealth enemy in enemies)
         {
             if (enemy == null) continue;
-            // Sprawdź czy wróg żyje
             if (enemy.gameObject == null) continue;
 
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
@@ -190,6 +202,7 @@ public class Sheep : MonoBehaviour
             {
                 state = SheepState.AutoAttacking;
                 targetEnemy = currentTarget;
+                Debug.Log($"🐑 Owca wykryła wroga: {closest.name} (odległość: {closestDist:F1}m)");
             }
         }
         else
@@ -394,7 +407,7 @@ public class Sheep : MonoBehaviour
     {
         float chargeTime = 3f;
         float startSpeed = speed;
-        if (agent != null) agent.speed = speed * 2f; // Zmniejszone z 2.5 na 2
+        if (agent != null) agent.speed = speed * 2f;
 
         if (mesh != null)
             mesh.material.color = Color.red;
@@ -417,8 +430,8 @@ public class Sheep : MonoBehaviour
                     EnemyHealth enemy = hit.GetComponent<EnemyHealth>();
                     if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
                     {
-                        enemy.TakeDamage(attackDamage * 1.5f); // Zmniejszone z 2x na 1.5x
-                        PushbackEnemy(enemy, 1.5f); // Zmniejszone z 2x na 1.5x
+                        enemy.TakeDamage(attackDamage * 1.5f);
+                        PushbackEnemy(enemy, 1.5f);
                         FlashAttack();
                         AudioManager.Instance?.PlayEnemyHit();
                         Debug.Log($"💥 Szarża owcy! {attackDamage * 1.5f} obrażeń!");
@@ -455,28 +468,22 @@ public class Sheep : MonoBehaviour
         Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
         if (enemyRb != null)
         {
-            // Odrzut POZIOMY - prawie bez składowej w górę
             Vector3 direction = (enemy.transform.position - transform.position).normalized;
-            direction.y = pushbackUpForce; // Bardzo mała siła w górę
+            direction.y = pushbackUpForce;
 
             enemyRb.isKinematic = false;
             enemyRb.useGravity = true;
             enemyRb.AddForce(direction * pushbackForce * forceMultiplier, ForceMode.Impulse);
-
-            Debug.Log($"💥 Odrzut! Siła: {pushbackForce * forceMultiplier}, Kierunek: {direction}");
         }
     }
 
-    // Odepchnięcie po kolizji z przeciwnikiem
     void OnCollisionEnter(Collision collision)
     {
         if (isDead) return;
 
-        // Sprawdź czy to przeciwnik
         EnemyHealth enemy = collision.gameObject.GetComponent<EnemyHealth>();
         if (enemy != null)
         {
-            // Odepchnij owcę od przeciwnika
             Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
             pushDirection.y = 0.2f;
 
@@ -488,7 +495,6 @@ public class Sheep : MonoBehaviour
                 pushCooldown = pushCooldownTime;
                 Debug.Log($"🐑 Owca odepchnięta od {enemy.name}!");
 
-                // Przywróć kinematic po chwili
                 StartCoroutine(ResetKinematic());
             }
         }
@@ -509,7 +515,6 @@ public class Sheep : MonoBehaviour
     {
         if (isDead) return;
 
-        // Cooldown odepchnięcia
         if (pushCooldown > 0)
             pushCooldown -= Time.deltaTime;
 
@@ -518,7 +523,6 @@ public class Sheep : MonoBehaviour
             targetPosition = followTarget.position;
         }
 
-        // Efekty stanów
         if (mesh != null && flashCoroutine == null)
         {
             if (state == SheepState.Charging)
@@ -644,6 +648,7 @@ public class Sheep : MonoBehaviour
         if (target != null)
         {
             state = SheepState.Attacking;
+            Debug.Log($"🐑 Owca otrzymała cel: {target.name}");
         }
     }
 

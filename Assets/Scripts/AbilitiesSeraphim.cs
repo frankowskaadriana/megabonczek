@@ -7,7 +7,7 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float attackRange = 10f;
     public float attackDamage = 15f;
     public float attackRate = 0.8f;
-    public GameObject lightBeamPrefab;
+    public GameObject lightBeamPrefab; // Prefab LightBeam z gry
     public Transform firePoint;
 
     [Header("Odrzut LightBeam")]
@@ -69,7 +69,6 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (player == null) return;
 
-        // AUTOMATYCZNY STRZAŁ LightBeam
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canShoot)
         {
@@ -78,7 +77,6 @@ public class AbilitiesSeraphim : MonoBehaviour
             RangedAttack();
         }
 
-        // Heal
         healTimer += Time.deltaTime;
         if (healTimer >= healCooldown && Input.GetKeyDown(KeyCode.Q))
         {
@@ -86,7 +84,6 @@ public class AbilitiesSeraphim : MonoBehaviour
             Heal();
         }
 
-        // Ultimate
         ultimateTimer += Time.deltaTime;
         if (ultimateTimer >= judgmentCooldown && Input.GetKeyDown(KeyCode.R))
         {
@@ -94,7 +91,6 @@ public class AbilitiesSeraphim : MonoBehaviour
             StartCoroutine(Judgment());
         }
 
-        // Special
         specialTimer += Time.deltaTime;
         if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
         {
@@ -102,7 +98,6 @@ public class AbilitiesSeraphim : MonoBehaviour
             SpecialAttack();
         }
 
-        // Charge
         chargeTimer += Time.deltaTime;
         if (chargeTimer >= chargeCooldown && Input.GetKeyDown(KeyCode.LeftShift))
         {
@@ -139,23 +134,45 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void RangedAttack()
     {
-        if (lightBeamPrefab == null || firePoint == null) return;
+        // Sprawdź czy prefab istnieje
+        if (lightBeamPrefab == null)
+        {
+            Debug.LogError("❌ LightBeam Prefab nie jest przypisany!");
+            return;
+        }
 
+        if (firePoint == null) return;
+
+        // Pobierz pozycję kursora
         Vector3 targetPosition = GetMouseWorldPosition();
         if (targetPosition == Vector3.zero) return;
 
+        // Oblicz kierunek
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
+        // WYWOŁAJ LIGHTBEAM Z PREFABU
         GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, Quaternion.LookRotation(direction));
+
+        // Ustaw parametry (opcjonalnie)
         LightBeam lightBeam = beam.GetComponent<LightBeam>();
         if (lightBeam != null)
         {
-            lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
-            lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce, beamPushbackInterval);
+            // Ustaw obrażenia i zasięg
+            lightBeam.damage = attackDamage;
+            lightBeam.range = attackRange;
+            lightBeam.duration = 0.5f;
+            lightBeam.speed = 25f;
+
+            // Ustaw odrzut
+            lightBeam.pushbackForce = beamPushbackForce;
+            lightBeam.pushbackUpForce = beamPushbackUpForce;
+            lightBeam.pushbackInterval = beamPushbackInterval;
         }
 
+        // Dźwięk
         AudioManager.Instance?.PlayLaser();
+        Debug.Log($"🔫 Seraphim wystrzelił LightBeam! Obrażenia: {attackDamage}");
     }
 
     Vector3 GetMouseWorldPosition()
@@ -183,6 +200,7 @@ public class AbilitiesSeraphim : MonoBehaviour
         {
             playerHealth.Heal(healAmount);
             AudioManager.Instance?.PlayHeal();
+            Debug.Log($"💚 Seraphim: Heal {healAmount} HP!");
         }
     }
 
@@ -257,6 +275,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                 }
             }
         }
+        Debug.Log($"✨ Seraphim Special: {specialDamage} obrażeń!");
     }
 
     IEnumerator Charge()

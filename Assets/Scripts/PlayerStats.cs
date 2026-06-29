@@ -2,15 +2,15 @@
 
 public class PlayerStats : MonoBehaviour
 {
-    [Header("═══════════════ GÓRAL ═══════════════")]
+    [Header("Góral")]
     public float goralHealth = 100f;
     public float goralSpeed = 5f;
 
-    [Header("═══════════════ SERAPHIM ═══════════════")]
+    [Header("Seraphim")]
     public float seraphimHealth = 40f;
     public float seraphimSpeed = 6f;
 
-    [Header("═══════════════ PASTERZ ═══════════════")]
+    [Header("Pasterz")]
     public float pasterzHealth = 50f;
     public float pasterzSpeed = 5.5f;
     public float pasterzArmor = 20f;

@@ -61,7 +61,8 @@ public class PlayerHealth : MonoBehaviour
         targetFill = currentHealth / maxHealth;
         UpdateUI();
 
-        // ODPECHNIJ PRZECIWNIKÓW PO OTRZYMANIU OBRAŻEŃ
+        AudioManager.Instance?.PlayDamage(); // DŹWIĘK OBRAŻEŃ
+
         PushbackEnemies();
 
         if (currentHealth <= 0f) Die();
@@ -77,7 +78,6 @@ public class PlayerHealth : MonoBehaviour
     {
         isPushingBack = true;
 
-        // Znajdź wszystkich wrogów w promieniu
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, pushbackRadius);
         List<EnemyHealth> enemiesHit = new List<EnemyHealth>();
 
@@ -90,7 +90,6 @@ public class PlayerHealth : MonoBehaviour
             }
         }
 
-        // Odepchnij każdego wroga
         foreach (EnemyHealth enemy in enemiesHit)
         {
             if (enemy != null)
@@ -103,16 +102,12 @@ public class PlayerHealth : MonoBehaviour
                     enemyRb.isKinematic = false;
                     enemyRb.useGravity = true;
                     enemyRb.AddForce(direction * pushbackForce, ForceMode.Impulse);
-
-                    Debug.Log($"💥 Odepchnięto {enemy.name}! Siła: {pushbackForce}");
                 }
             }
         }
 
-        // Poczekaj chwilę
         yield return new WaitForSeconds(pushbackDuration);
 
-        // Przywróć wrogów do normalnego stanu
         foreach (EnemyHealth enemy in enemiesHit)
         {
             if (enemy != null)
@@ -135,6 +130,8 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth + amount, 0f, maxHealth);
         targetFill = currentHealth / maxHealth;
         UpdateUI();
+
+        AudioManager.Instance?.PlayHeal(); // DŹWIĘK LECZENIA
     }
 
     public void AddMaxHealth(int amount)
@@ -143,6 +140,8 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
         targetFill = 1f;
         UpdateUI();
+
+        AudioManager.Instance?.PlayHeal(); // DŹWIĘK LECZENIA
     }
 
     public void AddArmor(int amount) => armor += amount;
@@ -158,6 +157,7 @@ public class PlayerHealth : MonoBehaviour
     void Die()
     {
         Debug.Log("Player died!");
+        AudioManager.Instance?.PlayDeath(); // DŹWIĘK ŚMIERCI
         Time.timeScale = 0f;
         Destroy(gameObject);
     }

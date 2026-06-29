@@ -191,15 +191,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.1
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.1
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
       propertyPath: m_LocalPosition.x
@@ -287,6 +287,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4556473663611412598}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4574824324355133296}
   m_SourcePrefab: {fileID: 100100000, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}
 --- !u!1 &6086191808217519943 stripped
 GameObject:
@@ -402,6 +405,31 @@ CapsuleCollider:
   m_Height: 3
   m_Direction: 1
   m_Center: {x: 0, y: 1.5, z: 0}
+--- !u!114 &4574824324355133296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6086191808217519943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df46e1558e2e6e45a12af5358f10a4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Polnocnica
+  maxHealth: 30
+  moveSpeed: 2.5
+  damage: 10
+  expReward: 10
+  attackRange: 1.5
+  attackCooldown: 1.5
+  hitPushForce: 4
+  hitPushUpForce: 0.5
+  hitStunDuration: 0.3
+  deathEffect: {fileID: 0}
+  hitColor: {r: 1, g: 1, b: 1, a: 1}
+  hitFlashDuration: 0.1
+  healthText: {fileID: 0}
 --- !u!4 &6862834476716838397 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e1c5bf1bd0e445f41aa0faac75f6ff87, type: 3}

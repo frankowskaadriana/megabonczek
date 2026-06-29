@@ -5,10 +5,10 @@ using TMPro;
 
 public class MainMenu : MonoBehaviour
 {
-    [Header("═══════════════ SCENY ═══════════════")]
+    [Header("Sceny")]
     public string gameSceneName = "Programowanie";
 
-    [Header("═══════════════ REFERENCJE UI ═══════════════")]
+    [Header("UI")]
     public GameObject mainMenuPanel;
     public GameObject settingsPanel;
     public Button playButton;
@@ -20,7 +20,7 @@ public class MainMenu : MonoBehaviour
     public Slider musicVolumeSlider;
     public Toggle fullscreenToggle;
 
-    [Header("═══════════════ DŹWIĘKI ═══════════════")]
+    [Header("Dźwięki")]
     public AudioClip hoverSound;
     public AudioClip clickSound;
     public AudioClip gameStartSound;

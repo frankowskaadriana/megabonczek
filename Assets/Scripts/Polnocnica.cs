@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
@@ -15,7 +15,7 @@ public class Polnocnica : MonoBehaviour
     public float attackRange = 1.5f;
     public float attackCooldown = 1.5f;
 
-    [Header("Odrzut po obra�eniach")]
+    [Header("Odrzut po obrażeniach")]
     public float hitPushForce = 4f;
     public float hitPushUpForce = 0.5f;
     public float hitStunDuration = 0.3f;
@@ -40,8 +40,6 @@ public class Polnocnica : MonoBehaviour
     private Rigidbody rb;
     private Coroutine flashCoroutine;
     private Coroutine pushbackCoroutine;
-    private float searchTimer = 0f;
-    private float searchInterval = 0.5f;
 
     void Start()
     {
@@ -49,21 +47,31 @@ public class Polnocnica : MonoBehaviour
         levelSystem = FindFirstObjectByType<LevelSystem>();
         FindPlayer();
 
+        // === IGNORUJ KOLIZJE Z INNYMI WROGAMI ===
+        IgnoreEnemyCollisions();
+
+        // NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
-        agent.stoppingDistance = attackRange * 0.8f;
+        agent.angularSpeed = 360f;
+        agent.acceleration = 8f;
+        agent.stoppingDistance = attackRange * 0.7f;
         agent.autoBraking = true;
+        agent.autoRepath = true;
         agent.updatePosition = true;
         agent.updateRotation = true;
-        agent.angularSpeed = 360f;
+        agent.enabled = true;
 
+        // Rigidbody
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 50f;
         rb.isKinematic = true;
         rb.useGravity = false;
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
 
+        // Mesh
         mesh = GetComponent<MeshRenderer>();
         if (mesh != null)
         {
@@ -72,35 +80,78 @@ public class Polnocnica : MonoBehaviour
         }
 
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
+
+        Debug.Log($"✅ {gameObject.name} gotowy!");
+    }
+
+    void IgnoreEnemyCollisions()
+    {
+        Collider myCollider = GetComponent<Collider>();
+        if (myCollider == null) return;
+
+        // Znajdź wszystkich wrogów i zignoruj kolizje
+        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
+        foreach (EnemyHealth enemy in enemies)
+        {
+            if (enemy != null && enemy.gameObject != gameObject)
+            {
+                Collider otherCollider = enemy.GetComponent<Collider>();
+                if (otherCollider != null)
+                {
+                    Physics.IgnoreCollision(myCollider, otherCollider, true);
+                }
+            }
+        }
+
+        // Znajdź też po tagu "Enemy"
+        GameObject[] taggedEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in taggedEnemies)
+        {
+            if (enemy != null && enemy != gameObject)
+            {
+                Collider otherCollider = enemy.GetComponent<Collider>();
+                if (otherCollider != null)
+                {
+                    Physics.IgnoreCollision(myCollider, otherCollider, true);
+                }
+            }
+        }
+
+        Debug.Log($"🚫 {gameObject.name}: Ignorowanie kolizji z innymi wrogami");
     }
 
     void FindPlayer()
     {
         GameObject p = GameObject.FindWithTag("Player");
-        if (p != null) player = p.transform;
+        if (p != null)
+        {
+            player = p.transform;
+            Debug.Log($"🎯 {gameObject.name} znalazł gracza: {player.name}");
+        }
+        else
+        {
+            Debug.LogWarning($"⚠️ {gameObject.name} nie znalazł gracza!");
+        }
     }
 
     void Update()
     {
         if (isDead || isStunned) return;
 
-        searchTimer += Time.deltaTime;
-        if (searchTimer >= searchInterval)
+        if (player == null)
         {
-            searchTimer = 0f;
-            if (player == null) FindPlayer();
-            if (player == null) return;
+            FindPlayer();
+            return;
         }
-
-        if (player == null) return;
 
         float dist = Vector3.Distance(transform.position, player.position);
 
         if (agent != null && agent.isOnNavMesh && agent.enabled)
         {
+            agent.SetDestination(player.position);
+
             if (dist > attackRange)
             {
-                agent.SetDestination(player.position);
                 agent.isStopped = false;
             }
             else
@@ -110,9 +161,14 @@ public class Polnocnica : MonoBehaviour
                 direction.y = 0;
                 if (direction != Vector3.zero)
                 {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 10f);
                 }
             }
+        }
+        else if (agent != null && !agent.isOnNavMesh)
+        {
+            agent.enabled = false;
+            agent.enabled = true;
         }
 
         if (dist <= attackRange)
@@ -144,6 +200,7 @@ public class Polnocnica : MonoBehaviour
         {
             ph.TakeDamage(damage);
             AudioManager.Instance?.PlayEnemyAttack();
+            Debug.Log($"⚔️ {gameObject.name} atakuje! {damage} obrażeń!");
         }
     }
 
@@ -190,7 +247,7 @@ public class Polnocnica : MonoBehaviour
         Vector3 direction = (transform.position - playerObj.transform.position).normalized;
         direction.y = hitPushUpForce;
 
-        if (agent != null && agent.isOnNavMesh)
+        if (agent != null)
         {
             agent.isStopped = true;
             agent.enabled = false;

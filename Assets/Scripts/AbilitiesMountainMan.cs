@@ -110,7 +110,10 @@ public class AbilitiesMountainMan : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange);
         foreach (var hitCollider in hitColliders)
         {
+            // Szukaj EnemyHealth - na obiekcie lub rodzicu
             EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 Vector3 directionToEnemy = (enemy.transform.position - transform.position).normalized;
@@ -120,6 +123,8 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     enemy.TakeDamage(attackDamage);
                     PushbackEnemy(enemy);
+                    AudioManager.Instance?.PlayAttack();
+                    Debug.Log($"⚔️ Góral: {attackDamage} obrażeń dla {enemy.name}!");
                 }
             }
         }
@@ -131,13 +136,16 @@ public class AbilitiesMountainMan : MonoBehaviour
         foreach (var hitCollider in hitColliders)
         {
             EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 enemy.TakeDamage(stompDamage);
-                PushbackEnemy(enemy, 1.5f); // Większy odrzut
+                PushbackEnemy(enemy, 1.5f);
+                AudioManager.Instance?.PlayStomp();
+                Debug.Log($"💥 Stomp: {stompDamage} obrażeń dla {enemy.name}!");
             }
         }
-        Debug.Log($"💥 Mountain Man: Stomp {stompDamage} obrażeń!");
     }
 
     void Ultimate()
@@ -146,13 +154,16 @@ public class AbilitiesMountainMan : MonoBehaviour
         foreach (var hitCollider in hitColliders)
         {
             EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 enemy.TakeDamage(ultimateDamage);
-                PushbackEnemy(enemy, 2f); // Bardzo duży odrzut
+                PushbackEnemy(enemy, 2f);
+                AudioManager.Instance?.PlayUltimate();
+                Debug.Log($"🔥 ULTIMATE: {ultimateDamage} obrażeń dla {enemy.name}!");
             }
         }
-        Debug.Log($"🔥 ULTIMATE! {ultimateDamage} obrażeń w promieniu {ultimateRadius}!");
     }
 
     void SpecialAttack()
@@ -161,13 +172,16 @@ public class AbilitiesMountainMan : MonoBehaviour
         foreach (var hit in hits)
         {
             EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hit.collider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 enemy.TakeDamage(specialDamage);
                 PushbackEnemy(enemy);
+                AudioManager.Instance?.PlaySpecialAbility();
+                Debug.Log($"⚡ Special: {specialDamage} obrażeń dla {enemy.name}!");
             }
         }
-        Debug.Log($"⚡ Special Attack: {specialDamage} obrażeń!");
     }
 
     void PushbackEnemy(EnemyHealth enemy, float forceMultiplier = 1f)
@@ -182,8 +196,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             rb.isKinematic = false;
             rb.useGravity = true;
             rb.AddForce(direction * pushbackForce * forceMultiplier, ForceMode.Impulse);
-
-            Debug.Log($"💥 Odrzucono {enemy.name}! Siła: {pushbackForce * forceMultiplier}");
         }
     }
 

@@ -50,8 +50,6 @@ public class Bazyliszek : MonoBehaviour
     private Rigidbody rb;
     private Coroutine flashCoroutine;
     private Coroutine pushbackCoroutine;
-    private float searchTimer = 0f;
-    private float searchInterval = 0.5f;
 
     void Start()
     {
@@ -59,20 +57,27 @@ public class Bazyliszek : MonoBehaviour
         levelSystem = FindFirstObjectByType<LevelSystem>();
         FindPlayer();
 
+        // === IGNORUJ KOLIZJE Z INNYMI WROGAMI ===
+        IgnoreEnemyCollisions();
+
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
-        agent.stoppingDistance = attackRange * 0.8f;
+        agent.angularSpeed = 360f;
+        agent.acceleration = 8f;
+        agent.stoppingDistance = attackRange * 0.7f;
         agent.autoBraking = true;
+        agent.autoRepath = true;
         agent.updatePosition = true;
         agent.updateRotation = true;
-        agent.angularSpeed = 360f;
+        agent.enabled = true;
 
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 80f;
         rb.isKinematic = true;
         rb.useGravity = false;
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
 
         mesh = GetComponent<MeshRenderer>();
         if (mesh != null)
@@ -85,6 +90,25 @@ public class Bazyliszek : MonoBehaviour
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
     }
 
+    void IgnoreEnemyCollisions()
+    {
+        Collider myCollider = GetComponent<Collider>();
+        if (myCollider == null) return;
+
+        GameObject[] taggedEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in taggedEnemies)
+        {
+            if (enemy != null && enemy != gameObject)
+            {
+                Collider otherCollider = enemy.GetComponent<Collider>();
+                if (otherCollider != null)
+                {
+                    Physics.IgnoreCollision(myCollider, otherCollider, true);
+                }
+            }
+        }
+    }
+
     void FindPlayer()
     {
         GameObject p = GameObject.FindWithTag("Player");
@@ -95,23 +119,20 @@ public class Bazyliszek : MonoBehaviour
     {
         if (player == null || isDead || isCharging || isStunned) return;
 
-        searchTimer += Time.deltaTime;
-        if (searchTimer >= searchInterval)
+        if (player == null)
         {
-            searchTimer = 0f;
-            if (player == null) FindPlayer();
-            if (player == null) return;
+            FindPlayer();
+            return;
         }
-
-        if (player == null) return;
 
         float dist = Vector3.Distance(transform.position, player.position);
 
         if (agent != null && agent.isOnNavMesh && agent.enabled)
         {
+            agent.SetDestination(player.position);
+            
             if (dist > attackRange)
             {
-                agent.SetDestination(player.position);
                 agent.isStopped = false;
             }
             else
@@ -121,7 +142,7 @@ public class Bazyliszek : MonoBehaviour
                 direction.y = 0;
                 if (direction != Vector3.zero)
                 {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 10f);
                 }
             }
         }
@@ -153,7 +174,7 @@ public class Bazyliszek : MonoBehaviour
     void MeleeAttack()
     {
         if (player == null) return;
-
+        
         float dist = Vector3.Distance(transform.position, player.position);
         if (dist > attackRange * 1.2f) return;
 
@@ -193,17 +214,17 @@ public class Bazyliszek : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (isDead) return;
-
+        
         currentHealth -= amount;
         if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
-
+        
         FlashHit();
         AudioManager.Instance?.PlayEnemyHit();
         if (hitEffect != null) Instantiate(hitEffect, transform.position + Vector3.up, Quaternion.identity);
-
+        
         if (pushbackCoroutine != null) StopCoroutine(pushbackCoroutine);
         pushbackCoroutine = StartCoroutine(HitPushback());
-
+        
         if (currentHealth <= 0) Die();
     }
 
@@ -227,14 +248,14 @@ public class Bazyliszek : MonoBehaviour
     IEnumerator HitPushback()
     {
         if (isDead) yield break;
-
+        
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj == null) yield break;
 
         Vector3 direction = (transform.position - playerObj.transform.position).normalized;
         direction.y = hitPushUpForce;
 
-        if (agent != null && agent.isOnNavMesh)
+        if (agent != null)
         {
             agent.isStopped = true;
             agent.enabled = false;
@@ -276,15 +297,15 @@ public class Bazyliszek : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-
+        
         AudioManager.Instance?.PlayEnemyDeath();
-
+        
         if (deathEffect != null) Instantiate(deathEffect, transform.position, Quaternion.identity);
         if (levelSystem != null) levelSystem.EnemyDied();
-
+        
         WaveSpawner waveSpawner = FindFirstObjectByType<WaveSpawner>();
         if (waveSpawner != null) waveSpawner.EnemyDied();
-
+        
         Destroy(gameObject, 0.5f);
     }
 

@@ -65,7 +65,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.59, y: 1.59, z: 1.59}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4162715382398171975}
@@ -130,6 +130,7 @@ MonoBehaviour:
   maxHealth: 1200
   moveSpeed: 2
   damage: 45
+  expReward: 500
   attackRange: 2.5
   attackCooldown: 1.5
   laserPrefab: {fileID: 1249319675819408284, guid: 966ed929cf9a3f046ba3347cc884323a, type: 3}
@@ -138,6 +139,9 @@ MonoBehaviour:
   laserDamage: 50
   laserChargeTime: 1.5
   laserSpreadAngle: 15
+  hitPushForce: 10
+  hitPushUpForce: 0.5
+  hitStunDuration: 0.3
   deathEffect: {fileID: 0}
   hitEffect: {fileID: 0}
   chargeEffect: {fileID: 0}

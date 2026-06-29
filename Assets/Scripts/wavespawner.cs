@@ -4,46 +4,45 @@ using System.Collections.Generic;
 
 public class WaveSpawner : MonoBehaviour
 {
-    [Header("═══════════════ USTAWIENIA FAL ═══════════════")]
+    [Header("Fale")]
     public int currentWave = 1;
     public int baseEnemiesPerWave = 5;
     public float timeBetweenWaves = 5f;
     public float timeBetweenSpawns = 0.8f;
     public int maxWaves = 999;
 
-    [Header("═══════════════ SKALOWANIE TRUDNOŚCI ═══════════════")]
+    [Header("Skalowanie trudności")]
     public int enemiesPerLevel = 1;
     public float spawnSpeedPerLevel = 0.02f;
     public float waveMultiplier = 1.5f;
     public int maxEnemiesPerWave = 50;
 
-    [Header("═══════════════ PREFABY ═══════════════")]
+    [Header("Prefaby")]
     public GameObject polnocnicaPrefab;
     public GameObject strzygaPrefab;
     public GameObject upiorPrefab;
     public GameObject bazyliszekPrefab;
     public GameObject leszyPrefab;
 
-    [Header("═══════════════ SZANSĘ (0-100) ═══════════════")]
+    [Header("Szansę (0-100)")]
     [Range(0, 100)] public float polnocnicaChance = 40f;
     [Range(0, 100)] public float strzygaChance = 25f;
     [Range(0, 100)] public float upiorChance = 20f;
     [Range(0, 100)] public float bazyliszekChance = 10f;
 
-    [Header("═══════════════ BOSS ═══════════════")]
+    [Header("Boss")]
     public float bossSpawnInterval = 240f;
     [Range(0, 100)] public float bossSpawnChance = 60f;
     public int bossMinWave = 5;
 
-    [Header("═══════════════ SPAWN WOKÓŁ GRACZA ═══════════════")]
+    [Header("Spawn wokół gracza")]
     public float spawnRadiusMin = 8f;
     public float spawnRadiusMax = 20f;
     public LayerMask groundLayer = ~0;
 
-    [Header("═══════════════ REFERENCJE ═══════════════")]
+    [Header("Referencje")]
     public LevelSystem levelSystem;
 
-    // ===== ZMIENNE PRYWATNE =====
     private Transform player;
     private List<GameObject> enemies = new List<GameObject>();
     private bool isSpawning = false;
@@ -90,7 +89,7 @@ public class WaveSpawner : MonoBehaviour
         if (!isSpawning && enemies.Count == 0 && !isWaveComplete && enemiesKilled >= enemiesThisWave)
         {
             isWaveComplete = true;
-            AudioManager.Instance?.PlayWaveComplete();
+            AudioManager.Instance?.PlayWaveComplete(); // DŹWIĘK KONIEC FALI
             StartCoroutine(NextWave());
         }
     }
@@ -106,7 +105,7 @@ public class WaveSpawner : MonoBehaviour
         enemiesThisWave = CalculateEnemiesForWave();
 
         Debug.Log($"🌊 FALA {currentWave} START! ({enemiesThisWave} wrogów)");
-        AudioManager.Instance?.PlayWaveStart();
+        AudioManager.Instance?.PlayWaveStart(); // DŹWIĘK START FALI
 
         float spawnDelay = Mathf.Max(0.2f, timeBetweenSpawns - (levelSystem != null ? levelSystem.currentLevel * spawnSpeedPerLevel : 0));
         spawnDelay = Mathf.Max(0.2f, spawnDelay);
@@ -197,7 +196,7 @@ public class WaveSpawner : MonoBehaviour
             {
                 bossSpawnedThisWave = true;
                 bossTimer = 0f;
-                AudioManager.Instance?.OnBossSpawned();
+                AudioManager.Instance?.OnBossSpawned(); // DŹWIĘK BOSSA
                 Debug.Log($"👑 BOSS w fali {currentWave}!");
                 return leszyPrefab;
             }
@@ -230,10 +229,6 @@ public class WaveSpawner : MonoBehaviour
 
         return polnocnicaPrefab;
     }
-
-    // ============================================
-    // METODY PUBLICZNE - POPRAWIONE NAZWY
-    // ============================================
 
     public void EnemyDied()
     {
@@ -276,21 +271,12 @@ public class WaveSpawner : MonoBehaviour
         StartCoroutine(NextWave());
     }
 
-    // ============================================
-    // GETTERY - DLA INNYCH SKRYPTÓW
-    // ============================================
-
     public int GetCurrentWave() => currentWave;
     public int GetEnemyCount() => enemies.Count;
     public bool IsWaveActive() => isSpawning || enemies.Count > 0;
     public bool IsWaveComplete() => isWaveComplete;
     public int GetEnemiesKilled() => enemiesKilled;
     public int GetEnemiesSpawned() => enemiesSpawned;
-    public int GetEnemiesThisWave() => enemiesThisWave;
-
-    // ============================================
-    // METODY TESTOWE
-    // ============================================
 
     public void TestSpawnBoss()
     {

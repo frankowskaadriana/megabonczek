@@ -36,7 +36,9 @@ public class ShepherdAbilities : MonoBehaviour
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
+        // Start z jedną owcą
         SpawnSheep();
+        Debug.Log("🐕 Pasterz gotowy!");
     }
 
     void Update()
@@ -52,20 +54,20 @@ public class ShepherdAbilities : MonoBehaviour
             MeleeAttack();
         }
 
-        // SZARŻA OWIEC - PPM
+        // Kierowanie owcami - PPM
         if (Input.GetMouseButtonDown(1))
         {
             CommandSheep();
         }
 
-        // Szczekanie
+        // Szczekanie - Q
         if (Input.GetKeyDown(KeyCode.Q))
         {
             RotateToMouse();
             Bark();
         }
 
-        // Przywołanie owcy
+        // Przywołanie owcy - E
         sheepSpawnTimer += Time.deltaTime;
         if (Input.GetKeyDown(KeyCode.E) && sheepSpawnTimer >= sheepSpawnCooldown && sheep.Count < maxSheep)
         {
@@ -100,7 +102,11 @@ public class ShepherdAbilities : MonoBehaviour
 
     void CommandSheep()
     {
-        if (sheep.Count == 0) return;
+        if (sheep.Count == 0)
+        {
+            Debug.Log("🐑 Brak owiec do wydania rozkazu!");
+            return;
+        }
 
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -111,10 +117,13 @@ public class ShepherdAbilities : MonoBehaviour
             targetPosition = ray.GetPoint(distance);
             targetPosition.y = 0f;
 
+            // Sprawdź czy kliknięto na wroga
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit, 100f))
             {
                 EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
+                if (enemy == null) enemy = hit.collider.GetComponentInParent<EnemyHealth>();
+
                 if (enemy != null)
                 {
                     CommandSheepAttack(enemy.transform);
@@ -122,6 +131,7 @@ public class ShepherdAbilities : MonoBehaviour
                 }
             }
 
+            // Szarża w teren
             CommandSheepCharge(targetPosition);
         }
     }
@@ -135,9 +145,9 @@ public class ShepherdAbilities : MonoBehaviour
                 sheep.SetTarget(target);
                 sheep.SetState(SheepState.Attacking);
                 AudioManager.Instance?.PlayAttack();
+                Debug.Log($"🐑 Owce atakują {target.name}!");
             }
         }
-        Debug.Log("🐑 Owce atakują wroga!");
     }
 
     void CommandSheepCharge(Vector3 position)
@@ -149,9 +159,9 @@ public class ShepherdAbilities : MonoBehaviour
                 sheep.SetTargetPosition(position);
                 sheep.SetState(SheepState.Charging);
                 AudioManager.Instance?.PlayCharge();
+                Debug.Log($"🐑 Owce szarżują do {position}!");
             }
         }
-        Debug.Log($"🐑 Owce szarżują do {position}!");
     }
 
     void UpdateSheep()
@@ -163,6 +173,7 @@ public class ShepherdAbilities : MonoBehaviour
             if (sheep != null && !sheep.IsDead())
             {
                 SheepState state = sheep.GetState();
+                // Jeśli owca nie ma rozkazu, wraca do pasterza
                 if (state == SheepState.Idle || state == SheepState.AutoAttacking)
                 {
                     sheep.SetTargetPosition(transform.position);
@@ -175,7 +186,11 @@ public class ShepherdAbilities : MonoBehaviour
 
     void SpawnSheep()
     {
-        if (sheepPrefab == null) return;
+        if (sheepPrefab == null)
+        {
+            Debug.LogError("🐑 Brak prefabu owcy!");
+            return;
+        }
 
         Vector3 spawnPos = transform.position + Random.insideUnitSphere * 2f;
         spawnPos.y = 0f;
@@ -188,11 +203,12 @@ public class ShepherdAbilities : MonoBehaviour
         sheepScript.SetOwner(this);
         sheepScript.SetTargetPosition(transform.position);
         sheepScript.SetDetectionRange(sheepDetectionRange);
+        sheepScript.SetFollowTarget(player);
 
         sheep.Add(sheepScript);
         Debug.Log($"🐑 Owca przywołana! ({sheep.Count}/{maxSheep})");
 
-        AudioManager.Instance?.PlayHeal();
+        AudioManager.Instance?.PlaySheepSpawn();
     }
 
     void MeleeAttack()
@@ -201,10 +217,13 @@ public class ShepherdAbilities : MonoBehaviour
         foreach (var hitCollider in hitColliders)
         {
             EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 enemy.TakeDamage(attackDamage);
                 AudioManager.Instance?.PlayAttack();
+                Debug.Log($"🐕 Pasterz: {attackDamage} obrażeń dla {enemy.name}!");
             }
         }
     }
@@ -215,6 +234,8 @@ public class ShepherdAbilities : MonoBehaviour
         foreach (var hitCollider in hitColliders)
         {
             EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
+            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
+
             if (enemy != null)
             {
                 Rigidbody rb = enemy.GetComponent<Rigidbody>();
@@ -225,7 +246,9 @@ public class ShepherdAbilities : MonoBehaviour
                     rb.AddForce(direction * 15f, ForceMode.Impulse);
                 }
                 enemy.TakeDamage(5f);
+                Debug.Log($"🐕 Szczekanie: 5 obrażeń dla {enemy.name}!");
 
+                // Owce również atakują wrogów gdy pasterz szczeka
                 foreach (Sheep sheep in sheep)
                 {
                     if (sheep != null && !sheep.IsDead())
@@ -237,7 +260,7 @@ public class ShepherdAbilities : MonoBehaviour
             }
         }
         Debug.Log("🐕 Shepherd: Bark!");
-        AudioManager.Instance?.PlaySpecialAbility();
+        AudioManager.Instance?.PlayBark();
     }
 
     public void OnSheepDied(Sheep sheep)

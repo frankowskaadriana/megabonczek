@@ -2,16 +2,16 @@
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("═══════════════ RUCH ═══════════════")]
+    [Header("Ruch")]
     [SerializeField] private float moveSpeed = 5f;
 
-    [Header("═══════════════ KLAWISZE ═══════════════")]
+    [Header("Klawisze")]
     public KeyCode upKey = KeyCode.W;
     public KeyCode downKey = KeyCode.S;
     public KeyCode leftKey = KeyCode.A;
     public KeyCode rightKey = KeyCode.D;
 
-    [Header("═══════════════ GROUND CHECK ═══════════════")]
+    [Header("Ground Check")]
     public Transform groundCheck;
     public float groundDistance = 0.2f;
     public LayerMask groundMask;
@@ -81,7 +81,6 @@ public class PlayerMovement : MonoBehaviour
 
         RotateToMouse();
 
-        // Dźwięki kroków
         if (movementDirection.magnitude > 0.1f && isGrounded)
         {
             footstepTimer += Time.deltaTime;
@@ -154,8 +153,6 @@ public class PlayerMovement : MonoBehaviour
     {
         moveSpeed = newSpeed;
     }
-
-    // ========== METODY DLA ANIMACJI ==========
 
     public Vector3 GetVelocity()
     {

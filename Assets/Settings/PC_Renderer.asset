@@ -1,5 +1,25 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-9044482137875088346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
+  m_Name: FullScreenPassRendererFeature
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
+  m_Active: 0
+  injectionPoint: 450
+  fetchColorBuffer: 1
+  requirements: 0
+  passMaterial: {fileID: 2100000, guid: 8190c94a89245844d811f6579df680df, type: 2}
+  passIndex: 0
+  bindDepthStencilAttachment: 0
+  m_Version: 1
 --- !u!114 &-3280462306217811514
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12,7 +32,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26a00a881fac8804da5429c147566b92, type: 3}
   m_Name: PSXDownscaleDitherFeature
   m_EditorClassIdentifier: Assembly-CSharp::PSXStyleShader.PSXDownscaleDitherFeature
-  m_Active: 1
+  m_Active: 0
   _settings:
     _shader: {fileID: 4800000, guid: eb732616613fa2d4ab375752805c9e6c, type: 3}
     _targetResolution: {x: 320, y: 240}
@@ -47,7 +67,9 @@ MonoBehaviour:
   - {fileID: 7833122117494664109}
   - {fileID: 3697261082563436324}
   - {fileID: -3280462306217811514}
-  m_RendererFeatureMap: ad6b866f10d7b46c24df119c5d4f4f33c621d4c2e97479d2
+  - {fileID: 2998947801874561434}
+  - {fileID: -9044482137875088346}
+  m_RendererFeatureMap: ad6b866f10d7b46c24df119c5d4f4f33c621d4c2e97479d29af9abfe22679e2926fc96526a8b7b82
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -76,6 +98,26 @@ MonoBehaviour:
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
+--- !u!114 &2998947801874561434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
+  m_Name: FullScreenPassRendererFeature
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
+  m_Active: 1
+  injectionPoint: 450
+  fetchColorBuffer: 0
+  requirements: 0
+  passMaterial: {fileID: 2100000, guid: 0153672dd3da26e44b64b80bbe3a0a9b, type: 2}
+  passIndex: 0
+  bindDepthStencilAttachment: 0
+  m_Version: 1
 --- !u!114 &3697261082563436324
 MonoBehaviour:
   m_ObjectHideFlags: 0

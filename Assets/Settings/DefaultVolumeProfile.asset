@@ -94,10 +94,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccf1aba9553839d41ae37dd52e9ebcce, type: 3}
   m_Name: MotionBlur
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   mode:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
   quality:
     m_OverrideState: 1
     m_Value: 0
@@ -195,7 +195,7 @@ MonoBehaviour:
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -20
 --- !u!114 &-6288072647309666549
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -214,10 +214,10 @@ MonoBehaviour:
     m_Value: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.145
   response:
     m_OverrideState: 1
-    m_Value: 0.8
+    m_Value: 0.724
   texture:
     m_OverrideState: 1
     m_Value: {fileID: 0}
@@ -317,10 +317,10 @@ MonoBehaviour:
   active: 1
   distance:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.247
   cropToFit:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0.373
 --- !u!114 &-1410297666881709256
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -381,17 +381,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   active: 1
   skipIterations:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 0.9
+    m_Value: 0.75
   intensity:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 3.56
   scatter:
     m_OverrideState: 1
-    m_Value: 0.7
+    m_Value: 0.795
   clamp:
     m_OverrideState: 1
     m_Value: 65472
@@ -405,17 +405,17 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: 0
   downscale:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   maxIterations:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 6
   dirtTexture:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: {fileID: 0}
     dimension: 1
   dirtIntensity:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
 --- !u!114 &-1170528603972255243
 MonoBehaviour:
@@ -472,46 +472,46 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Crt
   active: 1
   scanlinesWeight:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1
   noiseWeight:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1
   screenBendX:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1000
   screenBendY:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1000
   vignetteAmount:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   vignetteSize:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 2
   vignetteRounding:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 2
   vignetteSmoothing:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 1
   scanlinesDensity:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 200
   scanlinesSpeed:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: -10
   noiseAmount:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 250
   chromaticRed:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: {x: 0, y: 0}
   chromaticGreen:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: {x: 0, y: 0}
   chromaticBlue:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: {x: 0, y: 0}
 --- !u!114 &11400000
 MonoBehaviour:
@@ -538,7 +538,6 @@ MonoBehaviour:
   - {fileID: 9001657382290151224}
   - {fileID: -6335409530604852063}
   - {fileID: -1216621516061285780}
-  - {fileID: 3959858460715838825}
   - {fileID: -7743500325797982168}
   - {fileID: 4644742534064026673}
   - {fileID: -4463884970436517307}
@@ -926,10 +925,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ea62842ddb6960488930897ba9ce398, type: 3}
   m_Name: Dithering
   m_EditorClassIdentifier: Assembly-CSharp::PSX.Dithering
-  active: 1
+  active: 0
   patternIndex:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -39
   ditherThreshold:
     m_OverrideState: 1
     m_Value: 512
@@ -939,52 +938,6 @@ MonoBehaviour:
   ditherScale:
     m_OverrideState: 1
     m_Value: 2
---- !u!114 &3959858460715838825
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01700fd266d6914ababb731e09af2eb, type: 3}
-  m_Name: DepthOfField
-  m_EditorClassIdentifier: 
-  active: 1
-  mode:
-    m_OverrideState: 1
-    m_Value: 0
-  gaussianStart:
-    m_OverrideState: 1
-    m_Value: 10
-  gaussianEnd:
-    m_OverrideState: 1
-    m_Value: 30
-  gaussianMaxRadius:
-    m_OverrideState: 1
-    m_Value: 1
-  highQualitySampling:
-    m_OverrideState: 1
-    m_Value: 0
-  focusDistance:
-    m_OverrideState: 1
-    m_Value: 10
-  aperture:
-    m_OverrideState: 1
-    m_Value: 5.6
-  focalLength:
-    m_OverrideState: 1
-    m_Value: 50
-  bladeCount:
-    m_OverrideState: 1
-    m_Value: 5
-  bladeCurvature:
-    m_OverrideState: 1
-    m_Value: 1
-  bladeRotation:
-    m_OverrideState: 1
-    m_Value: 0
 --- !u!114 &4251301726029935498
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1016,7 +969,7 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.013
 --- !u!114 &5225928042265149517
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1054,10 +1007,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32eb3b8fb939d9b41b04b5621e6d36dd, type: 3}
   m_Name: Fog
   m_EditorClassIdentifier: Assembly-CSharp::PSX.Fog
-  active: 1
+  active: 0
   fogDensity:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 43.88
   fogDistance:
     m_OverrideState: 1
     m_Value: 10
@@ -1153,15 +1106,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35a1bd58dd7548198609eabd8ae2bb7d, type: 3}
   m_Name: Pixelation
   m_EditorClassIdentifier: Assembly-CSharp::PSX.Pixelation
-  active: 1
+  active: 0
   widthPixelation:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 512
   heightPixelation:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 512
   colorPrecision:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 32
 --- !u!114 &7173750748008157695
 MonoBehaviour:
@@ -1184,7 +1137,7 @@ MonoBehaviour:
     m_Value: {x: 0.5, y: 0.5}
   intensity:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.291
   smoothness:
     m_OverrideState: 1
     m_Value: 0.2
@@ -1206,7 +1159,7 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.06
   xMultiplier:
     m_OverrideState: 1
     m_Value: 1
@@ -1233,31 +1186,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   active: 1
   redOutRedIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 100
   redOutGreenIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   redOutBlueIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   greenOutRedIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   greenOutGreenIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 100
   greenOutBlueIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   blueOutRedIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   blueOutGreenIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 0
   blueOutBlueIn:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: 100
 --- !u!114 &9122958982931076880
 MonoBehaviour:

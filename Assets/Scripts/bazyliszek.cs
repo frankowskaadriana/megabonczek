@@ -1,40 +1,34 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
-using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Bazyliszek : MonoBehaviour
 {
-    [Header("Statystyki")]
+    [Header("═══════════════ STATYSTYKI ═══════════════")]
     public float maxHealth = 120f;
     public float moveSpeed = 2f;
     public float damage = 25f;
     public int expReward = 50;
 
-    [Header("Atak wręcz")]
+    [Header("═══════════════ ATAK WRĘCZ ═══════════════")]
     public float attackRange = 2f;
-    public float attackCooldown = 1.2f;
+    public float attackCooldown = 1.5f;
+    public float attackDelay = 0.4f;
 
-    [Header("Laser")]
+    [Header("═══════════════ LASER ═══════════════")]
     public GameObject laserPrefab;
     public float laserRange = 12f;
     public float laserCooldown = 3f;
     public float laserDamage = 35f;
     public float laserChargeTime = 0.8f;
 
-    [Header("Odrzut po obrażeniach")]
-    public float hitPushForce = 8f;
-    public float hitPushUpForce = 0.5f;
-    public float hitStunDuration = 0.3f;
-
-    [Header("Efekty")]
-    public GameObject deathEffect;
-    public GameObject hitEffect;
-    public Color hitColor = Color.white;
-    public float hitFlashDuration = 0.1f;
-
-    [Header("UI")]
-    public TextMeshPro healthText;
+    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
+    public Color attackChargeColor = new Color(0f, 0.5f, 1f, 0.3f);
+    public Color attackHitColor = new Color(1f, 0f, 0f, 0.4f);
+    public Color hitColor = Color.red;
+    public float hitFlashDuration = 0.15f;
+    public float attackVisualDuration = 0.3f;
 
     private float currentHealth;
     private Transform player;
@@ -42,34 +36,37 @@ public class Bazyliszek : MonoBehaviour
     private float attackTimer = 0f;
     private float laserTimer = 0f;
     private bool isDead = false;
-    private bool isCharging = false;
     private bool isStunned = false;
-    private MeshRenderer mesh;
-    private Color originalColor;
+    private bool isAttacking = false;
+    private bool isChargingLaser = false;
+
+    // === MESH RENDERERY - GŁÓWNY I DZIECI ===
+    private MeshRenderer mainMesh;
+    private List<MeshRenderer> childMeshes = new List<MeshRenderer>();
+    private List<Color> originalColors = new List<Color>();
+
     private LevelSystem levelSystem;
     private Rigidbody rb;
-    private Coroutine flashCoroutine;
-    private Coroutine pushbackCoroutine;
+
+    private GameObject attackVisual;
+    private LineRenderer visualLine;
 
     void Start()
     {
+        gameObject.tag = "Enemy";
+        IgnoreEnemyCollisions();
+
         currentHealth = maxHealth;
         levelSystem = FindFirstObjectByType<LevelSystem>();
-        FindPlayer();
 
-        // === IGNORUJ KOLIZJE Z INNYMI WROGAMI ===
-        IgnoreEnemyCollisions();
+        GameObject p = GameObject.FindWithTag("Player");
+        if (p != null) player = p.transform;
 
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
         agent.speed = moveSpeed;
-        agent.angularSpeed = 360f;
-        agent.acceleration = 8f;
-        agent.stoppingDistance = attackRange * 0.7f;
+        agent.stoppingDistance = attackRange * 0.5f;
         agent.autoBraking = true;
-        agent.autoRepath = true;
-        agent.updatePosition = true;
-        agent.updateRotation = true;
         agent.enabled = true;
 
         rb = GetComponent<Rigidbody>();
@@ -79,15 +76,91 @@ public class Bazyliszek : MonoBehaviour
         rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
-        mesh = GetComponent<MeshRenderer>();
-        if (mesh != null)
+        CollectAllMeshRenderers();
+
+        // Ustaw domyślny kolor
+        if (mainMesh != null)
         {
-            originalColor = mesh.material.color;
-            mesh.material.color = new Color(0.9f, 0.7f, 0.2f);
+            mainMesh.material.color = new Color(0.9f, 0.7f, 0.2f);
         }
 
-        transform.localScale = Vector3.one * 1.2f;
-        if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
+        CreateAttackVisual();
+
+        Debug.Log($"🐉 Bazyliszek gotowy! HP: {currentHealth}, Znaleziono {childMeshes.Count} meshów");
+    }
+
+    void CollectAllMeshRenderers()
+    {
+        childMeshes.Clear();
+        originalColors.Clear();
+
+        mainMesh = GetComponent<MeshRenderer>();
+        if (mainMesh != null)
+        {
+            childMeshes.Add(mainMesh);
+            originalColors.Add(mainMesh.material.color);
+        }
+
+        MeshRenderer[] children = GetComponentsInChildren<MeshRenderer>();
+        foreach (MeshRenderer child in children)
+        {
+            if (child != mainMesh)
+            {
+                childMeshes.Add(child);
+                originalColors.Add(child.material.color);
+            }
+        }
+    }
+
+    void CreateAttackVisual()
+    {
+        attackVisual = new GameObject("AttackVisual");
+        attackVisual.transform.SetParent(transform);
+        attackVisual.transform.localPosition = Vector3.zero;
+        attackVisual.transform.localRotation = Quaternion.identity;
+
+        visualLine = attackVisual.AddComponent<LineRenderer>();
+        visualLine.startWidth = 0.08f;
+        visualLine.endWidth = 0.08f;
+        visualLine.useWorldSpace = false;
+        visualLine.loop = true;
+        visualLine.sortingOrder = -1;
+
+        Material mat = new Material(Shader.Find("Sprites/Default"));
+        mat.color = attackChargeColor;
+        visualLine.material = mat;
+        visualLine.startColor = attackChargeColor;
+        visualLine.endColor = attackChargeColor;
+
+        attackVisual.SetActive(false);
+    }
+
+    void ShowAttackVisual(float radius, Color color)
+    {
+        if (visualLine == null) return;
+
+        int points = 40;
+        visualLine.positionCount = points;
+        visualLine.loop = true;
+
+        for (int i = 0; i < points; i++)
+        {
+            float angle = 2f * Mathf.PI * i / points;
+            float x = Mathf.Sin(angle) * radius;
+            float z = Mathf.Cos(angle) * radius;
+            visualLine.SetPosition(i, new Vector3(x, 0.02f, z));
+        }
+
+        visualLine.startColor = color;
+        visualLine.endColor = color;
+        visualLine.material.color = color;
+
+        attackVisual.SetActive(true);
+    }
+
+    void HideAttackVisual()
+    {
+        if (attackVisual != null) attackVisual.SetActive(false);
     }
 
     void IgnoreEnemyCollisions()
@@ -109,29 +182,17 @@ public class Bazyliszek : MonoBehaviour
         }
     }
 
-    void FindPlayer()
-    {
-        GameObject p = GameObject.FindWithTag("Player");
-        if (p != null) player = p.transform;
-    }
-
     void Update()
     {
-        if (player == null || isDead || isCharging || isStunned) return;
-
-        if (player == null)
-        {
-            FindPlayer();
-            return;
-        }
+        if (isDead || isStunned || player == null) return;
 
         float dist = Vector3.Distance(transform.position, player.position);
 
-        if (agent != null && agent.isOnNavMesh && agent.enabled)
+        if (agent != null && agent.isOnNavMesh && agent.enabled && !isAttacking && !isChargingLaser)
         {
             agent.SetDestination(player.position);
-            
-            if (dist > attackRange)
+
+            if (dist > attackRange * 0.8f)
             {
                 agent.isStopped = false;
             }
@@ -142,62 +203,79 @@ public class Bazyliszek : MonoBehaviour
                 direction.y = 0;
                 if (direction != Vector3.zero)
                 {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 10f);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 5f);
                 }
             }
         }
 
-        if (dist <= attackRange)
+        if (dist <= attackRange && !isAttacking && !isChargingLaser)
         {
             attackTimer += Time.deltaTime;
             if (attackTimer >= attackCooldown)
             {
                 attackTimer = 0f;
-                MeleeAttack();
+                StartCoroutine(AttackWithVisual());
             }
         }
 
         laserTimer += Time.deltaTime;
-        if (dist <= laserRange && laserTimer >= laserCooldown && !isCharging)
+        if (dist <= laserRange && laserTimer >= laserCooldown && !isChargingLaser && !isAttacking)
         {
             laserTimer = 0f;
             StartCoroutine(LaserAttack());
         }
+    }
 
-        if (healthText != null && Camera.main != null)
-        {
-            healthText.transform.LookAt(Camera.main.transform);
-            healthText.transform.Rotate(0, 180, 0);
-        }
+    IEnumerator AttackWithVisual()
+    {
+        isAttacking = true;
+
+        if (agent != null) agent.isStopped = true;
+
+        ShowAttackVisual(attackRange, attackChargeColor);
+        yield return new WaitForSeconds(attackDelay);
+
+        ShowAttackVisual(attackRange, attackHitColor);
+        MeleeAttack();
+
+        yield return new WaitForSeconds(attackVisualDuration);
+        HideAttackVisual();
+
+        isAttacking = false;
+        if (agent != null) agent.isStopped = false;
     }
 
     void MeleeAttack()
     {
         if (player == null) return;
-        
+
         float dist = Vector3.Distance(transform.position, player.position);
         if (dist > attackRange * 1.2f) return;
 
         PlayerHealth ph = player.GetComponent<PlayerHealth>();
-        if (ph != null) ph.TakeDamage(damage);
+        if (ph != null)
+        {
+            ph.TakeDamage(damage);
+            Debug.Log($"🐉 Bazyliszek atakuje wręcz! {damage} obrażeń!");
+        }
     }
 
     IEnumerator LaserAttack()
     {
-        isCharging = true;
+        isChargingLaser = true;
+
+        ShowAttackVisual(laserRange * 0.3f, attackChargeColor);
+
+        yield return new WaitForSeconds(laserChargeTime);
+
         Vector3 target = player.position;
         Vector3 dir = (target - transform.position).normalized;
 
-        yield return new WaitForSeconds(laserChargeTime);
+        ShowAttackVisual(laserRange * 0.3f, attackHitColor);
 
         if (laserPrefab != null)
         {
             GameObject laser = Instantiate(laserPrefab, transform.position + Vector3.up * 1f, Quaternion.LookRotation(dir));
-            RaycastHit hit;
-            float dist = laserRange;
-            if (Physics.Raycast(transform.position + Vector3.up * 1f, dir, out hit, laserRange))
-                dist = hit.distance;
-            laser.transform.localScale = new Vector3(0.15f, 0.15f, dist);
             Destroy(laser, 0.3f);
             AudioManager.Instance?.PlayLaser();
         }
@@ -206,112 +284,62 @@ public class Bazyliszek : MonoBehaviour
         {
             PlayerHealth ph = player.GetComponent<PlayerHealth>();
             if (ph != null) ph.TakeDamage(laserDamage);
+            Debug.Log($"🐉 Bazyliszek laser! {laserDamage} obrażeń!");
         }
 
-        isCharging = false;
+        yield return new WaitForSeconds(attackVisualDuration);
+        HideAttackVisual();
+
+        isChargingLaser = false;
     }
 
     public void TakeDamage(float amount)
     {
         if (isDead) return;
-        
+
         currentHealth -= amount;
-        if (healthText != null) healthText.text = Mathf.Round(currentHealth).ToString();
-        
-        FlashHit();
-        AudioManager.Instance?.PlayEnemyHit();
-        if (hitEffect != null) Instantiate(hitEffect, transform.position + Vector3.up, Quaternion.identity);
-        
-        if (pushbackCoroutine != null) StopCoroutine(pushbackCoroutine);
-        pushbackCoroutine = StartCoroutine(HitPushback());
-        
+        Debug.Log($"💥 Bazyliszek otrzymał {amount} obrażeń! HP: {currentHealth}/{maxHealth}");
+
+        StartCoroutine(FlashAllMeshes());
+
         if (currentHealth <= 0) Die();
     }
 
-    public void FlashHit()
+    IEnumerator FlashAllMeshes()
     {
-        if (flashCoroutine != null) StopCoroutine(flashCoroutine);
-        flashCoroutine = StartCoroutine(FlashHitCoroutine());
-    }
-
-    IEnumerator FlashHitCoroutine()
-    {
-        if (mesh != null)
+        foreach (MeshRenderer mesh in childMeshes)
         {
-            mesh.material.color = hitColor;
-            yield return new WaitForSeconds(hitFlashDuration);
-            mesh.material.color = originalColor;
-        }
-        flashCoroutine = null;
-    }
-
-    IEnumerator HitPushback()
-    {
-        if (isDead) yield break;
-        
-        GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj == null) yield break;
-
-        Vector3 direction = (transform.position - playerObj.transform.position).normalized;
-        direction.y = hitPushUpForce;
-
-        if (agent != null)
-        {
-            agent.isStopped = true;
-            agent.enabled = false;
+            if (mesh != null) mesh.material.color = hitColor;
         }
 
-        if (rb != null)
+        yield return new WaitForSeconds(hitFlashDuration);
+
+        for (int i = 0; i < childMeshes.Count && i < originalColors.Count; i++)
         {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-            rb.AddForce(direction * hitPushForce, ForceMode.Impulse);
-        }
-
-        isStunned = true;
-
-        yield return new WaitForSeconds(hitStunDuration);
-
-        if (rb != null)
-        {
-            rb.isKinematic = true;
-            rb.useGravity = false;
-            rb.linearVelocity = Vector3.zero;
-        }
-
-        if (agent != null)
-        {
-            agent.enabled = true;
-            agent.isStopped = false;
-            if (agent.isOnNavMesh)
+            if (childMeshes[i] != null)
             {
-                agent.Warp(transform.position);
+                childMeshes[i].material.color = originalColors[i];
             }
         }
-
-        isStunned = false;
-        pushbackCoroutine = null;
     }
 
     void Die()
     {
         if (isDead) return;
         isDead = true;
-        
-        AudioManager.Instance?.PlayEnemyDeath();
-        
-        if (deathEffect != null) Instantiate(deathEffect, transform.position, Quaternion.identity);
+
+        Debug.Log($"💀 Bazyliszek zginął!");
+
         if (levelSystem != null) levelSystem.EnemyDied();
-        
-        WaveSpawner waveSpawner = FindFirstObjectByType<WaveSpawner>();
-        if (waveSpawner != null) waveSpawner.EnemyDied();
-        
+
+        WaveSpawner ws = FindFirstObjectByType<WaveSpawner>();
+        if (ws != null) ws.EnemyDied();
+
         Destroy(gameObject, 0.5f);
     }
 
     void OnDestroy()
     {
-        if (pushbackCoroutine != null) StopCoroutine(pushbackCoroutine);
-        if (flashCoroutine != null) StopCoroutine(flashCoroutine);
+        if (attackVisual != null) Destroy(attackVisual);
     }
 }

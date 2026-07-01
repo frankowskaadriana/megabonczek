@@ -6,43 +6,43 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
 
-    [Header("Master Settings")]
+    [Header("═══════════════ MASTER SETTINGS ═══════════════")]
     [Range(0f, 1f)] public float masterVolume = 1f;
     [Range(0f, 1f)] public float sfxVolume = 1f;
     [Range(0f, 1f)] public float musicVolume = 0.5f;
 
-    [Header("Dźwięki Gracza - Ogólne")]
+    [Header("═══════════════ DŹWIĘKI OGÓLNE ═══════════════")]
     public AudioClip[] footstepClips;
     public AudioClip[] damageClips;
     public AudioClip deathClip;
     public AudioClip healClip;
 
-    [Header("Dźwięki - GÓRAL (Mountain Man)")]
+    [Header("═══════════════ DŹWIĘKI - GÓRAL (Mountain Man) ═══════════════")]
     public AudioClip[] goralAttackClips;
     public AudioClip goralStompClip;
     public AudioClip goralSpecialClip;
     public AudioClip goralUltimateClip;
 
-    [Header("Dźwięki - SERAPHIM (Anioł)")]
+    [Header("═══════════════ DŹWIĘKI - SERAPHIM (Anioł) ═══════════════")]
     public AudioClip[] seraphimAttackClips;
+    public AudioClip seraphimLaserClip;
     public AudioClip seraphimHealClip;
     public AudioClip seraphimChargeClip;
-    public AudioClip seraphimLaserClip;
     public AudioClip seraphimSpecialClip;
     public AudioClip seraphimUltimateClip;
 
-    [Header("Dźwięki - PASTERZ (Shepherd)")]
+    [Header("═══════════════ DŹWIĘKI - PASTERZ (Shepherd) ═══════════════")]
     public AudioClip[] shepherdAttackClips;
     public AudioClip shepherdBarkClip;
     public AudioClip shepherdSheepSpawnClip;
     public AudioClip shepherdSpecialClip;
 
-    [Header("Dźwięki Przeciwników")]
+    [Header("═══════════════ DŹWIĘKI PRZECIWNIKÓW ═══════════════")]
     public AudioClip[] enemyHitClips;
     public AudioClip[] enemyDeathClips;
     public AudioClip[] enemyAttackClips;
 
-    [Header("Dźwięki Środowiska")]
+    [Header("═══════════════ DŹWIĘKI ŚRODOWISKA ═══════════════")]
     public AudioClip portalOpenClip;
     public AudioClip portalCloseClip;
     public AudioClip levelUpClip;
@@ -50,7 +50,7 @@ public class AudioManager : MonoBehaviour
     public AudioClip waveStartClip;
     public AudioClip waveCompleteClip;
 
-    [Header("Muzyka")]
+    [Header("═══════════════ MUZYKA ═══════════════")]
     public AudioClip backgroundMusic;
     public AudioClip bossMusic;
     public AudioClip combatMusic;
@@ -63,9 +63,11 @@ public class AudioManager : MonoBehaviour
     private bool isCombat = false;
     private bool isInitialized = false;
 
-    // ===== WYKRYWANIE POSTACI =====
+    // === WYKRYWANIE POSTACI ===
     private string currentCharacter = "None";
     private GameObject playerObject;
+    private float characterCheckTimer = 0f;
+    private float characterCheckInterval = 0.5f;
 
     void Awake()
     {
@@ -114,8 +116,12 @@ public class AudioManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        // Sprawdzaj czy postać się zmieniła
-        CheckCharacter();
+        characterCheckTimer += Time.deltaTime;
+        if (characterCheckTimer >= characterCheckInterval)
+        {
+            characterCheckTimer = 0f;
+            DetectCharacter();
+        }
 
         if (!isBossFight && isCombat && combatMusic != null && musicSource.clip != combatMusic)
         {
@@ -129,28 +135,27 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // ===== WYKRYWANIE POSTACI =====
-    void CheckCharacter()
+    // ============================================
+    // WYKRYWANIE POSTACI
+    // ============================================
+
+    void DetectCharacter()
     {
         if (playerObject == null)
         {
             playerObject = GameObject.FindWithTag("Player");
             if (playerObject != null)
             {
-                DetectCharacter();
+                UpdateCharacter();
             }
             return;
         }
 
-        // Sprawdź czy postać się zmieniła
-        if (playerObject != null)
+        string newCharacter = GetCharacterType();
+        if (newCharacter != currentCharacter)
         {
-            string newCharacter = GetCharacterType();
-            if (newCharacter != currentCharacter)
-            {
-                currentCharacter = newCharacter;
-                Debug.Log($"🎵 Wykryto postać: {currentCharacter}");
-            }
+            currentCharacter = newCharacter;
+            Debug.Log($"🎵 Wykryto postać: {currentCharacter}");
         }
     }
 
@@ -165,16 +170,29 @@ public class AudioManager : MonoBehaviour
         else if (playerObject.GetComponent<ShepherdAbilities>() != null)
             return "Shepherd";
 
-        return "Unknown";
+        return "None";
     }
 
-    void DetectCharacter()
+    void UpdateCharacter()
     {
         currentCharacter = GetCharacterType();
         Debug.Log($"🎵 Wykryto postać: {currentCharacter}");
     }
 
-    // ===== METODY DŹWIĘKÓW =====
+    public void SetCharacter(string characterName)
+    {
+        currentCharacter = characterName;
+        Debug.Log($"🎵 Ręcznie ustawiono postać: {currentCharacter}");
+    }
+
+    public string GetCurrentCharacter()
+    {
+        return currentCharacter;
+    }
+
+    // ============================================
+    // DŹWIĘKI OGÓLNE
+    // ============================================
 
     public void PlayFootstep()
     {
@@ -191,34 +209,6 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // ===== ATAK - zależny od postaci =====
-    public void PlayAttack()
-    {
-        if (!isInitialized) return;
-
-        switch (currentCharacter)
-        {
-            case "Goral":
-                if (goralAttackClips.Length > 0)
-                    PlaySound(goralAttackClips[Random.Range(0, goralAttackClips.Length)], 0.6f);
-                break;
-            case "Seraphim":
-                if (seraphimAttackClips.Length > 0)
-                    PlaySound(seraphimAttackClips[Random.Range(0, seraphimAttackClips.Length)], 0.5f);
-                break;
-            case "Shepherd":
-                if (shepherdAttackClips.Length > 0)
-                    PlaySound(shepherdAttackClips[Random.Range(0, shepherdAttackClips.Length)], 0.5f);
-                break;
-            default:
-                // Domyślne dźwięki
-                if (goralAttackClips.Length > 0)
-                    PlaySound(goralAttackClips[Random.Range(0, goralAttackClips.Length)], 0.5f);
-                break;
-        }
-    }
-
-    // ===== OBRAŻENIA - ogólne =====
     public void PlayDamage()
     {
         if (!isInitialized) return;
@@ -233,24 +223,44 @@ public class AudioManager : MonoBehaviour
             PlaySound(deathClip, 0.7f);
     }
 
-    public void PlayHeal()
+    // ============================================
+    // DŹWIĘKI ATAKU - ZALEŻNE OD POSTACI
+    // ============================================
+
+    public void PlayAttack()
     {
         if (!isInitialized) return;
 
         switch (currentCharacter)
         {
-            case "Seraphim":
-                if (seraphimHealClip != null)
-                    PlaySound(seraphimHealClip, 0.6f);
+            case "Goral":
+                if (goralAttackClips.Length > 0)
+                    PlaySound(goralAttackClips[Random.Range(0, goralAttackClips.Length)], 0.6f);
                 break;
-            default:
-                if (healClip != null)
-                    PlaySound(healClip, 0.5f);
+
+            case "Seraphim":
+                if (seraphimAttackClips.Length > 0)
+                    PlaySound(seraphimAttackClips[Random.Range(0, seraphimAttackClips.Length)], 0.5f);
+                break;
+
+            case "Shepherd":
+                if (shepherdAttackClips.Length > 0)
+                    PlaySound(shepherdAttackClips[Random.Range(0, shepherdAttackClips.Length)], 0.5f);
                 break;
         }
     }
 
-    // ===== UMIEJĘTNOŚCI SPECJALNE =====
+    // ============================================
+    // DŹWIĘKI UMIEJĘTNOŚCI - ZALEŻNE OD POSTACI
+    // ============================================
+
+    public void PlayStomp()
+    {
+        if (!isInitialized) return;
+        if (currentCharacter == "Goral" && goralStompClip != null)
+            PlaySound(goralStompClip, 0.8f);
+    }
+
     public void PlaySpecialAbility()
     {
         if (!isInitialized) return;
@@ -261,29 +271,19 @@ public class AudioManager : MonoBehaviour
                 if (goralSpecialClip != null)
                     PlaySound(goralSpecialClip, 0.8f);
                 break;
+
             case "Seraphim":
                 if (seraphimSpecialClip != null)
                     PlaySound(seraphimSpecialClip, 0.8f);
                 break;
+
             case "Shepherd":
                 if (shepherdSpecialClip != null)
                     PlaySound(shepherdSpecialClip, 0.8f);
                 break;
-            default:
-                PlaySound(goralSpecialClip, 0.8f);
-                break;
         }
     }
 
-    // ===== STOMP (Góral) =====
-    public void PlayStomp()
-    {
-        if (!isInitialized) return;
-        if (goralStompClip != null)
-            PlaySound(goralStompClip, 0.8f);
-    }
-
-    // ===== ULTIMATE =====
     public void PlayUltimate()
     {
         if (!isInitialized) return;
@@ -294,49 +294,56 @@ public class AudioManager : MonoBehaviour
                 if (goralUltimateClip != null)
                     PlaySound(goralUltimateClip, 0.9f);
                 break;
+
             case "Seraphim":
                 if (seraphimUltimateClip != null)
                     PlaySound(seraphimUltimateClip, 0.9f);
                 break;
-            default:
-                PlaySound(goralUltimateClip, 0.9f);
-                break;
         }
     }
 
-    // ===== SZARŻA (Seraphim) =====
     public void PlayCharge()
     {
         if (!isInitialized) return;
-        if (seraphimChargeClip != null)
+        if (currentCharacter == "Seraphim" && seraphimChargeClip != null)
             PlaySound(seraphimChargeClip, 0.7f);
     }
 
-    // ===== LASER (Seraphim) =====
     public void PlayLaser()
     {
         if (!isInitialized) return;
-        if (seraphimLaserClip != null)
+        if (currentCharacter == "Seraphim" && seraphimLaserClip != null)
             PlaySound(seraphimLaserClip, 0.8f);
     }
 
-    // ===== SZCZEKANIE (Shepherd) =====
+    public void PlayHeal()
+    {
+        if (!isInitialized) return;
+
+        if (currentCharacter == "Seraphim" && seraphimHealClip != null)
+            PlaySound(seraphimHealClip, 0.6f);
+        else if (healClip != null)
+            PlaySound(healClip, 0.5f);
+    }
+
     public void PlayBark()
     {
         if (!isInitialized) return;
-        if (shepherdBarkClip != null)
+        if (currentCharacter == "Shepherd" && shepherdBarkClip != null)
             PlaySound(shepherdBarkClip, 0.7f);
     }
 
-    // ===== PRZYWOŁANIE OWCY (Shepherd) =====
     public void PlaySheepSpawn()
     {
         if (!isInitialized) return;
-        if (shepherdSheepSpawnClip != null)
+        if (currentCharacter == "Shepherd" && shepherdSheepSpawnClip != null)
             PlaySound(shepherdSheepSpawnClip, 0.5f);
     }
 
-    // ===== DŹWIĘKI PRZECIWNIKÓW =====
+    // ============================================
+    // DŹWIĘKI PRZECIWNIKÓW
+    // ============================================
+
     public void PlayEnemyHit()
     {
         if (!isInitialized) return;
@@ -358,7 +365,10 @@ public class AudioManager : MonoBehaviour
             PlaySound(enemyAttackClips[Random.Range(0, enemyAttackClips.Length)], 0.5f);
     }
 
-    // ===== DŹWIĘKI ŚRODOWISKA =====
+    // ============================================
+    // DŹWIĘKI ŚRODOWISKA
+    // ============================================
+
     public void PlayPortalOpen()
     {
         if (!isInitialized) return;
@@ -407,7 +417,10 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // ===== MUZYKA =====
+    // ============================================
+    // MUZYKA
+    // ============================================
+
     public void StartBossMusic()
     {
         if (!isInitialized) return;
@@ -442,8 +455,11 @@ public class AudioManager : MonoBehaviour
         isCombat = inCombat;
     }
 
-    // ===== METODY POMOCNICZE =====
-    void PlaySound(AudioClip clip, float volume)
+    // ============================================
+    // METODY POMOCNICZE
+    // ============================================
+
+    private void PlaySound(AudioClip clip, float volume)
     {
         if (clip == null) return;
         if (Camera.main != null)
@@ -471,6 +487,10 @@ public class AudioManager : MonoBehaviour
         if (musicSource != null) musicSource.volume = musicVolume * masterVolume;
     }
 
+    // ============================================
+    // METODY DLA WAVESPAWNER
+    // ============================================
+
     public void OnEnemySpawned()
     {
         if (!isInitialized) return;
@@ -481,7 +501,7 @@ public class AudioManager : MonoBehaviour
     public void OnEnemyDied()
     {
         if (!isInitialized) return;
-        EnemyHealth[] enemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
+        BaseEnemy[] enemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
         if (enemies.Length == 0 && isCombat)
         {
             SetCombatMode(false);
@@ -498,15 +518,21 @@ public class AudioManager : MonoBehaviour
         StopBossMusic();
     }
 
-    // ===== METODA DO RĘCZNEGO USTAWIENIA POSTACI =====
-    public void SetCharacter(string characterName)
+    // ============================================
+    // METODY DLA GAME MANAGER
+    // ============================================
+
+    public void PlayGameOver()
     {
-        currentCharacter = characterName;
-        Debug.Log($"🎵 Ręcznie ustawiono postać: {currentCharacter}");
+        if (!isInitialized) return;
+        if (deathClip != null)
+            PlaySound(deathClip, 0.8f);
     }
 
-    public string GetCurrentCharacter()
+    public void PlayVictory()
     {
-        return currentCharacter;
+        if (!isInitialized) return;
+        if (levelUpClip != null)
+            PlaySound(levelUpClip, 0.9f);
     }
 }

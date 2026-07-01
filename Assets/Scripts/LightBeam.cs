@@ -3,22 +3,14 @@ using System.Collections;
 
 public class LightBeam : MonoBehaviour
 {
-    [Header("Ustawienia")]
     public float damage = 10f;
     public float range = 10f;
     public float duration = 0.5f;
     public float speed = 25f;
 
-    [Header("Odrzut")]
     public float pushbackForce = 5f;
     public float pushbackUpForce = 0.5f;
     public float pushbackInterval = 0.1f;
-
-    [Header("Wizualizacja")]
-    public float beamWidth = 0.15f;
-    public Color beamColor = Color.red;
-    public float beamStartWidth = 0.2f;
-    public float beamEndWidth = 0.05f;
 
     private float traveled = 0f;
     private bool hitSomething = false;
@@ -49,11 +41,10 @@ public class LightBeam : MonoBehaviour
         lineRenderer.loop = false;
         lineRenderer.sortingOrder = 1;
 
-        lineRenderer.startWidth = beamStartWidth;
-        lineRenderer.endWidth = beamEndWidth;
-
-        lineRenderer.startColor = beamColor;
-        lineRenderer.endColor = new Color(beamColor.r, beamColor.g, beamColor.b, 0.3f);
+        lineRenderer.startWidth = 0.2f;
+        lineRenderer.endWidth = 0.05f;
+        lineRenderer.startColor = Color.red;
+        lineRenderer.endColor = new Color(1f, 0f, 0f, 0.3f);
 
         if (lineRenderer.material == null)
         {
@@ -77,23 +68,34 @@ public class LightBeam : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(transform.position, transform.forward, out hit, 1f))
         {
-            EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
-            if (enemy == null) enemy = hit.collider.GetComponentInParent<EnemyHealth>();
-
-            if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
+            BaseEnemy baseEnemy = hit.collider.GetComponent<BaseEnemy>();
+            if (baseEnemy != null)
             {
-                enemy.TakeDamage(damage);
-                Debug.Log($"⚡ LightBeam trafił w {enemy.name}! Obrażenia: {damage}");
-
-                pushbackTimer += Time.deltaTime;
-                if (pushbackTimer >= pushbackInterval)
-                {
-                    pushbackTimer = 0f;
-                    PushbackEnemy(enemy);
-                }
-
+                baseEnemy.TakeDamage(damage);
+                PushbackEnemy(baseEnemy);
                 hitSomething = true;
                 AudioManager.Instance?.PlayLaser();
+                return;
+            }
+
+            Bazyliszek bazyliszek = hit.collider.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                bazyliszek.TakeDamage(damage);
+                PushbackEnemy(bazyliszek);
+                hitSomething = true;
+                AudioManager.Instance?.PlayLaser();
+                return;
+            }
+
+            Leszy leszy = hit.collider.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                leszy.TakeDamage(damage);
+                PushbackEnemy(leszy);
+                hitSomething = true;
+                AudioManager.Instance?.PlayLaser();
+                return;
             }
         }
 
@@ -112,21 +114,37 @@ public class LightBeam : MonoBehaviour
         }
     }
 
-    void PushbackEnemy(EnemyHealth enemy)
+    void PushbackEnemy(object enemy)
     {
         if (enemy == null) return;
 
-        Rigidbody rb = enemy.GetComponent<Rigidbody>();
-        if (rb != null)
+        Rigidbody rb = null;
+        Transform enemyTransform = null;
+
+        if (enemy is BaseEnemy baseEnemy)
         {
-            Vector3 direction = (enemy.transform.position - transform.position).normalized;
+            rb = baseEnemy.GetComponent<Rigidbody>();
+            enemyTransform = baseEnemy.transform;
+        }
+        else if (enemy is Bazyliszek bazyliszek)
+        {
+            rb = bazyliszek.GetComponent<Rigidbody>();
+            enemyTransform = bazyliszek.transform;
+        }
+        else if (enemy is Leszy leszy)
+        {
+            rb = leszy.GetComponent<Rigidbody>();
+            enemyTransform = leszy.transform;
+        }
+
+        if (rb != null && enemyTransform != null)
+        {
+            Vector3 direction = (enemyTransform.position - transform.position).normalized;
             direction.y = pushbackUpForce;
 
             rb.isKinematic = false;
             rb.useGravity = true;
             rb.AddForce(direction * pushbackForce, ForceMode.Impulse);
-
-            Debug.Log($"💥 Odrzucono {enemy.name} przez LightBeam! Siła: {pushbackForce}");
         }
     }
 
@@ -143,10 +161,19 @@ public class LightBeam : MonoBehaviour
         Destroy(gameObject);
     }
 
-    void OnDrawGizmos()
+    public void SetBeam(float damage, float range, float duration, float speed = 25f)
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + transform.forward * range);
+        this.damage = damage;
+        this.range = range;
+        this.duration = duration;
+        this.speed = speed;
+    }
+
+    public void SetPushback(float force, float upForce, float interval = 0.1f)
+    {
+        this.pushbackForce = force;
+        this.pushbackUpForce = upForce;
+        this.pushbackInterval = interval;
     }
 
     void OnDestroy()

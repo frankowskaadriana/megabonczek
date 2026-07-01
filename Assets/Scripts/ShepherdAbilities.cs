@@ -4,16 +4,16 @@ using System.Collections.Generic;
 
 public class ShepherdAbilities : MonoBehaviour
 {
-    [Header("Atak")]
+    [Header("═══════════════ ATAK ═══════════════")]
     public float attackRange = 2.5f;
     public float attackDamage = 20f;
     public float attackRate = 1.2f;
 
-    [Header("Umiejętności")]
+    [Header("═══════════════ UMIEJĘTNOŚCI ═══════════════")]
     public float barkRange = 5f;
     public float barkFearDuration = 3f;
 
-    [Header("Owce")]
+    [Header("═══════════════ OWCE ═══════════════")]
     public GameObject sheepPrefab;
     public int maxSheep = 3;
     public float sheepSpeed = 5f;
@@ -23,6 +23,11 @@ public class ShepherdAbilities : MonoBehaviour
     public float sheepSpawnCooldown = 10f;
     public float sheepDetectionRange = 10f;
 
+    [Header("═══════════════ WIZUALIZACJE ═══════════════")]
+    public Color visualColor = new Color(0f, 1f, 0f, 0.4f);
+    public float visualDuration = 0.3f;
+    public float visualLineWidth = 0.08f;
+
     private List<Sheep> sheep = new List<Sheep>();
     private float attackTimer = 0f;
     private float sheepSpawnTimer = 0f;
@@ -30,13 +35,30 @@ public class ShepherdAbilities : MonoBehaviour
     private Camera mainCamera;
     private Vector3 targetPosition;
 
+    // Wizualizacje
+    private GameObject visualObj;
+    private LineRenderer visualLine;
+
     void Start()
     {
         mainCamera = Camera.main;
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
-        // Start z jedną owcą
+        // Stwórz obiekt do wizualizacji
+        visualObj = new GameObject("AttackVisual");
+        visualObj.transform.SetParent(transform);
+        visualObj.transform.localPosition = Vector3.zero;
+        visualLine = visualObj.AddComponent<LineRenderer>();
+        visualLine.startWidth = visualLineWidth;
+        visualLine.endWidth = visualLineWidth;
+        visualLine.useWorldSpace = false;
+        visualLine.loop = true;
+        visualLine.material = new Material(Shader.Find("Sprites/Default"));
+        visualLine.startColor = visualColor;
+        visualLine.endColor = new Color(visualColor.r, visualColor.g, visualColor.b, 0f);
+        visualObj.SetActive(false);
+
         SpawnSheep();
         Debug.Log("🐕 Pasterz gotowy!");
     }
@@ -45,7 +67,6 @@ public class ShepherdAbilities : MonoBehaviour
     {
         if (player == null) return;
 
-        // Automatyczny atak pasterza
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate)
         {
@@ -54,20 +75,17 @@ public class ShepherdAbilities : MonoBehaviour
             MeleeAttack();
         }
 
-        // Kierowanie owcami - PPM
         if (Input.GetMouseButtonDown(1))
         {
             CommandSheep();
         }
 
-        // Szczekanie - Q
         if (Input.GetKeyDown(KeyCode.Q))
         {
             RotateToMouse();
             Bark();
         }
 
-        // Przywołanie owcy - E
         sheepSpawnTimer += Time.deltaTime;
         if (Input.GetKeyDown(KeyCode.E) && sheepSpawnTimer >= sheepSpawnCooldown && sheep.Count < maxSheep)
         {
@@ -75,7 +93,6 @@ public class ShepherdAbilities : MonoBehaviour
             SpawnSheep();
         }
 
-        // Aktualizuj owce
         UpdateSheep();
     }
 
@@ -100,13 +117,35 @@ public class ShepherdAbilities : MonoBehaviour
         }
     }
 
+    void ShowCircleVisual(float radius)
+    {
+        if (visualLine == null) return;
+
+        int points = 40;
+        visualLine.positionCount = points;
+        visualLine.loop = true;
+
+        for (int i = 0; i < points; i++)
+        {
+            float angle = 2f * Mathf.PI * i / points;
+            float x = Mathf.Sin(angle) * radius;
+            float z = Mathf.Cos(angle) * radius;
+            visualLine.SetPosition(i, new Vector3(x, 0.02f, z));
+        }
+
+        visualObj.SetActive(true);
+        CancelInvoke(nameof(HideVisual));
+        Invoke(nameof(HideVisual), visualDuration);
+    }
+
+    void HideVisual()
+    {
+        if (visualObj != null) visualObj.SetActive(false);
+    }
+
     void CommandSheep()
     {
-        if (sheep.Count == 0)
-        {
-            Debug.Log("🐑 Brak owiec do wydania rozkazu!");
-            return;
-        }
+        if (sheep.Count == 0) return;
 
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -117,21 +156,31 @@ public class ShepherdAbilities : MonoBehaviour
             targetPosition = ray.GetPoint(distance);
             targetPosition.y = 0f;
 
-            // Sprawdź czy kliknięto na wroga
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit, 100f))
             {
-                EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
-                if (enemy == null) enemy = hit.collider.GetComponentInParent<EnemyHealth>();
-
+                BaseEnemy enemy = hit.collider.GetComponent<BaseEnemy>();
                 if (enemy != null)
                 {
                     CommandSheepAttack(enemy.transform);
                     return;
                 }
+
+                Bazyliszek bazyliszek = hit.collider.GetComponent<Bazyliszek>();
+                if (bazyliszek != null)
+                {
+                    CommandSheepAttack(bazyliszek.transform);
+                    return;
+                }
+
+                Leszy leszy = hit.collider.GetComponent<Leszy>();
+                if (leszy != null)
+                {
+                    CommandSheepAttack(leszy.transform);
+                    return;
+                }
             }
 
-            // Szarża w teren
             CommandSheepCharge(targetPosition);
         }
     }
@@ -145,9 +194,9 @@ public class ShepherdAbilities : MonoBehaviour
                 sheep.SetTarget(target);
                 sheep.SetState(SheepState.Attacking);
                 AudioManager.Instance?.PlayAttack();
-                Debug.Log($"🐑 Owce atakują {target.name}!");
             }
         }
+        Debug.Log("🐑 Owce atakują wroga!");
     }
 
     void CommandSheepCharge(Vector3 position)
@@ -159,9 +208,9 @@ public class ShepherdAbilities : MonoBehaviour
                 sheep.SetTargetPosition(position);
                 sheep.SetState(SheepState.Charging);
                 AudioManager.Instance?.PlayCharge();
-                Debug.Log($"🐑 Owce szarżują do {position}!");
             }
         }
+        Debug.Log($"🐑 Owce szarżują do {position}!");
     }
 
     void UpdateSheep()
@@ -173,7 +222,6 @@ public class ShepherdAbilities : MonoBehaviour
             if (sheep != null && !sheep.IsDead())
             {
                 SheepState state = sheep.GetState();
-                // Jeśli owca nie ma rozkazu, wraca do pasterza
                 if (state == SheepState.Idle || state == SheepState.AutoAttacking)
                 {
                     sheep.SetTargetPosition(transform.position);
@@ -186,11 +234,7 @@ public class ShepherdAbilities : MonoBehaviour
 
     void SpawnSheep()
     {
-        if (sheepPrefab == null)
-        {
-            Debug.LogError("🐑 Brak prefabu owcy!");
-            return;
-        }
+        if (sheepPrefab == null) return;
 
         Vector3 spawnPos = transform.position + Random.insideUnitSphere * 2f;
         spawnPos.y = 0f;
@@ -209,6 +253,7 @@ public class ShepherdAbilities : MonoBehaviour
         Debug.Log($"🐑 Owca przywołana! ({sheep.Count}/{maxSheep})");
 
         AudioManager.Instance?.PlaySheepSpawn();
+        ShowCircleVisual(3f);
     }
 
     void MeleeAttack()
@@ -216,14 +261,31 @@ public class ShepherdAbilities : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange);
         foreach (var hitCollider in hitColliders)
         {
-            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
-            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
-
+            BaseEnemy enemy = hitCollider.GetComponent<BaseEnemy>();
             if (enemy != null)
             {
                 enemy.TakeDamage(attackDamage);
                 AudioManager.Instance?.PlayAttack();
-                Debug.Log($"🐕 Pasterz: {attackDamage} obrażeń dla {enemy.name}!");
+                ShowCircleVisual(attackRange);
+                continue;
+            }
+
+            Bazyliszek bazyliszek = hitCollider.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                bazyliszek.TakeDamage(attackDamage);
+                AudioManager.Instance?.PlayAttack();
+                ShowCircleVisual(attackRange);
+                continue;
+            }
+
+            Leszy leszy = hitCollider.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                leszy.TakeDamage(attackDamage);
+                AudioManager.Instance?.PlayAttack();
+                ShowCircleVisual(attackRange);
+                continue;
             }
         }
     }
@@ -233,9 +295,7 @@ public class ShepherdAbilities : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, barkRange);
         foreach (var hitCollider in hitColliders)
         {
-            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
-            if (enemy == null) enemy = hitCollider.GetComponentInParent<EnemyHealth>();
-
+            BaseEnemy enemy = hitCollider.GetComponent<BaseEnemy>();
             if (enemy != null)
             {
                 Rigidbody rb = enemy.GetComponent<Rigidbody>();
@@ -246,9 +306,7 @@ public class ShepherdAbilities : MonoBehaviour
                     rb.AddForce(direction * 15f, ForceMode.Impulse);
                 }
                 enemy.TakeDamage(5f);
-                Debug.Log($"🐕 Szczekanie: 5 obrażeń dla {enemy.name}!");
 
-                // Owce również atakują wrogów gdy pasterz szczeka
                 foreach (Sheep sheep in sheep)
                 {
                     if (sheep != null && !sheep.IsDead())
@@ -257,10 +315,58 @@ public class ShepherdAbilities : MonoBehaviour
                         sheep.SetState(SheepState.Attacking);
                     }
                 }
+                continue;
+            }
+
+            Bazyliszek bazyliszek = hitCollider.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                Rigidbody rb = bazyliszek.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 direction = (bazyliszek.transform.position - transform.position).normalized;
+                    direction.y = 1f;
+                    rb.AddForce(direction * 15f, ForceMode.Impulse);
+                }
+                bazyliszek.TakeDamage(5f);
+
+                foreach (Sheep sheep in sheep)
+                {
+                    if (sheep != null && !sheep.IsDead())
+                    {
+                        sheep.SetTarget(bazyliszek.transform);
+                        sheep.SetState(SheepState.Attacking);
+                    }
+                }
+                continue;
+            }
+
+            Leszy leszy = hitCollider.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                Rigidbody rb = leszy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 direction = (leszy.transform.position - transform.position).normalized;
+                    direction.y = 1f;
+                    rb.AddForce(direction * 15f, ForceMode.Impulse);
+                }
+                leszy.TakeDamage(5f);
+
+                foreach (Sheep sheep in sheep)
+                {
+                    if (sheep != null && !sheep.IsDead())
+                    {
+                        sheep.SetTarget(leszy.transform);
+                        sheep.SetState(SheepState.Attacking);
+                    }
+                }
+                continue;
             }
         }
         Debug.Log("🐕 Shepherd: Bark!");
         AudioManager.Instance?.PlayBark();
+        ShowCircleVisual(barkRange);
     }
 
     public void OnSheepDied(Sheep sheep)
@@ -274,6 +380,11 @@ public class ShepherdAbilities : MonoBehaviour
 
     public int GetSheepCount() => sheep.Count;
     public int GetMaxSheep() => maxSheep;
+
+    void OnDestroy()
+    {
+        if (visualObj != null) Destroy(visualObj);
+    }
 
     void OnDrawGizmosSelected()
     {

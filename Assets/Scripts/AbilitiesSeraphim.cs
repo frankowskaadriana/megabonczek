@@ -3,19 +3,19 @@ using System.Collections;
 
 public class AbilitiesSeraphim : MonoBehaviour
 {
-    [Header("Atak")]
+    [Header("═══════════════ ATAK ═══════════════")]
     public float attackRange = 10f;
     public float attackDamage = 15f;
     public float attackRate = 0.8f;
-    public GameObject lightBeamPrefab; // Prefab LightBeam z gry
+    public GameObject lightBeamPrefab;
     public Transform firePoint;
 
-    [Header("Odrzut LightBeam")]
+    [Header("═══════════════ ODRZUT LIGHTBEAM ═══════════════")]
     public float beamPushbackForce = 6f;
     public float beamPushbackUpForce = 1.5f;
     public float beamPushbackInterval = 0.1f;
 
-    [Header("Umiejętności")]
+    [Header("═══════════════ UMIEJĘTNOŚCI ═══════════════")]
     public float healAmount = 30f;
     public float healCooldown = 10f;
     public float shieldDuration = 5f;
@@ -24,17 +24,22 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float chargeSpeed = 15f;
     public float chargeCooldown = 6f;
 
-    [Header("Ultimate - Osąd")]
+    [Header("═══════════════ ULTIMATE - OSĄD ═══════════════")]
     public float judgmentRadius = 12f;
     public float judgmentDamage = 80f;
     public float judgmentCooldown = 25f;
     public float judgmentDuration = 3f;
     public GameObject judgmentEffect;
 
-    [Header("Special")]
+    [Header("═══════════════ SPECIAL ═══════════════")]
     public float specialRange = 12f;
     public float specialDamage = 40f;
     public float specialCooldown = 8f;
+
+    [Header("═══════════════ WIZUALIZACJE ═══════════════")]
+    public Color visualColor = new Color(0f, 0.5f, 1f, 0.5f);
+    public float visualDuration = 0.3f;
+    public float visualLineWidth = 0.08f;
 
     private float attackTimer = 0f;
     private float healTimer = 0f;
@@ -49,6 +54,10 @@ public class AbilitiesSeraphim : MonoBehaviour
     private Camera mainCamera;
     private bool canShoot = true;
 
+    // Wizualizacje
+    private GameObject visualObj;
+    private LineRenderer visualLine;
+
     void Start()
     {
         mainCamera = Camera.main;
@@ -62,7 +71,103 @@ public class AbilitiesSeraphim : MonoBehaviour
         specialTimer = specialCooldown;
         chargeTimer = chargeCooldown;
 
-        if (firePoint == null) firePoint = transform;
+        // === SZUKAJ FIREPOINT ===
+        if (firePoint == null)
+        {
+            // Szukaj w dzieciach
+            Transform fp = transform.Find("FirePoint");
+            if (fp != null)
+            {
+                firePoint = fp;
+                Debug.Log("🎯 Znaleziono FirePoint w dzieciach!");
+            }
+            else
+            {
+                firePoint = transform;
+                Debug.Log("⚠️ Brak FirePoint, używam pozycji gracza");
+            }
+        }
+
+        // === STWÓRZ WIZUALIZACJĘ ===
+        CreateVisualLine();
+    }
+
+    void CreateVisualLine()
+    {
+        visualObj = new GameObject("TrajectoryVisual");
+        visualObj.transform.SetParent(transform);
+        visualObj.transform.localPosition = Vector3.zero;
+
+        visualLine = visualObj.AddComponent<LineRenderer>();
+        visualLine.startWidth = visualLineWidth;
+        visualLine.endWidth = visualLineWidth * 0.3f;
+        visualLine.useWorldSpace = true; // WAŻNE - używamy świata
+        visualLine.positionCount = 30;
+        visualLine.loop = false;
+        visualLine.sortingOrder = 10;
+
+        Material mat = new Material(Shader.Find("Sprites/Default"));
+        mat.color = visualColor;
+        visualLine.material = mat;
+        visualLine.startColor = visualColor;
+        visualLine.endColor = new Color(visualColor.r, visualColor.g, visualColor.b, 0f);
+
+        visualObj.SetActive(false);
+    }
+
+    void ShowTrajectoryVisual()
+    {
+        if (visualLine == null || firePoint == null) return;
+
+        // === PUNKT STARTU = FIREPOINT ===
+        Vector3 startPoint = firePoint.position;
+        Vector3 direction = transform.forward;
+
+        float range = attackRange;
+        visualLine.positionCount = 30;
+        visualLine.loop = false;
+        visualLine.useWorldSpace = true;
+
+        for (int i = 0; i < 30; i++)
+        {
+            float t = (float)i / 29f;
+            Vector3 point = startPoint + direction * (t * range);
+            visualLine.SetPosition(i, point);
+        }
+
+        visualObj.SetActive(true);
+        CancelInvoke(nameof(HideVisual));
+        Invoke(nameof(HideVisual), visualDuration);
+    }
+
+    void ShowCircleVisual(float radius)
+    {
+        if (visualLine == null) return;
+
+        int points = 40;
+        visualLine.positionCount = points;
+        visualLine.loop = true;
+        visualLine.useWorldSpace = false;
+
+        // Użyj pozycji FirePoint jako środka
+        Vector3 center = firePoint != null ? firePoint.localPosition : Vector3.zero;
+
+        for (int i = 0; i < points; i++)
+        {
+            float angle = 2f * Mathf.PI * i / points;
+            float x = Mathf.Sin(angle) * radius;
+            float z = Mathf.Cos(angle) * radius;
+            visualLine.SetPosition(i, new Vector3(x, center.y, z));
+        }
+
+        visualObj.SetActive(true);
+        CancelInvoke(nameof(HideVisual));
+        Invoke(nameof(HideVisual), visualDuration);
+    }
+
+    void HideVisual()
+    {
+        if (visualObj != null) visualObj.SetActive(false);
     }
 
     void Update()
@@ -134,45 +239,27 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void RangedAttack()
     {
-        // Sprawdź czy prefab istnieje
-        if (lightBeamPrefab == null)
-        {
-            Debug.LogError("❌ LightBeam Prefab nie jest przypisany!");
-            return;
-        }
+        if (lightBeamPrefab == null || firePoint == null) return;
 
-        if (firePoint == null) return;
-
-        // Pobierz pozycję kursora
         Vector3 targetPosition = GetMouseWorldPosition();
         if (targetPosition == Vector3.zero) return;
 
-        // Oblicz kierunek
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
-        // WYWOŁAJ LIGHTBEAM Z PREFABU
+        // === INSTANTIATE LIGHTBEAM OD FIREPOINT ===
         GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, Quaternion.LookRotation(direction));
-
-        // Ustaw parametry (opcjonalnie)
         LightBeam lightBeam = beam.GetComponent<LightBeam>();
         if (lightBeam != null)
         {
-            // Ustaw obrażenia i zasięg
-            lightBeam.damage = attackDamage;
-            lightBeam.range = attackRange;
-            lightBeam.duration = 0.5f;
-            lightBeam.speed = 25f;
-
-            // Ustaw odrzut
-            lightBeam.pushbackForce = beamPushbackForce;
-            lightBeam.pushbackUpForce = beamPushbackUpForce;
-            lightBeam.pushbackInterval = beamPushbackInterval;
+            lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
+            lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce, beamPushbackInterval);
         }
 
-        // Dźwięk
         AudioManager.Instance?.PlayLaser();
-        Debug.Log($"🔫 Seraphim wystrzelił LightBeam! Obrażenia: {attackDamage}");
+
+        // === POKAŻ TRAJEKTORIĘ OD FIREPOINT ===
+        ShowTrajectoryVisual();
     }
 
     Vector3 GetMouseWorldPosition()
@@ -200,13 +287,15 @@ public class AbilitiesSeraphim : MonoBehaviour
         {
             playerHealth.Heal(healAmount);
             AudioManager.Instance?.PlayHeal();
-            Debug.Log($"💚 Seraphim: Heal {healAmount} HP!");
         }
     }
 
     IEnumerator Judgment()
     {
         AudioManager.Instance?.PlayUltimate();
+
+        // === POKAŻ KOŁO OD FIREPOINT ===
+        ShowCircleVisual(judgmentRadius);
 
         if (judgmentEffect != null)
         {
@@ -223,20 +312,55 @@ public class AbilitiesSeraphim : MonoBehaviour
             Collider[] hitColliders = Physics.OverlapSphere(transform.position, judgmentRadius);
             foreach (var hitCollider in hitColliders)
             {
-                EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
-                if (enemy != null)
+                BaseEnemy baseEnemy = hitCollider.GetComponent<BaseEnemy>();
+                if (baseEnemy != null)
                 {
-                    enemy.TakeDamage(judgmentDamage * Time.deltaTime);
+                    baseEnemy.TakeDamage(judgmentDamage * Time.deltaTime);
 
-                    Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                    Rigidbody rb = baseEnemy.GetComponent<Rigidbody>();
                     if (rb != null)
                     {
-                        Vector3 dir = (enemy.transform.position - transform.position).normalized;
+                        Vector3 dir = (baseEnemy.transform.position - transform.position).normalized;
                         dir.y = 2f;
                         rb.isKinematic = false;
                         rb.useGravity = true;
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
+                    continue;
+                }
+
+                Bazyliszek bazyliszek = hitCollider.GetComponent<Bazyliszek>();
+                if (bazyliszek != null)
+                {
+                    bazyliszek.TakeDamage(judgmentDamage * Time.deltaTime);
+
+                    Rigidbody rb = bazyliszek.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        Vector3 dir = (bazyliszek.transform.position - transform.position).normalized;
+                        dir.y = 2f;
+                        rb.isKinematic = false;
+                        rb.useGravity = true;
+                        rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
+                    }
+                    continue;
+                }
+
+                Leszy leszy = hitCollider.GetComponent<Leszy>();
+                if (leszy != null)
+                {
+                    leszy.TakeDamage(judgmentDamage * Time.deltaTime);
+
+                    Rigidbody rb = leszy.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        Vector3 dir = (leszy.transform.position - transform.position).normalized;
+                        dir.y = 2f;
+                        rb.isKinematic = false;
+                        rb.useGravity = true;
+                        rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
+                    }
+                    continue;
                 }
 
                 PlayerHealth playerHealth = hitCollider.GetComponent<PlayerHealth>();
@@ -255,27 +379,62 @@ public class AbilitiesSeraphim : MonoBehaviour
     void SpecialAttack()
     {
         AudioManager.Instance?.PlaySpecialAbility();
+        ShowCircleVisual(specialRange);
 
         RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, specialRange);
         foreach (var hit in hits)
         {
-            EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
-            if (enemy != null)
+            BaseEnemy baseEnemy = hit.collider.GetComponent<BaseEnemy>();
+            if (baseEnemy != null)
             {
-                enemy.TakeDamage(specialDamage);
+                baseEnemy.TakeDamage(specialDamage);
 
-                Rigidbody rb = enemy.GetComponent<Rigidbody>();
+                Rigidbody rb = baseEnemy.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    Vector3 dir = (enemy.transform.position - transform.position).normalized;
+                    Vector3 dir = (baseEnemy.transform.position - transform.position).normalized;
                     dir.y = 1.5f;
                     rb.isKinematic = false;
                     rb.useGravity = true;
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
+                continue;
+            }
+
+            Bazyliszek bazyliszek = hit.collider.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                bazyliszek.TakeDamage(specialDamage);
+
+                Rigidbody rb = bazyliszek.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 dir = (bazyliszek.transform.position - transform.position).normalized;
+                    dir.y = 1.5f;
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
+                }
+                continue;
+            }
+
+            Leszy leszy = hit.collider.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                leszy.TakeDamage(specialDamage);
+
+                Rigidbody rb = leszy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 dir = (leszy.transform.position - transform.position).normalized;
+                    dir.y = 1.5f;
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
+                }
+                continue;
             }
         }
-        Debug.Log($"✨ Seraphim Special: {specialDamage} obrażeń!");
     }
 
     IEnumerator Charge()
@@ -283,6 +442,7 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (isCharging) yield break;
 
         AudioManager.Instance?.PlayCharge();
+        ShowCircleVisual(chargeRange);
 
         isCharging = true;
         chargeDirection = transform.forward;
@@ -293,15 +453,40 @@ public class AbilitiesSeraphim : MonoBehaviour
 
         foreach (var hitCollider in hitColliders)
         {
-            EnemyHealth enemy = hitCollider.GetComponent<EnemyHealth>();
-            if (enemy != null)
+            BaseEnemy baseEnemy = hitCollider.GetComponent<BaseEnemy>();
+            if (baseEnemy != null)
             {
-                float distance = Vector3.Distance(transform.position, enemy.transform.position);
+                float distance = Vector3.Distance(transform.position, baseEnemy.transform.position);
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
-                    closestEnemy = enemy.transform.position;
+                    closestEnemy = baseEnemy.transform.position;
                 }
+                continue;
+            }
+
+            Bazyliszek bazyliszek = hitCollider.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                float distance = Vector3.Distance(transform.position, bazyliszek.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestEnemy = bazyliszek.transform.position;
+                }
+                continue;
+            }
+
+            Leszy leszy = hitCollider.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                float distance = Vector3.Distance(transform.position, leszy.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestEnemy = leszy.transform.position;
+                }
+                continue;
             }
         }
 
@@ -319,17 +504,46 @@ public class AbilitiesSeraphim : MonoBehaviour
             Collider[] enemies = Physics.OverlapSphere(transform.position, 2f);
             foreach (var enemyCollider in enemies)
             {
-                EnemyHealth enemy = enemyCollider.GetComponent<EnemyHealth>();
-                if (enemy != null)
+                BaseEnemy baseEnemy = enemyCollider.GetComponent<BaseEnemy>();
+                if (baseEnemy != null)
                 {
-                    enemy.TakeDamage(chargeDamage);
-                    Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
+                    baseEnemy.TakeDamage(chargeDamage);
+                    Rigidbody enemyRb = baseEnemy.GetComponent<Rigidbody>();
                     if (enemyRb != null)
                     {
                         enemyRb.isKinematic = false;
                         enemyRb.useGravity = true;
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
+                    continue;
+                }
+
+                Bazyliszek bazyliszek = enemyCollider.GetComponent<Bazyliszek>();
+                if (bazyliszek != null)
+                {
+                    bazyliszek.TakeDamage(chargeDamage);
+                    Rigidbody enemyRb = bazyliszek.GetComponent<Rigidbody>();
+                    if (enemyRb != null)
+                    {
+                        enemyRb.isKinematic = false;
+                        enemyRb.useGravity = true;
+                        enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
+                    }
+                    continue;
+                }
+
+                Leszy leszy = enemyCollider.GetComponent<Leszy>();
+                if (leszy != null)
+                {
+                    leszy.TakeDamage(chargeDamage);
+                    Rigidbody enemyRb = leszy.GetComponent<Rigidbody>();
+                    if (enemyRb != null)
+                    {
+                        enemyRb.isKinematic = false;
+                        enemyRb.useGravity = true;
+                        enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
+                    }
+                    continue;
                 }
             }
 
@@ -363,6 +577,11 @@ public class AbilitiesSeraphim : MonoBehaviour
         canShoot = value;
     }
 
+    void OnDestroy()
+    {
+        if (visualObj != null) Destroy(visualObj);
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
@@ -373,5 +592,13 @@ public class AbilitiesSeraphim : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, chargeRange);
         Gizmos.color = Color.cyan;
         Gizmos.DrawLine(transform.position, transform.position + transform.forward * specialRange);
+
+        // Pokaż FirePoint w Scene View
+        if (firePoint != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(firePoint.position, 0.2f);
+            Gizmos.DrawLine(transform.position, firePoint.position);
+        }
     }
 }

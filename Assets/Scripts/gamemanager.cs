@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("UI")]
+    [Header("═══════════════ UI PANELE ═══════════════")]
     public GameObject gameOverPanel;
     public GameObject pausePanel;
     public GameObject victoryPanel;
@@ -14,21 +15,43 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI finalWaveText;
     public TextMeshProUGUI finalScoreText;
 
-    [Header("Czas gry")]
-    public float gameDuration = 600f;
-    private float gameTimer = 0f;
+    [Header("═══════════════ PASKI ═══════════════")]
+    public Image healthFill;
+    public Image xpFill;
+    public TextMeshProUGUI healthText;
+    public TextMeshProUGUI xpText;
+    public TextMeshProUGUI levelText;
+    public TextMeshProUGUI waveText;
 
-    [Header("Referencje")]
+    [Header("═══════════════ KOLORY ═══════════════")]
+    public Color healthColorGreen = Color.green;
+    public Color healthColorYellow = Color.yellow;
+    public Color healthColorRed = Color.red;
+    public Color xpColorNormal = new Color(0.2f, 0.6f, 1f);
+    public Color xpColorAlmost = new Color(1f, 0.8f, 0f);
+    public Color xpColorFull = new Color(1f, 0.5f, 0f);
+
+    [Header("═══════════════ USTAWIENIA ═══════════════")]
+    public float smoothSpeed = 5f;
+    public float gameDuration = 600f;
+
+    [Header("═══════════════ REFERENCJE ═══════════════")]
     public WaveSpawner waveSpawner;
 
     private LevelSystem levelSystem;
     private PlayerHealth playerHealth;
     private GameObject player;
+    private float gameTimer = 0f;
     private float score = 0f;
     private float scoreMultiplier = 1f;
     private bool isGameActive = false;
     private bool isPaused = false;
     private int totalEnemiesKilled = 0;
+
+    private float currentHealthFill = 1f;
+    private float currentXpFill = 0f;
+    private float targetHealthFill = 1f;
+    private float targetXpFill = 0f;
 
     void Start()
     {
@@ -41,7 +64,22 @@ public class GameManager : MonoBehaviour
         if (pausePanel != null) pausePanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
 
+        if (healthFill != null)
+        {
+            targetHealthFill = 1f;
+            currentHealthFill = 1f;
+            healthFill.fillAmount = 1f;
+        }
+
+        if (xpFill != null)
+        {
+            targetXpFill = 0f;
+            currentXpFill = 0f;
+            xpFill.fillAmount = 0f;
+        }
+
         StartGame();
+        UpdateUI();
     }
 
     void Update()
@@ -57,7 +95,18 @@ public class GameManager : MonoBehaviour
         gameTimer += Time.deltaTime;
         score += Time.deltaTime * scoreMultiplier;
 
-        // Sprawdź czy czas minął
+        if (healthFill != null)
+        {
+            currentHealthFill = Mathf.Lerp(currentHealthFill, targetHealthFill, Time.deltaTime * smoothSpeed);
+            healthFill.fillAmount = currentHealthFill;
+        }
+
+        if (xpFill != null)
+        {
+            currentXpFill = Mathf.Lerp(currentXpFill, targetXpFill, Time.deltaTime * smoothSpeed);
+            xpFill.fillAmount = currentXpFill;
+        }
+
         if (gameTimer >= gameDuration)
         {
             Victory("⏰ CZAS MINĄŁ!");
@@ -69,11 +118,10 @@ public class GameManager : MonoBehaviour
         if (playerHealth != null && playerHealth.currentHealth <= 0)
             GameOver("💀 ZGINĄŁEŚ!");
 
-        // Sprawdź czy wszystkie fale ukończone
         if (waveSpawner != null && waveSpawner.IsWaveComplete() && waveSpawner.GetEnemyCount() == 0)
-        {
             Victory("🏆 WSZYSTKIE FALE UKOŃCZONE!");
-        }
+
+        UpdateUI();
     }
 
     void StartGame()
@@ -81,8 +129,6 @@ public class GameManager : MonoBehaviour
         isGameActive = true;
         gameTimer = 0f;
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
         if (levelSystem != null) levelSystem.StartGame();
     }
 
@@ -90,8 +136,6 @@ public class GameManager : MonoBehaviour
     {
         isPaused = !isPaused;
         Time.timeScale = isPaused ? 0f : 1f;
-        Cursor.lockState = isPaused ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = isPaused;
         if (pausePanel != null) pausePanel.SetActive(isPaused);
     }
 
@@ -101,6 +145,7 @@ public class GameManager : MonoBehaviour
         scoreMultiplier = Mathf.Min(1f + totalEnemiesKilled * 0.01f, 5f);
         if (waveSpawner != null) waveSpawner.EnemyDied();
         if (levelSystem != null) levelSystem.EnemyDied();
+        UpdateUI();
     }
 
     public void GameOver(string reason)
@@ -108,8 +153,6 @@ public class GameManager : MonoBehaviour
         if (!isGameActive) return;
         isGameActive = false;
         Time.timeScale = 0f;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         if (gameOverPanel != null)
         {
@@ -126,8 +169,6 @@ public class GameManager : MonoBehaviour
         if (!isGameActive) return;
         isGameActive = false;
         Time.timeScale = 0f;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         if (victoryPanel != null)
         {
@@ -136,6 +177,63 @@ public class GameManager : MonoBehaviour
             if (finalLevelText != null && levelSystem != null) finalLevelText.text = $"Poziom: {levelSystem.currentLevel}";
             if (finalWaveText != null && waveSpawner != null) finalWaveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
             if (finalScoreText != null) finalScoreText.text = $"Wynik: {Mathf.RoundToInt(score)}";
+        }
+    }
+
+    public void UpdateUI()
+    {
+        // === ZDROWIE ===
+        if (playerHealth != null)
+        {
+            float healthPercent = playerHealth.currentHealth / playerHealth.maxHealth;
+            targetHealthFill = healthPercent;
+
+            if (healthFill != null)
+            {
+                if (healthPercent > 0.6f)
+                    healthFill.color = healthColorGreen;
+                else if (healthPercent > 0.3f)
+                    healthFill.color = healthColorYellow;
+                else
+                    healthFill.color = healthColorRed;
+            }
+
+            if (healthText != null)
+            {
+                healthText.text = $"{Mathf.Round(playerHealth.currentHealth)} / {Mathf.Round(playerHealth.maxHealth)}";
+            }
+        }
+
+        // === XP ===
+        if (levelSystem != null)
+        {
+            float xpPercent = (float)levelSystem.currentXP / levelSystem.xpRequired;
+            targetXpFill = xpPercent;
+
+            if (xpFill != null)
+            {
+                if (xpPercent > 0.8f)
+                    xpFill.color = xpColorAlmost;
+                else if (xpPercent > 0.95f)
+                    xpFill.color = xpColorFull;
+                else
+                    xpFill.color = xpColorNormal;
+            }
+
+            if (xpText != null)
+            {
+                xpText.text = $"{levelSystem.currentXP} / {levelSystem.xpRequired} XP";
+            }
+
+            if (levelText != null)
+            {
+                levelText.text = $"Poziom {levelSystem.currentLevel}";
+            }
+
+            if (waveText != null && waveSpawner != null)
+            {
+                waveText.text = $"Fala {waveSpawner.GetCurrentWave()}";
+            }
         }
     }
 
@@ -162,18 +260,18 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
 
-    public float GetGameTime() => gameTimer;
-    public float GetGameDuration() => gameDuration;
     public float GetScore() => score;
     public int GetScoreInt() => Mathf.RoundToInt(score);
     public GameObject GetPlayer() => player;
+    public float GetGameTime() => gameTimer;
 
     public void OnRestartButton() => RestartGame();
     public void OnMainMenuButton() => LoadMainMenu();
     public void OnResumeButton() => ResumeGame();
     public void OnQuitButton() => QuitGame();
-    public void SpawnTestBoss() => waveSpawner?.TestSpawnBoss();
-    public void SpawnTestBazyliszek() => waveSpawner?.TestSpawnBazyliszek();
-    public void SkipWave() => waveSpawner?.SkipWave();
-    public void ClearEnemies() => waveSpawner?.ClearAllEnemies();
+
+    public void SpawnTestBoss() => Debug.Log("👑 Test Boss");
+    public void SpawnTestBazyliszek() => Debug.Log("🐉 Test Bazyliszek");
+    public void SkipWave() => Debug.Log("⏭️ Skip Wave");
+    public void ClearEnemies() => Debug.Log("🗑️ Clear Enemies");
 }

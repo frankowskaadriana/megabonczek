@@ -6,13 +6,25 @@ using System.Collections.Generic;
 
 public class LevelSystem : MonoBehaviour
 {
-    [Header("Poziom i XP")]
+    [Header("═══════════════ POZIOM I XP ═══════════════")]
     public int currentLevel = 1;
     public int currentXP = 0;
     public int xpRequired = 10;
     public int xpPerEnemy = 1;
 
-    [Header("UI")]
+    [Header("═══════════════ STATYSTYKI PRZECIWNIKÓW ═══════════════")]
+    public float baseEnemyHealth = 30f;
+    public float healthIncreasePerLevel = 5f;
+    public float healthIncreasePerWave = 2f;
+    public int baseExpReward = 10;
+    public int expIncreasePerLevel = 1;
+    public int expIncreasePerWave = 1;
+
+    [Header("═══════════════ CZAS GRY ═══════════════")]
+    public float gameTime = 0f;
+    public float difficultyMultiplier = 1f;
+
+    [Header("═══════════════ UI ═══════════════")]
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI xpText;
     public Image xpFill;
@@ -21,7 +33,7 @@ public class LevelSystem : MonoBehaviour
     public Image healthFill;
     public TextMeshProUGUI healthText;
 
-    [Header("Panel Wyboru Perków")]
+    [Header("═══════════════ PANEL WYBORU PERKÓW ═══════════════")]
     public GameObject perkPanel;
     public Button[] perkButtons;
     public TextMeshProUGUI[] perkNameTexts;
@@ -29,11 +41,14 @@ public class LevelSystem : MonoBehaviour
     public TextMeshProUGUI[] perkLevelTexts;
     public Image[] perkIcons;
 
-    [Header("Komunikaty")]
+    [Header("═══════════════ WYŚWIETLANIE STATYSTYK PERKÓW ═══════════════")]
+    public TextMeshProUGUI perkStatsText;
+
+    [Header("═══════════════ KOMUNIKATY ═══════════════")]
     public TextMeshProUGUI levelUpMessage;
     public float messageDuration = 2f;
 
-    [Header("Referencje")]
+    [Header("═══════════════ REFERENCJE ═══════════════")]
     public WaveSpawner waveSpawner;
 
     private PlayerHealth playerHealth;
@@ -50,6 +65,17 @@ public class LevelSystem : MonoBehaviour
     private List<Perk> allPerks = new List<Perk>();
     private List<Perk> currentPerks = new List<Perk>();
     private Dictionary<string, int> perkLevels = new Dictionary<string, int>();
+
+    // === STATYSTYKI GRACZA ===
+    private int currentDamageBonus = 0;
+    private int currentHealthBonus = 0;
+    private float currentAttackSpeedBonus = 0f;
+    private float currentSpeedBonus = 0f;
+    private int currentXpBonus = 0;
+    private int currentArmorBonus = 0;
+
+    private float currentEnemyHealth;
+    private int currentExpReward;
 
     [System.Serializable]
     public class Perk
@@ -81,37 +107,53 @@ public class LevelSystem : MonoBehaviour
 
         CreatePerks();
 
-        if (perkPanel != null)
-        {
-            perkPanel.SetActive(false);
-            Debug.Log("🔒 Panel perków ukryty");
-        }
-
+        // === UKRYJ PANEL PERKÓW ===
+        if (perkPanel != null) perkPanel.SetActive(false);
         if (levelUpMessage != null) levelUpMessage.gameObject.SetActive(false);
 
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
+        // === PRZYPISZ PRZYCISKI ===
         for (int i = 0; i < perkButtons.Length && i < 4; i++)
         {
             int index = i;
-            perkButtons[i].onClick.AddListener(() => ChoosePerk(index));
+            if (perkButtons[i] != null)
+            {
+                perkButtons[i].onClick.RemoveAllListeners();
+                perkButtons[i].onClick.AddListener(() => ChoosePerk(index));
+                Debug.Log($"✅ Przypisano przycisk {i + 1}");
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ Przycisk {i + 1} nie jest przypisany!");
+            }
         }
 
         isChoosingPerk = false;
 
+        UpdateEnemyStats();
         UpdateUI();
-        Debug.Log("✅ LevelSystem gotowy! Gra odmrożona.");
+        UpdatePerkStatsUI();
+        Debug.Log("✅ LevelSystem gotowy!");
     }
 
     void Update()
     {
+        if (gameStarted)
+        {
+            gameTime += Time.deltaTime;
+            difficultyMultiplier = 1f + (gameTime / 60f) * 0.05f;
+            difficultyMultiplier = Mathf.Min(difficultyMultiplier, 3f);
+
+            if (Time.frameCount % 300 == 0)
+            {
+                UpdateEnemyStats();
+            }
+        }
+
         if (Input.GetKeyDown(KeyCode.F3))
         {
             Time.timeScale = 1f;
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
             isChoosingPerk = false;
             if (perkPanel != null) perkPanel.SetActive(false);
             Debug.Log("🔓 AWARYJNE ODBLOKOWANIE GRY!");
@@ -161,11 +203,16 @@ public class LevelSystem : MonoBehaviour
         UpdateUI();
     }
 
+    // ============================================
+    // PERKI
+    // ============================================
+
     void CreatePerks()
     {
         allPerks.Clear();
 
         allPerks.Add(new Perk("damage", "⚔️ Obrażenia", "+10 obrażeń", () => {
+            currentDamageBonus += 10;
             AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
             if (mountain != null) mountain.attackDamage += 10f;
 
@@ -175,18 +222,22 @@ public class LevelSystem : MonoBehaviour
             ShepherdAbilities shepherd = FindFirstObjectByType<ShepherdAbilities>();
             if (shepherd != null) shepherd.attackDamage += 10f;
 
-            Debug.Log($"⚔️ Obrażenia zwiększone! (Poziom {GetPerkLevel("damage") + 1}/5)");
+            Debug.Log($"⚔️ Obrażenia zwiększone! (+{currentDamageBonus})");
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
 
         allPerks.Add(new Perk("health", "❤️ Zdrowie", "+25 maksymalnego HP", () => {
+            currentHealthBonus += 25;
             if (playerHealth != null)
             {
                 playerHealth.AddMaxHealth(25);
-                Debug.Log($"❤️ Zdrowie zwiększone! (Poziom {GetPerkLevel("health") + 1}/5)");
+                Debug.Log($"❤️ Zdrowie zwiększone! (+{currentHealthBonus})");
             }
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
 
         allPerks.Add(new Perk("attackSpeed", "⚡ Szybkość ataku", "-0.15s cooldown", () => {
+            currentAttackSpeedBonus += 0.15f;
             AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
             if (mountain != null) mountain.attackRate = Mathf.Max(0.2f, mountain.attackRate - 0.15f);
 
@@ -196,50 +247,69 @@ public class LevelSystem : MonoBehaviour
             ShepherdAbilities shepherd = FindFirstObjectByType<ShepherdAbilities>();
             if (shepherd != null) shepherd.attackRate = Mathf.Max(0.2f, shepherd.attackRate - 0.15f);
 
-            Debug.Log($"⚡ Szybkość ataku zwiększona! (Poziom {GetPerkLevel("attackSpeed") + 1}/5)");
+            Debug.Log($"⚡ Szybkość ataku zwiększona! (-{currentAttackSpeedBonus:F2}s)");
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
 
         allPerks.Add(new Perk("speed", "👟 Szybkie nogi", "+8% prędkości ruchu", () => {
+            currentSpeedBonus += 0.08f;
             PlayerMovement movement = FindFirstObjectByType<PlayerMovement>();
             if (movement != null)
             {
                 movement.maxSpeed *= 1.08f;
-                Debug.Log($"👟 Prędkość zwiększona do {movement.maxSpeed:F1}! (Poziom {GetPerkLevel("speed") + 1}/5)");
+                Debug.Log($"👟 Prędkość zwiększona! (+{currentSpeedBonus * 100:F0}%)");
             }
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
 
         allPerks.Add(new Perk("xp", "📚 Więcej XP", "+1 XP za wroga", () => {
+            currentXpBonus += 1;
             xpPerEnemy++;
-            Debug.Log($"📚 XP za wroga: {xpPerEnemy} (Poziom {GetPerkLevel("xp") + 1}/5)");
+            Debug.Log($"📚 XP za wroga: {xpPerEnemy} (+{currentXpBonus})");
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
 
         allPerks.Add(new Perk("armor", "🛡️ Pancerz", "+10 pancerza", () => {
+            currentArmorBonus += 10;
             if (playerHealth != null)
             {
                 playerHealth.AddArmor(10);
-                Debug.Log($"🛡️ Pancerz: {playerHealth.armor} (Poziom {GetPerkLevel("armor") + 1}/5)");
+                Debug.Log($"🛡️ Pancerz: {playerHealth.armor} (+{currentArmorBonus})");
             }
+            UpdatePerkStatsUI();
         }, maxLevel: 5));
+    }
 
-        allPerks.Add(new Perk("range", "🏹 Większy zasięg", "+0.3m zasięgu", () => {
-            AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
-            if (mountain != null) mountain.attackRange += 0.3f;
+    void UpdatePerkStatsUI()
+    {
+        if (perkStatsText == null) return;
 
-            AbilitiesSeraphim seraphim = FindFirstObjectByType<AbilitiesSeraphim>();
-            if (seraphim != null) seraphim.attackRange += 0.3f;
+        string stats = "";
 
-            ShepherdAbilities shepherd = FindFirstObjectByType<ShepherdAbilities>();
-            if (shepherd != null) shepherd.attackRange += 0.3f;
+        if (currentDamageBonus > 0)
+            stats += $"⚔️ Obrażenia: +{currentDamageBonus}\n";
 
-            Debug.Log($"🏹 Zasięg zwiększony! (Poziom {GetPerkLevel("range") + 1}/5)");
-        }, maxLevel: 5));
+        if (currentHealthBonus > 0)
+            stats += $"❤️ Zdrowie: +{currentHealthBonus}\n";
 
-        allPerks.Add(new Perk("pushback", "💥 Silny odrzut", "+25% siły odrzutu", () => {
-            PlayerHealth ph = FindFirstObjectByType<PlayerHealth>();
-            if (ph != null) ph.pushbackForce *= 1.25f;
+        if (currentAttackSpeedBonus > 0)
+            stats += $"⚡ Szybkość ataku: -{currentAttackSpeedBonus:F2}s\n";
 
-            Debug.Log($"💥 Odrzut zwiększony! (Poziom {GetPerkLevel("pushback") + 1}/5)");
-        }, maxLevel: 5));
+        if (currentSpeedBonus > 0)
+            stats += $"👟 Prędkość: +{currentSpeedBonus * 100:F0}%\n";
+
+        if (currentXpBonus > 0)
+            stats += $"📚 XP: +{currentXpBonus}\n";
+
+        if (currentArmorBonus > 0)
+            stats += $"🛡️ Pancerz: +{currentArmorBonus}\n";
+
+        if (string.IsNullOrEmpty(stats))
+        {
+            stats = "Brak ulepszeń";
+        }
+
+        perkStatsText.text = stats;
     }
 
     int GetPerkLevel(string id)
@@ -255,12 +325,11 @@ public class LevelSystem : MonoBehaviour
 
         isChoosingPerk = true;
         Time.timeScale = 0f;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         currentPerks.Clear();
         List<Perk> temp = new List<Perk>(allPerks);
 
+        // Usuń perki które osiągnęły max level
         for (int i = temp.Count - 1; i >= 0; i--)
         {
             if (GetPerkLevel(temp[i].id) >= temp[i].maxLevel)
@@ -282,28 +351,62 @@ public class LevelSystem : MonoBehaviour
             temp.RemoveAt(idx);
         }
 
+        // === WYŚWIETL PERKI W UI ===
         for (int i = 0; i < perkButtons.Length && i < 4; i++)
         {
-            if (i < currentPerks.Count)
+            if (i < currentPerks.Count && perkButtons[i] != null)
             {
                 perkButtons[i].gameObject.SetActive(true);
-                if (perkNameTexts[i] != null) perkNameTexts[i].text = currentPerks[i].name;
-                if (perkDescTexts[i] != null) perkDescTexts[i].text = currentPerks[i].description;
+
+                if (perkNameTexts[i] != null)
+                {
+                    perkNameTexts[i].text = currentPerks[i].name;
+                    perkNameTexts[i].gameObject.SetActive(true);
+                    Debug.Log($"📝 Perk {i + 1} nazwa: {currentPerks[i].name}");
+                }
+
+                if (perkDescTexts[i] != null)
+                {
+                    perkDescTexts[i].text = currentPerks[i].description;
+                    perkDescTexts[i].gameObject.SetActive(true);
+                    Debug.Log($"📝 Perk {i + 1} opis: {currentPerks[i].description}");
+                }
+
                 if (perkLevelTexts[i] != null)
+                {
                     perkLevelTexts[i].text = $"Poziom {GetPerkLevel(currentPerks[i].id) + 1}/{currentPerks[i].maxLevel}";
+                    perkLevelTexts[i].gameObject.SetActive(true);
+                }
+
                 if (perkIcons[i] != null && currentPerks[i].icon != null)
+                {
                     perkIcons[i].sprite = currentPerks[i].icon;
+                    perkIcons[i].gameObject.SetActive(true);
+                }
             }
-            else
+            else if (perkButtons[i] != null)
             {
                 perkButtons[i].gameObject.SetActive(false);
+                if (perkNameTexts[i] != null) perkNameTexts[i].gameObject.SetActive(false);
+                if (perkDescTexts[i] != null) perkDescTexts[i].gameObject.SetActive(false);
+                if (perkLevelTexts[i] != null) perkLevelTexts[i].gameObject.SetActive(false);
+                if (perkIcons[i] != null) perkIcons[i].gameObject.SetActive(false);
             }
         }
 
-        if (perkPanel != null) perkPanel.SetActive(true);
+        // === POKAŻ PANEL ===
+        if (perkPanel != null)
+        {
+            perkPanel.SetActive(true);
+            Debug.Log("📦 Panel perków widoczny");
+        }
+        else
+        {
+            Debug.LogError("❌ Perk Panel nie jest przypisany!");
+        }
 
         ShowLevelUpMessage("🎉 AWANS! Wybierz perka (1-4)");
-        AudioManager.Instance?.PlayPerkSelect(); // DŹWIĘK WYBORU PERKA
+        AudioManager.Instance?.PlayPerkSelect();
 
         Debug.Log("=== WYBIERZ PERKA (1-4) ===");
         for (int i = 0; i < currentPerks.Count; i++)
@@ -326,16 +429,16 @@ public class LevelSystem : MonoBehaviour
         Debug.Log($"✅ WYBRANO: {currentPerks[index].name} (Poziom {perkLevels[id]}/{currentPerks[index].maxLevel})");
 
         isChoosingPerk = false;
+
+        // === UKRYJ PANEL ===
         if (perkPanel != null) perkPanel.SetActive(false);
         if (levelUpMessage != null) levelUpMessage.gameObject.SetActive(false);
 
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
-        AudioManager.Instance?.PlayPerkSelect(); // DŹWIĘK WYBORU PERKA
+        AudioManager.Instance?.PlayPerkSelect();
 
-        if (waveSpawner != null && !waveSpawner.IsWaveActive())
+        if (waveSpawner != null && waveSpawner.GetEnemyCount() == 0 && !waveSpawner.IsSpawning())
         {
             StartCoroutine(ResumeWaveAfterPerk());
         }
@@ -344,7 +447,7 @@ public class LevelSystem : MonoBehaviour
     IEnumerator ResumeWaveAfterPerk()
     {
         yield return new WaitForSeconds(0.5f);
-        if (waveSpawner != null && !waveSpawner.IsWaveActive())
+        if (waveSpawner != null && waveSpawner.GetEnemyCount() == 0 && !waveSpawner.IsSpawning())
         {
             waveSpawner.StartNextWave();
         }
@@ -360,6 +463,35 @@ public class LevelSystem : MonoBehaviour
             messageTimer = messageDuration;
         }
     }
+
+    // ============================================
+    // STATYSTYKI PRZECIWNIKÓW
+    // ============================================
+
+    public void UpdateEnemyStats()
+    {
+        currentEnemyHealth = baseEnemyHealth + (currentLevel * healthIncreasePerLevel) + (waveSpawner != null ? waveSpawner.GetCurrentWave() * healthIncreasePerWave : 0);
+        currentEnemyHealth = Mathf.Min(currentEnemyHealth, 500f);
+
+        currentExpReward = baseExpReward + (currentLevel * expIncreasePerLevel) + (waveSpawner != null ? waveSpawner.GetCurrentWave() * expIncreasePerWave : 0);
+        currentExpReward = Mathf.Min(currentExpReward, 100);
+
+        Debug.Log($"📊 Statystyki wrogów: HP={currentEnemyHealth:F1}, EXP={currentExpReward}");
+    }
+
+    public float GetEnemyHealth()
+    {
+        return currentEnemyHealth;
+    }
+
+    public int GetEnemyExpReward()
+    {
+        return currentExpReward;
+    }
+
+    // ============================================
+    // METODY PUBLICZNE
+    // ============================================
 
     public void EnemyDied()
     {
@@ -382,7 +514,8 @@ public class LevelSystem : MonoBehaviour
                 targetHealthFill = playerHealth.currentHealth / playerHealth.maxHealth;
             }
 
-            AudioManager.Instance?.PlayLevelUp(); // DŹWIĘK AWANSU
+            UpdateEnemyStats();
+            AudioManager.Instance?.PlayLevelUp();
             ShowPerkSelection();
         }
 
@@ -392,10 +525,22 @@ public class LevelSystem : MonoBehaviour
     public void StartGame()
     {
         gameStarted = true;
+        gameTime = 0f;
+        difficultyMultiplier = 1f;
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        UpdateEnemyStats();
+        UpdatePerkStatsUI();
         Debug.Log("🎮 Gra rozpoczęta!");
+    }
+
+    public float GetGameTime()
+    {
+        return gameTime;
+    }
+
+    public float GetDifficultyMultiplier()
+    {
+        return difficultyMultiplier;
     }
 
     public void UpdateUI()
@@ -427,4 +572,15 @@ public class LevelSystem : MonoBehaviour
     {
         return isChoosingPerk;
     }
+
+    // ============================================
+    // GETTERY DLA STATYSTYK
+    // ============================================
+
+    public int GetDamageBonus() => currentDamageBonus;
+    public int GetHealthBonus() => currentHealthBonus;
+    public float GetAttackSpeedBonus() => currentAttackSpeedBonus;
+    public float GetSpeedBonus() => currentSpeedBonus;
+    public int GetXpBonus() => currentXpBonus;
+    public int GetArmorBonus() => currentArmorBonus;
 }

@@ -4,43 +4,57 @@ using System.Collections.Generic;
 
 public class WaveSpawner : MonoBehaviour
 {
-    [Header("Fale")]
+    [System.Serializable]
+    public class EnemyTier
+    {
+        [Header("═══════════════ USTAWIENIA TIERU ═══════════════")]
+        public string tierName = "Nowy Tier";
+        [Range(1, 10)] public int tierLevel = 1;
+        [Range(0, 100)] public float baseChance = 50f;
+        [Range(0, 10)] public float chanceIncreasePerWave = 2f;
+        public int minWaveToSpawn = 1;
+
+        [Header("═══════════════ PRZECIWNICY W TIERZE ═══════════════")]
+        public List<EnemyEntry> enemies = new List<EnemyEntry>();
+    }
+
+    [System.Serializable]
+    public class EnemyEntry
+    {
+        [Header("═══════════════ PRZECIWNIK ═══════════════")]
+        public GameObject prefab;
+        public string enemyName = "Przeciwnik";
+
+        [Header("═══════════════ STATYSTYKI ═══════════════")]
+        [Range(0, 100)] public float weight = 10f;
+        public int expReward = 10;
+        public bool isBoss = false;
+        public int minWaveToSpawn = 1;
+        [Range(0.5f, 5f)] public float difficultyScale = 1f;
+    }
+
+    [Header("═══════════════ USTAWIENIA FAL ═══════════════")]
     public int currentWave = 1;
     public int baseEnemiesPerWave = 5;
     public float timeBetweenWaves = 5f;
     public float timeBetweenSpawns = 0.8f;
     public int maxWaves = 999;
 
-    [Header("Skalowanie trudności")]
+    [Header("═══════════════ SKALOWANIE TRUDNOŚCI ═══════════════")]
     public int enemiesPerLevel = 1;
-    public float spawnSpeedPerLevel = 0.02f;
     public float waveMultiplier = 1.5f;
     public int maxEnemiesPerWave = 50;
 
-    [Header("Prefaby")]
-    public GameObject polnocnicaPrefab;
-    public GameObject strzygaPrefab;
-    public GameObject upiorPrefab;
-    public GameObject bazyliszekPrefab;
-    public GameObject leszyPrefab;
+    [Header("═══════════════ TIERY PRZECIWNIKÓW ═══════════════")]
+    public List<EnemyTier> enemyTiers = new List<EnemyTier>();
 
-    [Header("Szansę (0-100)")]
-    [Range(0, 100)] public float polnocnicaChance = 40f;
-    [Range(0, 100)] public float strzygaChance = 25f;
-    [Range(0, 100)] public float upiorChance = 20f;
-    [Range(0, 100)] public float bazyliszekChance = 10f;
-
-    [Header("Boss")]
-    public float bossSpawnInterval = 240f;
-    [Range(0, 100)] public float bossSpawnChance = 60f;
-    public int bossMinWave = 5;
-
-    [Header("Spawn wokół gracza")]
+    [Header("═══════════════ SPAWN WOKÓŁ GRACZA ═══════════════")]
     public float spawnRadiusMin = 8f;
     public float spawnRadiusMax = 20f;
+    public float spawnHeight = 1f; // STAŁA WYSOKOŚĆ
     public LayerMask groundLayer = ~0;
 
-    [Header("Referencje")]
+    [Header("═══════════════ REFERENCJE ═══════════════")]
     public LevelSystem levelSystem;
 
     private Transform player;
@@ -50,18 +64,14 @@ public class WaveSpawner : MonoBehaviour
     private int enemiesSpawned = 0;
     private int enemiesThisWave = 0;
     private bool isWaveComplete = false;
-    private float bossTimer = 0f;
-    private bool bossSpawnedThisWave = false;
     private Camera mainCamera;
-    private Coroutine spawnCoroutine;
+    private float gameTime = 0f;
 
     void Start()
     {
         mainCamera = Camera.main;
         levelSystem = FindFirstObjectByType<LevelSystem>();
         FindPlayer();
-        bossTimer = bossSpawnInterval;
-
         StartCoroutine(DelayedStart());
     }
 
@@ -79,17 +89,15 @@ public class WaveSpawner : MonoBehaviour
 
     void Update()
     {
+        gameTime += Time.deltaTime;
+
         if (player == null) FindPlayer();
-
         enemies.RemoveAll(e => e == null);
-
-        if (isSpawning || enemies.Count > 0)
-            bossTimer += Time.deltaTime;
 
         if (!isSpawning && enemies.Count == 0 && !isWaveComplete && enemiesKilled >= enemiesThisWave)
         {
             isWaveComplete = true;
-            AudioManager.Instance?.PlayWaveComplete(); // DŹWIĘK KONIEC FALI
+            AudioManager.Instance?.PlayWaveComplete();
             StartCoroutine(NextWave());
         }
     }
@@ -100,15 +108,11 @@ public class WaveSpawner : MonoBehaviour
         isWaveComplete = false;
         enemiesSpawned = 0;
         enemiesKilled = 0;
-        bossSpawnedThisWave = false;
 
         enemiesThisWave = CalculateEnemiesForWave();
 
         Debug.Log($"🌊 FALA {currentWave} START! ({enemiesThisWave} wrogów)");
-        AudioManager.Instance?.PlayWaveStart(); // DŹWIĘK START FALI
-
-        float spawnDelay = Mathf.Max(0.2f, timeBetweenSpawns - (levelSystem != null ? levelSystem.currentLevel * spawnSpeedPerLevel : 0));
-        spawnDelay = Mathf.Max(0.2f, spawnDelay);
+        AudioManager.Instance?.PlayWaveStart();
 
         for (int i = 0; i < enemiesThisWave; i++)
         {
@@ -120,19 +124,26 @@ public class WaveSpawner : MonoBehaviour
                 Vector3 pos = GetSpawnPosition();
                 if (pos != Vector3.zero)
                 {
+                    // === SPAWN PRZECIWNIKA ===
                     GameObject enemy = Instantiate(prefab, pos, Quaternion.identity);
+
+                    // === WYMUŚ Y = SPAWNHEIGHT ===
+                    Vector3 enemyPos = enemy.transform.position;
+                    enemyPos.y = spawnHeight;
+                    enemy.transform.position = enemyPos;
+
                     enemies.Add(enemy);
                     enemiesSpawned++;
                     AudioManager.Instance?.OnEnemySpawned();
+
+                    Debug.Log($"📍 Spawn: {enemy.name} na pozycji {enemyPos} (Y = {spawnHeight})");
                 }
             }
-
-            float dynamicDelay = spawnDelay * (1f + (i / (float)enemiesThisWave) * 0.3f);
-            yield return new WaitForSeconds(dynamicDelay);
+            yield return new WaitForSeconds(timeBetweenSpawns);
         }
 
         isSpawning = false;
-        Debug.Log($"✅ FALA {currentWave} zakończona! Spawnowano: {enemiesSpawned} wrogów");
+        Debug.Log($"✅ FALA {currentWave} zakończona!");
     }
 
     int CalculateEnemiesForWave()
@@ -146,17 +157,94 @@ public class WaveSpawner : MonoBehaviour
         return total;
     }
 
-    IEnumerator NextWave()
+    GameObject GetRandomEnemy()
     {
-        Debug.Log($"⏳ Czekam {timeBetweenWaves}s na następną falę...");
-        yield return new WaitForSeconds(timeBetweenWaves);
+        // === SPRAWDŹ BOSSA W TIERACH ===
+        foreach (EnemyTier tier in enemyTiers)
+        {
+            foreach (EnemyEntry entry in tier.enemies)
+            {
+                if (entry.isBoss && entry.prefab != null && currentWave >= entry.minWaveToSpawn)
+                {
+                    float bossChance = tier.baseChance / 100f;
+                    if (Random.Range(0f, 1f) < bossChance * 0.3f)
+                    {
+                        Debug.Log($"👑 BOSS {entry.enemyName} w fali {currentWave}!");
+                        return entry.prefab;
+                    }
+                }
+            }
+        }
 
-        currentWave++;
-        Debug.Log($"🌊 ROZPOCZYNAM FALĘ {currentWave}!");
+        // === WYBÓR PRZECIWNIKA Z TIERÓW ===
+        List<EnemyEntry> availableEnemies = new List<EnemyEntry>();
+        float totalWeight = 0f;
 
-        if (levelSystem != null) levelSystem.UpdateUI();
+        foreach (EnemyTier tier in enemyTiers)
+        {
+            if (currentWave < tier.minWaveToSpawn) continue;
 
-        StartCoroutine(SpawnWave());
+            float tierChance = tier.baseChance + (currentWave - tier.minWaveToSpawn) * tier.chanceIncreasePerWave;
+            tierChance = Mathf.Min(tierChance, 100f);
+
+            foreach (EnemyEntry entry in tier.enemies)
+            {
+                if (entry.prefab == null) continue;
+                if (currentWave < entry.minWaveToSpawn) continue;
+                if (entry.isBoss) continue;
+
+                float timeScale = 1f + (gameTime / 60f) * 0.1f;
+                timeScale = Mathf.Min(timeScale, 3f);
+
+                float weight = entry.weight * (tierChance / 100f) * entry.difficultyScale * timeScale;
+
+                availableEnemies.Add(entry);
+                totalWeight += weight;
+            }
+        }
+
+        if (availableEnemies.Count == 0 || totalWeight <= 0)
+        {
+            foreach (EnemyTier tier in enemyTiers)
+            {
+                foreach (EnemyEntry entry in tier.enemies)
+                {
+                    if (entry.prefab != null && currentWave >= entry.minWaveToSpawn && !entry.isBoss)
+                        return entry.prefab;
+                }
+            }
+            return null;
+        }
+
+        float randomValue = Random.Range(0f, totalWeight);
+        float cumulative = 0f;
+
+        foreach (EnemyEntry entry in availableEnemies)
+        {
+            float timeScale = 1f + (gameTime / 60f) * 0.1f;
+            timeScale = Mathf.Min(timeScale, 3f);
+
+            float tierChance = 100f;
+            foreach (EnemyTier tier in enemyTiers)
+            {
+                if (tier.enemies.Contains(entry))
+                {
+                    tierChance = tier.baseChance + (currentWave - tier.minWaveToSpawn) * tier.chanceIncreasePerWave;
+                    tierChance = Mathf.Min(tierChance, 100f);
+                    break;
+                }
+            }
+
+            float weight = entry.weight * (tierChance / 100f) * entry.difficultyScale * timeScale;
+            cumulative += weight;
+
+            if (randomValue <= cumulative)
+            {
+                return entry.prefab;
+            }
+        }
+
+        return availableEnemies[availableEnemies.Count - 1].prefab;
     }
 
     Vector3 GetSpawnPosition()
@@ -168,17 +256,18 @@ public class WaveSpawner : MonoBehaviour
             Vector2 circle = Random.insideUnitCircle.normalized * Random.Range(spawnRadiusMin, spawnRadiusMax);
             Vector3 pos = player.position + new Vector3(circle.x, 0, circle.y);
 
-            RaycastHit hit;
-            if (Physics.Raycast(pos + Vector3.up * 50f, Vector3.down, out hit, 100f, groundLayer))
-                pos.y = hit.point.y;
-            else
-                pos.y = 0;
+            // Ustaw Y na spawnHeight (potem i tak wymusimy)
+            pos.y = spawnHeight;
 
             if (!IsVisibleByCamera(pos))
+            {
                 return pos;
+            }
         }
 
-        return player.position - player.forward * spawnRadiusMin;
+        Vector3 fallbackPos = player.position - player.forward * spawnRadiusMin;
+        fallbackPos.y = spawnHeight;
+        return fallbackPos;
     }
 
     bool IsVisibleByCamera(Vector3 pos)
@@ -188,60 +277,25 @@ public class WaveSpawner : MonoBehaviour
         return vp.x >= 0 && vp.x <= 1 && vp.y >= 0 && vp.y <= 1 && vp.z > 0;
     }
 
-    GameObject GetRandomEnemy()
+    IEnumerator NextWave()
     {
-        if (bossTimer >= bossSpawnInterval && !bossSpawnedThisWave && currentWave >= bossMinWave && leszyPrefab != null)
-        {
-            if (Random.Range(0f, 100f) < bossSpawnChance)
-            {
-                bossSpawnedThisWave = true;
-                bossTimer = 0f;
-                AudioManager.Instance?.OnBossSpawned(); // DŹWIĘK BOSSA
-                Debug.Log($"👑 BOSS w fali {currentWave}!");
-                return leszyPrefab;
-            }
-        }
+        yield return new WaitForSeconds(timeBetweenWaves);
+        currentWave++;
 
-        int playerLevel = levelSystem != null ? levelSystem.currentLevel : 1;
-        float difficultyMultiplier = 1f + (playerLevel - 1) * 0.05f;
-        difficultyMultiplier = Mathf.Min(difficultyMultiplier, 3f);
+        if (levelSystem != null) levelSystem.UpdateUI();
 
-        float total = polnocnicaChance + strzygaChance + upiorChance + bazyliszekChance;
-        if (total <= 0) return polnocnicaPrefab;
-
-        float p = polnocnicaChance / difficultyMultiplier;
-        float s = strzygaChance * Mathf.Lerp(1f, 1.5f, (currentWave - 1) / 10f);
-        float u = upiorChance * Mathf.Lerp(1f, 2f, (currentWave - 1) / 10f);
-        float b = bazyliszekChance * Mathf.Lerp(1f, 2.5f, (currentWave - 1) / 10f);
-
-        s *= (1f + (playerLevel - 1) * 0.02f);
-        u *= (1f + (playerLevel - 1) * 0.03f);
-        b *= (1f + (playerLevel - 1) * 0.04f);
-
-        float newTotal = p + s + u + b;
-        float rand = Random.Range(0f, newTotal);
-        float cum = 0f;
-
-        cum += p; if (rand < cum && polnocnicaPrefab != null) return polnocnicaPrefab;
-        cum += s; if (rand < cum && strzygaPrefab != null) return strzygaPrefab;
-        cum += u; if (rand < cum && upiorPrefab != null) return upiorPrefab;
-        cum += b; if (rand < cum && bazyliszekPrefab != null) return bazyliszekPrefab;
-
-        return polnocnicaPrefab;
+        StartCoroutine(SpawnWave());
     }
 
     public void EnemyDied()
     {
         enemiesKilled++;
-        AudioManager.Instance?.OnEnemyDied();
-
-        if (!isSpawning && enemies.Count == 0 && enemiesKilled >= enemiesThisWave && !isWaveComplete)
-        {
-            isWaveComplete = true;
-            AudioManager.Instance?.PlayWaveComplete();
-            StartCoroutine(NextWave());
-        }
     }
+
+    public int GetCurrentWave() => currentWave;
+    public int GetEnemyCount() => enemies.Count;
+    public bool IsSpawning() => isSpawning;
+    public bool IsWaveComplete() => isWaveComplete;
 
     public void StartNextWave()
     {
@@ -264,42 +318,54 @@ public class WaveSpawner : MonoBehaviour
 
     public void SkipWave()
     {
-        if (isSpawning && spawnCoroutine != null)
-            StopCoroutine(spawnCoroutine);
+        if (isSpawning) StopAllCoroutines();
         ClearAllEnemies();
         isWaveComplete = true;
         StartCoroutine(NextWave());
     }
 
-    public int GetCurrentWave() => currentWave;
-    public int GetEnemyCount() => enemies.Count;
-    public bool IsWaveActive() => isSpawning || enemies.Count > 0;
-    public bool IsWaveComplete() => isWaveComplete;
-    public int GetEnemiesKilled() => enemiesKilled;
-    public int GetEnemiesSpawned() => enemiesSpawned;
-
     public void TestSpawnBoss()
     {
-        if (leszyPrefab != null)
+        foreach (EnemyTier tier in enemyTiers)
         {
-            Vector3 pos = GetSpawnPosition();
-            if (pos != Vector3.zero)
+            foreach (EnemyEntry entry in tier.enemies)
             {
-                enemies.Add(Instantiate(leszyPrefab, pos, Quaternion.identity));
-                Debug.Log("👑 Boss spawned!");
+                if (entry.isBoss && entry.prefab != null)
+                {
+                    Vector3 pos = GetSpawnPosition();
+                    if (pos != Vector3.zero)
+                    {
+                        GameObject boss = Instantiate(entry.prefab, pos, Quaternion.identity);
+                        Vector3 bossPos = boss.transform.position;
+                        bossPos.y = spawnHeight;
+                        boss.transform.position = bossPos;
+                        enemies.Add(boss);
+                        Debug.Log($"👑 Boss {entry.enemyName} spawned!");
+                        return;
+                    }
+                }
             }
         }
+        Debug.LogWarning("❌ Nie znaleziono bossa!");
     }
 
-    public void TestSpawnBazyliszek()
+    public void TestSpawnTier(int tierIndex)
     {
-        if (bazyliszekPrefab != null)
+        if (tierIndex < 0 || tierIndex >= enemyTiers.Count) return;
+
+        EnemyTier tier = enemyTiers[tierIndex];
+        if (tier.enemies.Count > 0)
         {
+            EnemyEntry entry = tier.enemies[Random.Range(0, tier.enemies.Count)];
             Vector3 pos = GetSpawnPosition();
             if (pos != Vector3.zero)
             {
-                enemies.Add(Instantiate(bazyliszekPrefab, pos, Quaternion.identity));
-                Debug.Log("🐉 Bazyliszek spawned!");
+                GameObject enemy = Instantiate(entry.prefab, pos, Quaternion.identity);
+                Vector3 enemyPos = enemy.transform.position;
+                enemyPos.y = spawnHeight;
+                enemy.transform.position = enemyPos;
+                enemies.Add(enemy);
+                Debug.Log($"🎯 {entry.enemyName} z tieru {tier.tierName} spawned!");
             }
         }
     }

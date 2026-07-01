@@ -2,18 +2,25 @@
 
 public class PlayerStats : MonoBehaviour
 {
-    [Header("Góral")]
+    [Header("═══════════════ GÓRAL ═══════════════")]
     public float goralHealth = 100f;
     public float goralSpeed = 5f;
 
-    [Header("Seraphim")]
+    [Header("═══════════════ SERAPHIM ═══════════════")]
     public float seraphimHealth = 40f;
     public float seraphimSpeed = 6f;
 
-    [Header("Pasterz")]
+    [Header("═══════════════ PASTERZ ═══════════════")]
     public float pasterzHealth = 50f;
     public float pasterzSpeed = 5.5f;
     public float pasterzArmor = 20f;
+
+    private GameManager gameManager;
+
+    void Start()
+    {
+        gameManager = FindFirstObjectByType<GameManager>();
+    }
 
     public void AssignToPlayer(GameObject player)
     {
@@ -45,6 +52,26 @@ public class PlayerStats : MonoBehaviour
             Debug.Log($"Pasterz: HP={pasterzHealth}, Speed={pasterzSpeed}, Armor={pasterzArmor}");
         }
 
-        health.UpdateUI();
+        // === TYLKO GAME MANAGER ===
+        if (gameManager != null)
+        {
+            gameManager.UpdateUI();
+        }
+    }
+
+    public void UpdateUI()
+    {
+        if (gameManager != null)
+        {
+            gameManager.UpdateUI();
+        }
+    }
+
+    public void RefreshUI()
+    {
+        if (gameManager != null)
+        {
+            gameManager.UpdateUI();
+        }
     }
 }

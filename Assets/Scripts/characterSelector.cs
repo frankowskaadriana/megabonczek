@@ -2,12 +2,12 @@
 
 public class CharacterSelector : MonoBehaviour
 {
-    [Header("Postacie")]
+    [Header("═══════════════ POSTACIE ═══════════════")]
     public GameObject mountainMan;
     public GameObject seraphim;
     public GameObject shepherd;
 
-    [Header("Systemy")]
+    [Header("═══════════════ SYSTEMY ═══════════════")]
     public CameraController cameraController;
     public LevelSystem levelSystem;
     public PlayerStats playerStats;
@@ -17,17 +17,46 @@ public class CharacterSelector : MonoBehaviour
 
     void Start()
     {
+        // Ukryj wszystkie postacie na starcie
         SetActiveAll(false);
-        Debug.Log("Wcisnij 1 - Goral, 2 - Seraphim, 3 - Pasterz");
+
+        // Odblokuj kursor
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // Upewnij się że gra nie jest zamrożona
+        Time.timeScale = 1f;
+
+        Debug.Log("🎮 Wybierz postać: 1 - Góral, 2 - Seraphim, 3 - Pasterz");
     }
 
     void Update()
     {
+        // Jeśli już wybrano, nie reaguj na klawisze
         if (hasSelected) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SelectCharacter(mountainMan, "Goral");
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectCharacter(seraphim, "Seraphim");
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) SelectCharacter(shepherd, "Pasterz");
+        // Wybór postaci
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            SelectCharacter(mountainMan, "Góral");
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            SelectCharacter(seraphim, "Seraphim");
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            SelectCharacter(shepherd, "Pasterz");
+        }
+
+        // DEBUG - klawisz F5 pokazuje aktywne postacie
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            Debug.Log($"🔍 Góral aktywny: {(mountainMan != null ? mountainMan.activeSelf : false)}");
+            Debug.Log($"🔍 Seraphim aktywny: {(seraphim != null ? seraphim.activeSelf : false)}");
+            Debug.Log($"🔍 Pasterz aktywny: {(shepherd != null ? shepherd.activeSelf : false)}");
+            Debug.Log($"🔍 hasSelected: {hasSelected}");
+        }
     }
 
     void SetActiveAll(bool active)
@@ -39,45 +68,126 @@ public class CharacterSelector : MonoBehaviour
 
     void SelectCharacter(GameObject character, string name)
     {
+        // Sprawdź czy postać istnieje
         if (character == null)
         {
-            Debug.LogError($"{name} nie jest przypisany!");
+            Debug.LogError($"❌ {name} nie jest przypisany w Inspectorze!");
             return;
         }
 
+        // Ukryj wszystkie postacie
         SetActiveAll(false);
+
+        // Aktywuj wybraną postać
         currentCharacter = character;
         currentCharacter.SetActive(true);
+
+        // Ustaw tag "Player"
         currentCharacter.tag = "Player";
 
-        if (cameraController != null) cameraController.SetTarget(currentCharacter.transform);
+        Debug.Log($"✅ Aktywowano: {name}");
 
+        // Ustaw kamerę na postać
+        if (cameraController != null)
+        {
+            cameraController.SetTarget(currentCharacter.transform);
+            Debug.Log("📷 Kamera ustawiona na gracza");
+        }
+
+        // Dodaj brakujące komponenty
         AddMissingComponents(name);
 
+        // PlayerHealth
         PlayerHealth health = currentCharacter.GetComponent<PlayerHealth>();
-        if (health == null) health = currentCharacter.AddComponent<PlayerHealth>();
+        if (health == null)
+        {
+            health = currentCharacter.AddComponent<PlayerHealth>();
+            Debug.Log("❤️ Dodano PlayerHealth");
+        }
 
+        // PlayerMovement
+        PlayerMovement movement = currentCharacter.GetComponent<PlayerMovement>();
+        if (movement == null)
+        {
+            movement = currentCharacter.AddComponent<PlayerMovement>();
+            Debug.Log("🏃 Dodano PlayerMovement");
+        }
+
+        // PlayerStats
+        if (playerStats != null)
+        {
+            playerStats.AssignToPlayer(currentCharacter);
+            Debug.Log("📊 Przypisano statystyki");
+        }
+
+        // LevelSystem
         if (levelSystem != null)
         {
             levelSystem.StartGame();
+            Debug.Log("🎮 LevelSystem rozpoczęty");
         }
 
-        if (playerStats != null) playerStats.AssignToPlayer(currentCharacter);
-
+        // Zablokuj możliwość zmiany postaci
         hasSelected = true;
-        Debug.Log($"Aktywny: {name}");
+
+        // Schowaj kursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        Debug.Log($"🎮 Wybrano: {name}! Gra rozpoczęta.");
     }
 
     void AddMissingComponents(string name)
     {
-        if (currentCharacter.GetComponent<PlayerMovement>() == null)
-            currentCharacter.AddComponent<PlayerMovement>();
+        if (currentCharacter == null) return;
 
-        if (name == "Goral" && currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
-            currentCharacter.AddComponent<AbilitiesMountainMan>();
-        else if (name == "Seraphim" && currentCharacter.GetComponent<AbilitiesSeraphim>() == null)
-            currentCharacter.AddComponent<AbilitiesSeraphim>();
-        else if (name == "Pasterz" && currentCharacter.GetComponent<ShepherdAbilities>() == null)
-            currentCharacter.AddComponent<ShepherdAbilities>();
+        // Abilities dla danej postaci
+        if (name == "Góral" || name == "Goral")
+        {
+            if (currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
+            {
+                currentCharacter.AddComponent<AbilitiesMountainMan>();
+                Debug.Log("⚔️ Dodano AbilitiesMountainMan");
+            }
+        }
+        else if (name == "Seraphim")
+        {
+            if (currentCharacter.GetComponent<AbilitiesSeraphim>() == null)
+            {
+                currentCharacter.AddComponent<AbilitiesSeraphim>();
+                Debug.Log("✨ Dodano AbilitiesSeraphim");
+            }
+        }
+        else if (name == "Pasterz" || name == "Shepherd")
+        {
+            if (currentCharacter.GetComponent<ShepherdAbilities>() == null)
+            {
+                currentCharacter.AddComponent<ShepherdAbilities>();
+                Debug.Log("🐕 Dodano ShepherdAbilities");
+            }
+        }
+    }
+
+    // ============================================
+    // METODY PUBLICZNE
+    // ============================================
+
+    public GameObject GetCurrentCharacter()
+    {
+        return currentCharacter;
+    }
+
+    public bool HasSelected()
+    {
+        return hasSelected;
+    }
+
+    public void ResetSelection()
+    {
+        hasSelected = false;
+        SetActiveAll(false);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        Debug.Log("🔄 Zresetowano wybór postaci");
     }
 }

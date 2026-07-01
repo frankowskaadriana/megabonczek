@@ -13,7 +13,6 @@ public class AbilitiesSeraphim : MonoBehaviour
     [Header("═══════════════ ODRZUT LIGHTBEAM ═══════════════")]
     public float beamPushbackForce = 6f;
     public float beamPushbackUpForce = 1.5f;
-    public float beamPushbackInterval = 0.1f;
 
     [Header("═══════════════ UMIEJĘTNOŚCI ═══════════════")]
     public float healAmount = 30f;
@@ -71,24 +70,13 @@ public class AbilitiesSeraphim : MonoBehaviour
         specialTimer = specialCooldown;
         chargeTimer = chargeCooldown;
 
-        // === SZUKAJ FIREPOINT ===
         if (firePoint == null)
         {
-            // Szukaj w dzieciach
             Transform fp = transform.Find("FirePoint");
-            if (fp != null)
-            {
-                firePoint = fp;
-                Debug.Log("🎯 Znaleziono FirePoint w dzieciach!");
-            }
-            else
-            {
-                firePoint = transform;
-                Debug.Log("⚠️ Brak FirePoint, używam pozycji gracza");
-            }
+            if (fp != null) firePoint = fp;
+            else firePoint = transform;
         }
 
-        // === STWÓRZ WIZUALIZACJĘ ===
         CreateVisualLine();
     }
 
@@ -101,7 +89,7 @@ public class AbilitiesSeraphim : MonoBehaviour
         visualLine = visualObj.AddComponent<LineRenderer>();
         visualLine.startWidth = visualLineWidth;
         visualLine.endWidth = visualLineWidth * 0.3f;
-        visualLine.useWorldSpace = true; // WAŻNE - używamy świata
+        visualLine.useWorldSpace = true;
         visualLine.positionCount = 30;
         visualLine.loop = false;
         visualLine.sortingOrder = 10;
@@ -119,7 +107,6 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (visualLine == null || firePoint == null) return;
 
-        // === PUNKT STARTU = FIREPOINT ===
         Vector3 startPoint = firePoint.position;
         Vector3 direction = transform.forward;
 
@@ -149,7 +136,6 @@ public class AbilitiesSeraphim : MonoBehaviour
         visualLine.loop = true;
         visualLine.useWorldSpace = false;
 
-        // Użyj pozycji FirePoint jako środka
         Vector3 center = firePoint != null ? firePoint.localPosition : Vector3.zero;
 
         for (int i = 0; i < points; i++)
@@ -247,18 +233,17 @@ public class AbilitiesSeraphim : MonoBehaviour
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
-        // === INSTANTIATE LIGHTBEAM OD FIREPOINT ===
         GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, Quaternion.LookRotation(direction));
         LightBeam lightBeam = beam.GetComponent<LightBeam>();
         if (lightBeam != null)
         {
             lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
-            lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce, beamPushbackInterval);
+
+            // === POPRAWIONE - 2 ARGUMENTY ===
+            lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce);
         }
 
         AudioManager.Instance?.PlayLaser();
-
-        // === POKAŻ TRAJEKTORIĘ OD FIREPOINT ===
         ShowTrajectoryVisual();
     }
 
@@ -293,8 +278,6 @@ public class AbilitiesSeraphim : MonoBehaviour
     IEnumerator Judgment()
     {
         AudioManager.Instance?.PlayUltimate();
-
-        // === POKAŻ KOŁO OD FIREPOINT ===
         ShowCircleVisual(judgmentRadius);
 
         if (judgmentEffect != null)
@@ -593,7 +576,6 @@ public class AbilitiesSeraphim : MonoBehaviour
         Gizmos.color = Color.cyan;
         Gizmos.DrawLine(transform.position, transform.position + transform.forward * specialRange);
 
-        // Pokaż FirePoint w Scene View
         if (firePoint != null)
         {
             Gizmos.color = Color.green;

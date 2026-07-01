@@ -5,19 +5,23 @@ using System.Collections.Generic;
 
 public class BaseEnemy : MonoBehaviour
 {
-    [Header("═══════════════ ATAK ═══════════════")]
+    [Header("═══════════════ STATYSTYKI ═══════════════")]
+    public float maxHealth = 30f;
+    public float moveSpeed = 3f;
     public float damage = 10f;
+    public int expReward = 10;
 
     [Header("═══════════════ ATAK ═══════════════")]
-    public float attackRange = 1.8f;
-    public float attackCooldown = 1.5f;
-    public float attackDelay = 0.5f;
+    public float attackRange = 2f;           // ZWIĘKSZONE
+    public float attackCooldown = 0.8f;       // SZYBSZE (z 1.5 na 0.8)
+    public float attackDelay = 0.2f;          // SZYBSZE (z 0.5 na 0.2)
+    public float attackAngle = 90f;           // KĄT ATAKU (stożek)
 
     [Header("═══════════════ ODRZUT ═══════════════")]
     public float hitPushForce = 5f;
     public float hitStunDuration = 0.2f;
 
-    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
+    [Header("═══════════════ EFEKTY WIZUALNE ATAKU ═══════════════")]
     public Color attackChargeColor = new Color(0f, 0.5f, 1f, 0.5f);
     public Color attackHitColor = new Color(1f, 0f, 0f, 0.6f);
     public Color hitColor = Color.red;
@@ -32,8 +36,6 @@ public class BaseEnemy : MonoBehaviour
     public float acceleration = 25f;
 
     private float currentHealth;
-    private float maxHealth;
-    private int expReward;
     private Transform player;
     private NavMeshAgent agent;
     private float attackTimer = 0f;
@@ -43,6 +45,7 @@ public class BaseEnemy : MonoBehaviour
 
     private List<MeshRenderer> allMeshes = new List<MeshRenderer>();
     private List<Color> originalColors = new List<Color>();
+    private List<bool> hasColorProperty = new List<bool>();
 
     private LevelSystem levelSystem;
     private Rigidbody rb;
@@ -62,30 +65,21 @@ public class BaseEnemy : MonoBehaviour
         myCollider = GetComponent<Collider>();
         IgnoreEnemyCollisions();
 
-        // === POBIERZ STATYSTYKI Z LEVELSYSTEM ===
         levelSystem = FindFirstObjectByType<LevelSystem>();
         if (levelSystem != null)
         {
             maxHealth = levelSystem.GetEnemyHealth();
             expReward = levelSystem.GetEnemyExpReward();
         }
-        else
-        {
-            maxHealth = 30f;
-            expReward = 10;
-        }
         currentHealth = maxHealth;
-
-        Debug.Log($"💀 {gameObject.name}: HP={maxHealth}, EXP={expReward}");
 
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
 
-        // === NAVMESHAGENT ===
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
 
-        agent.speed = 3f;
+        agent.speed = moveSpeed;
         agent.angularSpeed = angularSpeed;
         agent.acceleration = acceleration;
         agent.stoppingDistance = 0.3f;
@@ -98,7 +92,6 @@ public class BaseEnemy : MonoBehaviour
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.enabled = true;
 
-        // === RIGIDBODY ===
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 50f;
@@ -106,7 +99,6 @@ public class BaseEnemy : MonoBehaviour
         rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
-        // === FIREPOINT ===
         Transform fp = transform.Find("FirePoint");
         if (fp != null) firePoint = fp;
         else
@@ -124,37 +116,82 @@ public class BaseEnemy : MonoBehaviour
 
         lastPosition = transform.position;
 
-        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}");
+        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}, Atak co {attackCooldown}s");
     }
 
     void CollectAllMeshRenderers()
     {
         allMeshes.Clear();
         originalColors.Clear();
+        hasColorProperty.Clear();
 
         MeshRenderer mainMesh = GetComponent<MeshRenderer>();
-        if (mainMesh != null)
-        {
-            allMeshes.Add(mainMesh);
-            originalColors.Add(mainMesh.material.color);
-        }
+        if (mainMesh != null) AddMeshRenderer(mainMesh);
 
         MeshRenderer[] childrenMeshes = GetComponentsInChildren<MeshRenderer>(true);
         foreach (MeshRenderer child in childrenMeshes)
         {
             if (child != mainMesh && !allMeshes.Contains(child))
             {
-                allMeshes.Add(child);
-                originalColors.Add(child.material.color);
+                AddMeshRenderer(child);
             }
         }
     }
 
+    void AddMeshRenderer(MeshRenderer mesh)
+    {
+        if (mesh == null) return;
+        allMeshes.Add(mesh);
+
+        bool hasColor = false;
+        Color color = Color.white;
+
+        try
+        {
+            if (mesh.material != null && mesh.material.HasProperty("_Color"))
+            {
+                color = mesh.material.color;
+                hasColor = true;
+            }
+            else if (mesh.material != null && mesh.material.HasProperty("_BaseColor"))
+            {
+                color = mesh.material.GetColor("_BaseColor");
+                hasColor = true;
+            }
+            else if (mesh.material != null && mesh.material.HasProperty("_MainColor"))
+            {
+                color = mesh.material.GetColor("_MainColor");
+                hasColor = true;
+            }
+            else
+            {
+                color = Color.white;
+                hasColor = false;
+            }
+        }
+        catch { color = Color.white; hasColor = false; }
+
+        originalColors.Add(color);
+        hasColorProperty.Add(hasColor);
+    }
+
     void SetAllMeshesColor(Color color)
     {
-        foreach (MeshRenderer mesh in allMeshes)
+        for (int i = 0; i < allMeshes.Count; i++)
         {
-            if (mesh != null) mesh.material.color = color;
+            MeshRenderer mesh = allMeshes[i];
+            if (mesh == null || mesh.material == null) continue;
+
+            try
+            {
+                if (mesh.material.HasProperty("_Color"))
+                    mesh.material.color = color;
+                else if (mesh.material.HasProperty("_BaseColor"))
+                    mesh.material.SetColor("_BaseColor", color);
+                else if (mesh.material.HasProperty("_MainColor"))
+                    mesh.material.SetColor("_MainColor", color);
+            }
+            catch { }
         }
     }
 
@@ -166,10 +203,8 @@ public class BaseEnemy : MonoBehaviour
         attackVisual.transform.localRotation = Quaternion.identity;
 
         visualLine = attackVisual.AddComponent<LineRenderer>();
-        visualLine.startWidth = 0.1f;
-        visualLine.endWidth = 0.1f;
         visualLine.useWorldSpace = false;
-        visualLine.loop = true;
+        visualLine.loop = false;
         visualLine.sortingOrder = 10;
 
         Material mat = new Material(Shader.Find("Sprites/Default"));
@@ -180,26 +215,38 @@ public class BaseEnemy : MonoBehaviour
         attackVisual.SetActive(false);
     }
 
-    void ShowAttackVisual(float radius, Color color)
+    void ShowAttackCone(float range, float angle, Color color)
     {
         if (visualLine == null || firePoint == null) return;
 
-        int points = 40;
-        visualLine.positionCount = points;
-        visualLine.loop = true;
+        float halfAngle = angle / 2f;
+        int points = 30;
+        visualLine.positionCount = points + 3;
+        visualLine.loop = false;
 
-        Vector3 center = firePoint.localPosition;
+        Vector3 center = Vector3.zero;
+        Vector3 forward = Vector3.forward;
 
-        for (int i = 0; i < points; i++)
+        visualLine.SetPosition(0, center);
+
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        visualLine.SetPosition(1, center + leftDir * range);
+
+        int pointIndex = 2;
+        for (int i = 1; i <= points; i++)
         {
-            float angle = 2f * Mathf.PI * i / points;
-            float x = Mathf.Sin(angle) * radius;
-            float z = Mathf.Cos(angle) * radius;
-            visualLine.SetPosition(i, new Vector3(x, center.y, z));
+            float t = (float)i / points;
+            float currentAngle = -halfAngle + (angle * t);
+            Vector3 dir = Quaternion.Euler(0, currentAngle, 0) * forward;
+            Vector3 point = center + dir * range;
+            visualLine.SetPosition(pointIndex++, point);
         }
 
+        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
+        visualLine.SetPosition(visualLine.positionCount - 1, center + rightDir * range);
+
         visualLine.startColor = color;
-        visualLine.endColor = color;
+        visualLine.endColor = new Color(color.r, color.g, color.b, 0.3f);
         visualLine.material.color = color;
 
         attackVisual.SetActive(true);
@@ -252,7 +299,6 @@ public class BaseEnemy : MonoBehaviour
                     agent.Warp(transform.position);
                     agent.SetDestination(player.position);
                     stuckTimer = 0f;
-                    Debug.Log($"🔄 {gameObject.name}: Naprawa nawigacji!");
                 }
             }
             else
@@ -303,10 +349,12 @@ public class BaseEnemy : MonoBehaviour
 
         if (agent != null) agent.isStopped = true;
 
-        ShowAttackVisual(attackRange, attackChargeColor);
+        // Pokaż NIEBIESKI stożek (przygotowanie)
+        ShowAttackCone(attackRange, attackAngle, attackChargeColor);
         yield return new WaitForSeconds(attackDelay);
 
-        ShowAttackVisual(attackRange, attackHitColor);
+        // Zmień na CZERWONY stożek (atak)
+        ShowAttackCone(attackRange, attackAngle, attackHitColor);
         MeleeAttack();
 
         yield return new WaitForSeconds(attackVisualDuration);
@@ -323,18 +371,25 @@ public class BaseEnemy : MonoBehaviour
         float dist = Vector3.Distance(transform.position, player.position);
         if (dist > attackRange * 1.2f) return;
 
-        PlayerHealth ph = player.GetComponent<PlayerHealth>();
-        if (ph != null)
-        {
-            ph.TakeDamage(damage);
-            Debug.Log($"⚔️ {gameObject.name} atakuje! {damage} obrażeń!");
+        // Sprawdź czy gracz jest w stożku ataku
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        float angle = Vector3.Angle(transform.forward, directionToPlayer);
 
-            Rigidbody playerRb = player.GetComponent<Rigidbody>();
-            if (playerRb != null)
+        if (angle <= attackAngle / 2)
+        {
+            PlayerHealth ph = player.GetComponent<PlayerHealth>();
+            if (ph != null)
             {
-                Vector3 dir = (player.position - transform.position).normalized;
-                dir.y = 0.5f;
-                playerRb.AddForce(dir * 5f, ForceMode.Impulse);
+                ph.TakeDamage(damage);
+                Debug.Log($"⚔️ {gameObject.name} atakuje! {damage} obrażeń!");
+
+                Rigidbody playerRb = player.GetComponent<Rigidbody>();
+                if (playerRb != null)
+                {
+                    Vector3 dir = (player.position - transform.position).normalized;
+                    dir.y = 0.5f;
+                    playerRb.AddForce(dir * 5f, ForceMode.Impulse);
+                }
             }
         }
     }
@@ -354,19 +409,42 @@ public class BaseEnemy : MonoBehaviour
 
     IEnumerator FlashAllMeshes()
     {
-        foreach (MeshRenderer mesh in allMeshes)
+        for (int i = 0; i < allMeshes.Count; i++)
         {
-            if (mesh != null) mesh.material.color = hitColor;
+            MeshRenderer mesh = allMeshes[i];
+            if (mesh == null || mesh.material == null) continue;
+
+            try
+            {
+                if (hasColorProperty[i])
+                {
+                    if (mesh.material.HasProperty("_Color"))
+                        mesh.material.color = hitColor;
+                    else if (mesh.material.HasProperty("_BaseColor"))
+                        mesh.material.SetColor("_BaseColor", hitColor);
+                }
+            }
+            catch { }
         }
 
         yield return new WaitForSeconds(hitFlashDuration);
 
-        for (int i = 0; i < allMeshes.Count && i < originalColors.Count; i++)
+        for (int i = 0; i < allMeshes.Count; i++)
         {
-            if (allMeshes[i] != null)
+            MeshRenderer mesh = allMeshes[i];
+            if (mesh == null || mesh.material == null) continue;
+
+            try
             {
-                allMeshes[i].material.color = originalColors[i];
+                if (hasColorProperty[i] && i < originalColors.Count)
+                {
+                    if (mesh.material.HasProperty("_Color"))
+                        mesh.material.color = originalColors[i];
+                    else if (mesh.material.HasProperty("_BaseColor"))
+                        mesh.material.SetColor("_BaseColor", originalColors[i]);
+                }
             }
+            catch { }
         }
     }
 
@@ -422,7 +500,6 @@ public class BaseEnemy : MonoBehaviour
 
         if (levelSystem != null)
         {
-            // Dodajemy EXP tyle razy ile wynosi nagroda (dzielone przez 10 dla balansu)
             for (int i = 0; i < expReward / 10; i++)
             {
                 levelSystem.EnemyDied();
@@ -442,8 +519,38 @@ public class BaseEnemy : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
+        // Zasięg ataku
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        // Stożek ataku
+        Vector3 forward = transform.forward;
+        float halfAngle = attackAngle / 2f;
+
+        Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * forward;
+
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.DrawLine(transform.position, transform.position + leftDir * attackRange);
+        Gizmos.DrawLine(transform.position, transform.position + rightDir * attackRange);
+
+        // Łuk
+        int points = 20;
+        for (int i = 0; i <= points; i++)
+        {
+            float t = (float)i / points;
+            float angle = -halfAngle + (attackAngle * t);
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * forward;
+            Vector3 point = transform.position + dir * attackRange;
+
+            if (i > 0)
+            {
+                float prevAngle = -halfAngle + (attackAngle * ((float)(i - 1) / points));
+                Vector3 prevDir = Quaternion.Euler(0, prevAngle, 0) * forward;
+                Vector3 prevPoint = transform.position + prevDir * attackRange;
+                Gizmos.DrawLine(prevPoint, point);
+            }
+        }
 
         if (firePoint != null)
         {

@@ -557,7 +557,6 @@ MonoBehaviour:
   firePoint: {fileID: 663367817}
   beamPushbackForce: 6
   beamPushbackUpForce: 1.5
-  beamPushbackInterval: 0.1
   healAmount: 30
   healCooldown: 10
   shieldDuration: 5
@@ -5338,30 +5337,45 @@ MonoBehaviour:
   damageClips: []
   deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   healClip: {fileID: 8300000, guid: f7c538247b24639488c5e1f9c0c52a97, type: 3}
-  goralAttackClips: []
+  goralAttackClips:
+  - {fileID: 8300000, guid: b0484a84494877546817dcfec174fa2c, type: 3}
+  - {fileID: 8300000, guid: 1bb39cb3cf250234e877f5c4419a4f90, type: 3}
+  - {fileID: 8300000, guid: b12e2e112b0d2df419e1dbfc5a1929f3, type: 3}
+  - {fileID: 8300000, guid: 44236675485d4bf4ebf66696516fc6eb, type: 3}
+  - {fileID: 8300000, guid: 986140dc11acdbe4bb13cbedf27121cb, type: 3}
+  - {fileID: 8300000, guid: c063a9c627e39fd43bf627bf6cf5d697, type: 3}
   goralStompClip: {fileID: 0}
-  goralSpecialClip: {fileID: 0}
-  goralUltimateClip: {fileID: 0}
-  seraphimAttackClips: []
-  seraphimLaserClip: {fileID: 0}
+  goralSpecialClip: {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  goralUltimateClip: {fileID: 8300000, guid: 167411e7734a458438857ef2d90b76e8, type: 3}
+  seraphimAttackClips:
+  - {fileID: 8300000, guid: 74ac969ce47a5ec47a97b8255b12de1c, type: 3}
+  - {fileID: 8300000, guid: f9d71b59801af5e49a0e281caa57d172, type: 3}
+  - {fileID: 8300000, guid: c80bf7aa4e4201c42a9e94c078b53212, type: 3}
+  - {fileID: 8300000, guid: 347779be129ddc64990cc5c031dd1ca9, type: 3}
+  - {fileID: 8300000, guid: f1b858529410f7f49a401ee7275a832b, type: 3}
+  - {fileID: 8300000, guid: 77035d109ebe3aa4faf7d56db4278566, type: 3}
+  seraphimLaserClip: {fileID: 8300000, guid: 74ac969ce47a5ec47a97b8255b12de1c, type: 3}
   seraphimHealClip: {fileID: 0}
-  seraphimChargeClip: {fileID: 0}
-  seraphimSpecialClip: {fileID: 0}
-  seraphimUltimateClip: {fileID: 0}
-  shepherdAttackClips: []
+  seraphimChargeClip: {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  seraphimSpecialClip: {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  seraphimUltimateClip: {fileID: 8300000, guid: 9fae452af4a1e5444a249db7c732b5e1, type: 3}
+  shepherdAttackClips:
+  - {fileID: 8300000, guid: 9c6c309b8de175541abe0febfc00b026, type: 3}
+  - {fileID: 8300000, guid: 0803ebc5bc6ddb74e9c3e27094a65fc7, type: 3}
+  - {fileID: 8300000, guid: 9fdc710155006e9498007fec46fb9eba, type: 3}
   shepherdBarkClip: {fileID: 0}
-  shepherdSheepSpawnClip: {fileID: 0}
-  shepherdSpecialClip: {fileID: 0}
+  shepherdSheepSpawnClip: {fileID: 8300000, guid: 55e27d9d079c65345a0c72e51b5dec3a, type: 3}
+  shepherdSpecialClip: {fileID: 8300000, guid: 0c983215b0fb5714cae086dedde07ff3, type: 3}
   enemyHitClips: []
   enemyDeathClips:
   - {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   enemyAttackClips: []
   portalOpenClip: {fileID: 8300000, guid: dfac146b14bfdbf42985ffc65d7f5b15, type: 3}
   portalCloseClip: {fileID: 0}
-  levelUpClip: {fileID: 8300000, guid: 55e27d9d079c65345a0c72e51b5dec3a, type: 3}
+  levelUpClip: {fileID: 8300000, guid: 3dd0fd780ccfed34b9692aa8882e7c7c, type: 3}
   perkSelectClip: {fileID: 8300000, guid: 9a7193d882e4c7b4e8a38ba5f5ec0f72, type: 3}
-  waveStartClip: {fileID: 8300000, guid: b9740634e543d7349bdae51ee102ab3a, type: 3}
-  waveCompleteClip: {fileID: 0}
+  waveStartClip: {fileID: 8300000, guid: 809eb92b3b4627942817e976b85e4a26, type: 3}
+  waveCompleteClip: {fileID: 8300000, guid: c3d4c85afa07ce34dbbe7ee9a7a64141, type: 3}
   backgroundMusic: {fileID: 8300000, guid: 24b246b170d874f45b6f9a1e4e80ca69, type: 3}
   bossMusic: {fileID: 0}
   combatMusic: {fileID: 0}

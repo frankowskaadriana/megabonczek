@@ -40,26 +40,17 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float visualDuration = 0.3f;
     public float visualLineWidth = 0.08f;
 
-    [Header("═══════════════ DŹWIĘKI ═══════════════")]
-    public AudioClip[] laserSounds;
-    public AudioClip[] specialSounds;
-    public AudioClip[] ultimateSounds;
-    public AudioClip[] healSounds;
-    public AudioClip[] chargeSounds;
-    public AudioClip deathSound;
-    public AudioClip[] footstepSounds;
+    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
+    public GameObject specialEffectPrefab;
+    public GameObject ultimateEffectPrefab;
+    public GameObject hitEffectPrefab;
 
-    [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
-    [Range(0f, 1f)] public float laserVolume = 0.7f;
-    [Range(0f, 1f)] public float specialVolume = 0.8f;
-    [Range(0f, 1f)] public float ultimateVolume = 0.9f;
-    [Range(0f, 1f)] public float healVolume = 0.6f;
-    [Range(0f, 1f)] public float chargeVolume = 0.7f;
-    [Range(0f, 1f)] public float deathVolume = 0.7f;
-    [Range(0f, 1f)] public float footstepVolume = 0.2f;
+    [Header("═══════════════ USTAWIENIA EFEKTÓW ═══════════════")]
+    public float effectScale = 1f;
+    public float effectDestroyTime = 1.5f;
 
-    [Header("═══════════════ INTERWAŁ KROKÓW ═══════════════")]
-    public float footstepInterval = 0.35f;
+    [Header("═══════════════ USTAWIENIA ROTACJI 3D ═══════════════")]
+    public Vector3 rotationOffset = Vector3.zero; // Kompensacja rotacji dla prefaba
 
     private float attackTimer = 0f;
     private float healTimer = 0f;
@@ -73,11 +64,6 @@ public class AbilitiesSeraphim : MonoBehaviour
     private Rigidbody rb;
     private Camera mainCamera;
     private bool canShoot = true;
-
-    // Audio
-    private AudioSource audioSource;
-    private float footstepTimer = 0f;
-    private bool isMoving = false;
 
     // Wizualizacje
     private GameObject visualObj;
@@ -103,12 +89,9 @@ public class AbilitiesSeraphim : MonoBehaviour
             else firePoint = transform;
         }
 
-        // Audio
-        audioSource = gameObject.AddComponent<AudioSource>();
-        audioSource.spatialBlend = 0.5f;
-        audioSource.volume = 0.5f;
-
         CreateVisualLine();
+
+        Debug.Log("✨ Seraphim gotowy!");
     }
 
     void CreateVisualLine()
@@ -187,35 +170,54 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (visualObj != null) visualObj.SetActive(false);
     }
 
+    // ============================================================
+    // SPAWN EFEKTU
+    // ============================================================
+    private void SpawnEffect(GameObject effectPrefab, Vector3 position, Quaternion rotation, float scale = 1f)
+    {
+        if (effectPrefab == null) return;
+
+        GameObject effect = Instantiate(effectPrefab, position, rotation);
+        effect.transform.localScale = Vector3.one * scale;
+
+        // Dodaj rotację offset
+        effect.transform.Rotate(rotationOffset, Space.Self);
+
+        ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>();
+        foreach (ParticleSystem ps in particleSystems)
+        {
+            var main = ps.main;
+            main.loop = false;
+            main.prewarm = false;
+            main.playOnAwake = false;
+            main.duration = 0.5f;
+            main.startLifetime = 0.3f;
+
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.Play();
+        }
+
+        Destroy(effect, effectDestroyTime);
+    }
+
+    private void SpawnEffect(GameObject effectPrefab, Vector3 position, float scale = 1f)
+    {
+        SpawnEffect(effectPrefab, position, Quaternion.identity, scale);
+    }
+
     void Update()
     {
         if (player == null) return;
 
-        // Kroki
-        if (rb != null)
-        {
-            isMoving = rb.linearVelocity.magnitude > 0.5f;
-        }
-
-        if (isMoving)
-        {
-            footstepTimer += Time.deltaTime;
-            if (footstepTimer >= footstepInterval)
-            {
-                footstepTimer = 0f;
-                PlayFootstep();
-            }
-        }
-        else
-        {
-            footstepTimer = 0f;
-        }
+        // ============================================================
+        // OBRACANIE ZA MYSZKĄ
+        // ============================================================
+        RotateToMouse();
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canShoot)
         {
             attackTimer = 0f;
-            RotateToMouse();
             RangedAttack();
         }
 
@@ -274,25 +276,96 @@ public class AbilitiesSeraphim : MonoBehaviour
         }
     }
 
+    // ============================================================
+    // RANGED ATTACK - 3D
+    // ============================================================
     void RangedAttack()
     {
-        if (lightBeamPrefab == null || firePoint == null) return;
+        if (lightBeamPrefab == null || firePoint == null)
+        {
+            Debug.LogWarning("❌ lightBeamPrefab lub firePoint jest null!");
+            return;
+        }
 
-        Vector3 targetPosition = GetMouseWorldPosition();
-        if (targetPosition == Vector3.zero) return;
+        if (mainCamera == null)
+        {
+            Debug.LogWarning("❌ mainCamera jest null! Ustaw tag MainCamera na kamerze.");
+            return;
+        }
 
+        // ============================================================
+        // POZYCJA MYSZKI
+        // ============================================================
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, firePoint.position);
+
+        float distance;
+        if (!groundPlane.Raycast(ray, out distance))
+        {
+            Debug.LogWarning("❌ Nie można znaleźć pozycji myszki!");
+            return;
+        }
+
+        Vector3 targetPosition = ray.GetPoint(distance);
+        targetPosition.y = 0f;
+
+        // ============================================================
+        // KIERUNEK DO MYSZKI
+        // ============================================================
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
-        GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, Quaternion.LookRotation(direction));
+        if (direction.magnitude < 0.01f)
+        {
+            Debug.LogWarning("❌ Kierunek jest zerowy! Użyj domyślnego kierunku.");
+            direction = transform.forward;
+            direction.y = 0f;
+        }
+
+        Debug.Log($"🎯 Atak w kierunku: {direction}");
+
+        // ============================================================
+        // SPAWN LIGHTBEAM - 3D ROTACJA
+        // ============================================================
+        Quaternion rotation = Quaternion.LookRotation(direction);
+
+        // Dodaj kompensację rotacji jeśli prefab jest źle ustawiony
+        rotation *= Quaternion.Euler(rotationOffset);
+
+        GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, rotation);
+        beam.transform.localScale = Vector3.one * effectScale;
+
         LightBeam lightBeam = beam.GetComponent<LightBeam>();
         if (lightBeam != null)
         {
             lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
             lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce);
         }
+        else
+        {
+            Debug.LogWarning("❌ LightBeam nie znaleziony na prefabie!");
+        }
 
-        PlayLaserSound();
+        // ============================================================
+        // NAPRAWA PARTICLE SYSTEM (JEŚLI JEST)
+        // ============================================================
+        ParticleSystem[] particleSystems = beam.GetComponentsInChildren<ParticleSystem>();
+        foreach (ParticleSystem ps in particleSystems)
+        {
+            var main = ps.main;
+            main.loop = false;
+            main.prewarm = false;
+            main.playOnAwake = false;
+            main.duration = 0.5f;
+            main.startLifetime = 0.3f;
+
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.Play();
+        }
+
+        Destroy(beam, effectDestroyTime);
+
+        AudioManager.Instance?.PlayLaser();
         ShowTrajectoryVisual();
     }
 
@@ -306,7 +379,9 @@ public class AbilitiesSeraphim : MonoBehaviour
         float distance;
         if (groundPlane.Raycast(ray, out distance))
         {
-            return ray.GetPoint(distance);
+            Vector3 point = ray.GetPoint(distance);
+            point.y = 0f;
+            return point;
         }
 
         return Vector3.zero;
@@ -320,14 +395,16 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Heal(healAmount);
-            PlayHealSound();
+            AudioManager.Instance?.PlayHeal();
+            SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 0.8f);
         }
     }
 
     IEnumerator Judgment()
     {
-        PlayUltimateSound();
+        AudioManager.Instance?.PlayVictory();
         ShowCircleVisual(judgmentRadius);
+        SpawnEffect(ultimateEffectPrefab, firePoint.position, effectScale * 2f);
 
         if (judgmentEffect != null)
         {
@@ -358,6 +435,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.useGravity = true;
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
 
@@ -375,6 +454,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.useGravity = true;
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
 
@@ -392,6 +473,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.useGravity = true;
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
 
@@ -410,8 +493,9 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void SpecialAttack()
     {
-        PlaySpecialSound();
+        AudioManager.Instance?.PlayPerkSelect();
         ShowCircleVisual(specialRange);
+        SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 1.2f);
 
         RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, specialRange);
         foreach (var hit in hits)
@@ -430,6 +514,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.useGravity = true;
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
+
+                SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale);
                 continue;
             }
 
@@ -447,6 +533,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.useGravity = true;
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
+
+                SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale);
                 continue;
             }
 
@@ -464,6 +552,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.useGravity = true;
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
+
+                SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale);
                 continue;
             }
         }
@@ -473,8 +563,9 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (isCharging) yield break;
 
-        PlayChargeSound();
+        AudioManager.Instance?.PlayLaser();
         ShowCircleVisual(chargeRange);
+        SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 0.8f);
 
         isCharging = true;
         chargeDirection = transform.forward;
@@ -547,6 +638,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.useGravity = true;
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
 
@@ -561,6 +654,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.useGravity = true;
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
 
@@ -575,6 +670,8 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.useGravity = true;
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
+
+                    SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
             }
@@ -586,31 +683,6 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (rb != null) rb.linearVelocity = Vector3.zero;
 
         Debug.Log($"⚡ Seraphim Charge: {chargeDamage} obrażeń!");
-    }
-
-    // ============================================================
-    // DŹWIĘKI
-    // ============================================================
-
-    public void PlayLaserSound() => PlayRandomClip(laserSounds, laserVolume);
-    public void PlaySpecialSound() => PlayRandomClip(specialSounds, specialVolume);
-    public void PlayUltimateSound() => PlayRandomClip(ultimateSounds, ultimateVolume);
-    public void PlayHealSound() => PlayRandomClip(healSounds, healVolume);
-    public void PlayChargeSound() => PlayRandomClip(chargeSounds, chargeVolume);
-    public void PlayDeathSound() => PlayClip(deathSound, deathVolume);
-    public void PlayFootstep() => PlayRandomClip(footstepSounds, footstepVolume);
-
-    private void PlayRandomClip(AudioClip[] clips, float volume)
-    {
-        if (clips == null || clips.Length == 0 || audioSource == null) return;
-        AudioClip clip = clips[Random.Range(0, clips.Length)];
-        PlayClip(clip, volume);
-    }
-
-    private void PlayClip(AudioClip clip, float volume)
-    {
-        if (clip != null && audioSource != null)
-            audioSource.PlayOneShot(clip, volume);
     }
 
     public void ActivateShield()

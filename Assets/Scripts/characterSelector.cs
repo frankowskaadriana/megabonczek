@@ -17,17 +17,14 @@ public class CharacterSelector : MonoBehaviour
 
     void Start()
     {
-        // Ukryj wszystkie postacie na starcie
         SetActiveAll(false);
 
-        // Odblokuj kursor
+        // KURSOR ZAWSZE WIDOCZNY I ODBLOKOWANY
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Upewnij się że gra nie jest zamrożona
         Time.timeScale = 1f;
 
-        // Odtwórz muzykę tła
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayBackgroundMusic();
@@ -38,10 +35,8 @@ public class CharacterSelector : MonoBehaviour
 
     void Update()
     {
-        // Jeśli już wybrano, nie reaguj na klawisze
         if (hasSelected) return;
 
-        // Wybór postaci
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             SelectCharacter(mountainMan, "Góral");
@@ -55,7 +50,6 @@ public class CharacterSelector : MonoBehaviour
             SelectCharacter(shepherd, "Pasterz");
         }
 
-        // DEBUG - klawisz F5 pokazuje aktywne postacie
         if (Input.GetKeyDown(KeyCode.F5))
         {
             Debug.Log($"🔍 Góral aktywny: {(mountainMan != null ? mountainMan.activeSelf : false)}");
@@ -74,36 +68,28 @@ public class CharacterSelector : MonoBehaviour
 
     void SelectCharacter(GameObject character, string name)
     {
-        // Sprawdź czy postać istnieje
         if (character == null)
         {
             Debug.LogError($"❌ {name} nie jest przypisany w Inspectorze!");
             return;
         }
 
-        // Ukryj wszystkie postacie
         SetActiveAll(false);
 
-        // Aktywuj wybraną postać
         currentCharacter = character;
         currentCharacter.SetActive(true);
-
-        // Ustaw tag "Player"
         currentCharacter.tag = "Player";
 
         Debug.Log($"✅ Aktywowano: {name}");
 
-        // Ustaw kamerę na postać
         if (cameraController != null)
         {
             cameraController.SetTarget(currentCharacter.transform);
             Debug.Log("📷 Kamera ustawiona na gracza");
         }
 
-        // Dodaj brakujące komponenty
         AddMissingComponents(currentCharacter, name);
 
-        // PlayerHealth
         PlayerHealth health = currentCharacter.GetComponent<PlayerHealth>();
         if (health == null)
         {
@@ -111,7 +97,6 @@ public class CharacterSelector : MonoBehaviour
             Debug.Log("❤️ Dodano PlayerHealth");
         }
 
-        // PlayerMovement
         PlayerMovement movement = currentCharacter.GetComponent<PlayerMovement>();
         if (movement == null)
         {
@@ -119,33 +104,29 @@ public class CharacterSelector : MonoBehaviour
             Debug.Log("🏃 Dodano PlayerMovement");
         }
 
-        // PlayerStats
         if (playerStats != null)
         {
             playerStats.AssignToPlayer(currentCharacter);
             Debug.Log("📊 Przypisano statystyki");
         }
 
-        // LevelSystem
         if (levelSystem != null)
         {
             levelSystem.StartGame();
             Debug.Log("🎮 LevelSystem rozpoczęty");
         }
 
-        // Powiadom AudioManager o wyborze postaci
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.OnCharacterSelected();
             Debug.Log("🎵 Przełączono na muzykę walki!");
         }
 
-        // Zablokuj możliwość zmiany postaci
         hasSelected = true;
 
-        // Schowaj kursor
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        // KURSOR ZAWSZE WIDOCZNY - NIE BLOKUJEMY!
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         Debug.Log($"🎮 Wybrano: {name}! Gra rozpoczęta.");
     }
@@ -154,7 +135,6 @@ public class CharacterSelector : MonoBehaviour
     {
         if (character == null) return;
 
-        // Abilities dla danej postaci
         if (name == "Góral" || name == "Goral")
         {
             if (character.GetComponent<AbilitiesMountainMan>() == null)
@@ -180,10 +160,6 @@ public class CharacterSelector : MonoBehaviour
             }
         }
     }
-
-    // ============================================
-    // METODY PUBLICZNE
-    // ============================================
 
     public GameObject GetCurrentCharacter()
     {

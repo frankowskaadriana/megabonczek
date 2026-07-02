@@ -10,14 +10,13 @@ public class PlayerMovement : MonoBehaviour
     [Header("═══════════════ KAMERA ═══════════════")]
     public Camera mainCamera;
 
-    [Header("═══════════════ GROUND CHECK ═══════════════")]
-    public float groundCheckDistance = 0.2f;
-    public LayerMask groundLayer = ~0;
+    [Header("═══════════════ OBRACANIE ZA MYSZKĄ ═══════════════")]
+    public float rotationSpeed = 15f;
 
     private Rigidbody rb;
     private Vector3 moveDirection;
     private Vector3 currentVelocity;
-    private bool isGrounded;
+    private Vector3 mouseWorldPosition;
 
     void Start()
     {
@@ -32,6 +31,9 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // ============================================================
+        // RUCH - WSAD
+        // ============================================================
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
@@ -44,12 +46,36 @@ public class PlayerMovement : MonoBehaviour
 
         moveDirection = (forward * vertical + right * horizontal).normalized;
 
-        // Ground check
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+        // ============================================================
+        // OBRACANIE ZA MYSZKĄ (TOP-DOWN)
+        // ============================================================
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
+
+        float distance;
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            mouseWorldPosition = ray.GetPoint(distance);
+            mouseWorldPosition.y = 0f;
+
+            // Oblicz kierunek od gracza do myszki
+            Vector3 direction = mouseWorldPosition - transform.position;
+            direction.y = 0f;
+
+            if (direction.magnitude > 0.1f)
+            {
+                // Płynny obrót w kierunku myszki
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+            }
+        }
     }
 
     void FixedUpdate()
     {
+        // ============================================================
+        // RUCH
+        // ============================================================
         if (moveDirection.magnitude > 0.1f)
         {
             Vector3 targetVelocity = moveDirection * maxSpeed;
@@ -61,25 +87,15 @@ public class PlayerMovement : MonoBehaviour
         }
 
         rb.linearVelocity = new Vector3(currentVelocity.x, rb.linearVelocity.y, currentVelocity.z);
-
-        if (moveDirection.magnitude > 0.1f)
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDirection), Time.fixedDeltaTime * 10f);
-        }
     }
 
     // ============================================================
-    // METODY PUBLICZNE DLA ANIMATORA
+    // METODY PUBLICZNE
     // ============================================================
 
     public Vector3 GetVelocity()
     {
         return rb.linearVelocity;
-    }
-
-    public bool IsGrounded()
-    {
-        return isGrounded;
     }
 
     public float GetSpeed()
@@ -90,5 +106,10 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 GetMoveDirection()
     {
         return moveDirection;
+    }
+
+    public Vector3 GetMouseWorldPosition()
+    {
+        return mouseWorldPosition;
     }
 }

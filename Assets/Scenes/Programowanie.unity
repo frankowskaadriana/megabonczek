@@ -609,7 +609,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!54 &52752798
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -741,7 +741,7 @@ MonoBehaviour:
   attackRange: 10
   attackDamage: 50
   attackRate: 0.8
-  lightBeamPrefab: {fileID: 1161992688965952034, guid: d8a4737c3ccf35c4488b90d26724426d, type: 3}
+  lightBeamPrefab: {fileID: 4697315343267926020, guid: 5801b8329a323104f8aab6fc26bec47d, type: 3}
   firePoint: {fileID: 663367817}
   beamPushbackForce: 6
   beamPushbackUpForce: 1.5
@@ -763,21 +763,12 @@ MonoBehaviour:
   visualColor: {r: 0, g: 0.5, b: 1, a: 0.5}
   visualDuration: 0.3
   visualLineWidth: 0.08
-  laserSounds: []
-  specialSounds: []
-  ultimateSounds: []
-  healSounds: []
-  chargeSounds: []
-  deathSound: {fileID: 0}
-  footstepSounds: []
-  laserVolume: 0.7
-  specialVolume: 0.8
-  ultimateVolume: 0.9
-  healVolume: 0.6
-  chargeVolume: 0.7
-  deathVolume: 0.7
-  footstepVolume: 0.2
-  footstepInterval: 0.35
+  specialEffectPrefab: {fileID: 0}
+  ultimateEffectPrefab: {fileID: 0}
+  hitEffectPrefab: {fileID: 0}
+  effectScale: 0.5
+  effectDestroyTime: 1.5
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &52752805
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1016,7 +1007,7 @@ MonoBehaviour:
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
-  m_Antialiasing: 0
+  m_Antialiasing: 2
   m_AntialiasingQuality: 2
   m_StopNaN: 0
   m_Dithering: 0
@@ -1706,10 +1697,7 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 8
   mainCamera: {fileID: 0}
-  groundCheckDistance: 0.2
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  rotationSpeed: 15
 --- !u!114 &336203029
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2740,7 +2728,7 @@ Transform:
   m_GameObject: {fileID: 663367816}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.004999846, y: 0.18199992, z: 0.65400016}
+  m_LocalPosition: {x: 0.004999846, y: 0.18199992, z: 0.69}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3648,12 +3636,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SeraphimAnimationController
   animator: {fileID: 1015141814}
-  abilitiesSeraphim: {fileID: 0}
   playerMovement: {fileID: 336203028}
-  playerHealth: {fileID: 336203029}
-  movementSmoothTime: 0.1
-  floatAmplitude: 0.02
-  floatSpeed: 2
+  spriteRenderer: {fileID: 0}
+  speedThreshold: 0.1
 --- !u!1 &1058749295
 GameObject:
   m_ObjectHideFlags: 0
@@ -4534,22 +4519,22 @@ MonoBehaviour:
   ultimateCooldown: 30
   pushbackForce: 10
   pushbackUpForce: 2
+  firePoint: {fileID: 1331732222}
+  rangeIndicatorPrefab: {fileID: 0}
+  indicatorOffset: {x: 0, y: 0.1, z: 0}
+  indicatorRotation: {x: 0, y: 0, z: 0}
+  indicatorScale: 1
+  indicatorColor: {r: 0, g: 1, b: 0, a: 0.3}
+  attackEffectPrefab: {fileID: 5449670373737385125, guid: 756f993d39a91a34289cb22b2d287f30, type: 3}
+  specialEffectPrefab: {fileID: 0}
+  ultimateEffectPrefab: {fileID: 0}
+  hitEffectPrefab: {fileID: 0}
+  effectScale: 1
+  effectDestroyTime: 1.5
+  particleRotationOffset: -90
   visualColor: {r: 1, g: 0, b: 0, a: 0.5}
   visualDuration: 0.3
   visualLineWidth: 0.08
-  attackSounds: []
-  specialSounds: []
-  ultimateSounds: []
-  hitSounds: []
-  deathSound: {fileID: 0}
-  footstepSounds: []
-  attackVolume: 0.7
-  specialVolume: 0.8
-  ultimateVolume: 0.9
-  hitVolume: 0.5
-  deathVolume: 0.7
-  footstepVolume: 0.3
-  footstepInterval: 0.5
 --- !u!114 &1291531068
 MonoBehaviour:
   m_ObjectHideFlags: 0

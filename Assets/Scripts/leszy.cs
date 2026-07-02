@@ -41,17 +41,19 @@ public class Leszy : MonoBehaviour
     private bool isAttacking = false;
     private bool isChargingLaser = false;
 
-    // === MESH RENDERERY - GŁÓWNY I DZIECI ===
     private MeshRenderer mainMesh;
     private List<MeshRenderer> childMeshes = new List<MeshRenderer>();
     private List<Color> originalColors = new List<Color>();
 
     private LevelSystem levelSystem;
     private Rigidbody rb;
-
-    // Wizualizacja ataku
     private GameObject attackVisual;
     private LineRenderer visualLine;
+
+    // ============================================================
+    // !!! NOWE: Flaga informująca AudioManager że Leszy żyje !!!
+    // ============================================================
+    private bool bossMusicStarted = false;
 
     void Start()
     {
@@ -78,12 +80,19 @@ public class Leszy : MonoBehaviour
         rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
-        // === ZBIERZ WSZYSTKIE MESH RENDERERY ===
         CollectAllMeshRenderers();
-
         transform.localScale = Vector3.one * 1.8f;
-
         CreateAttackVisual();
+
+        // ============================================================
+        // !!! NOWE: Włącz muzykę bossa gdy Leszy się pojawi !!!
+        // ============================================================
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.OnBossSpawn();
+            bossMusicStarted = true;
+            Debug.Log("🎵 Muzyka bossa włączona!");
+        }
 
         Debug.Log($"🌲 Leszy (BOSS) gotowy! HP: {currentHealth}, Znaleziono {childMeshes.Count} meshów");
     }
@@ -339,6 +348,16 @@ public class Leszy : MonoBehaviour
         isDead = true;
 
         Debug.Log($"💀 Leszy (BOSS) zginął!");
+
+        // ============================================================
+        // !!! NOWE: Wyłącz muzykę bossa gdy Leszy umiera !!!
+        // ============================================================
+        if (AudioManager.Instance != null && bossMusicStarted)
+        {
+            AudioManager.Instance.OnBossDeath();
+            bossMusicStarted = false;
+            Debug.Log("🎵 Muzyka bossa wyłączona!");
+        }
 
         if (levelSystem != null) levelSystem.EnemyDied();
 

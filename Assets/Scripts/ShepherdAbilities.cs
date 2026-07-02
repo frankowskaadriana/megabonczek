@@ -28,12 +28,39 @@ public class ShepherdAbilities : MonoBehaviour
     public float visualDuration = 0.3f;
     public float visualLineWidth = 0.08f;
 
+    [Header("═══════════════ DŹWIĘKI ═══════════════")]
+    public AudioClip[] attackSounds;
+    public AudioClip[] barkSounds;
+    public AudioClip[] specialSounds;
+    public AudioClip[] ultimateSounds;
+    public AudioClip deathSound;
+    public AudioClip[] footstepSounds;
+    public AudioClip[] sheepSpawnSounds;
+
+    [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
+    [Range(0f, 1f)] public float attackVolume = 0.7f;
+    [Range(0f, 1f)] public float barkVolume = 0.8f;
+    [Range(0f, 1f)] public float specialVolume = 0.7f;
+    [Range(0f, 1f)] public float ultimateVolume = 0.9f;
+    [Range(0f, 1f)] public float deathVolume = 0.7f;
+    [Range(0f, 1f)] public float footstepVolume = 0.3f;
+    [Range(0f, 1f)] public float sheepSpawnVolume = 0.6f;
+
+    [Header("═══════════════ INTERWAŁ KROKÓW ═══════════════")]
+    public float footstepInterval = 0.45f;
+
     private List<Sheep> sheep = new List<Sheep>();
     private float attackTimer = 0f;
     private float sheepSpawnTimer = 0f;
     private Transform player;
     private Camera mainCamera;
     private Vector3 targetPosition;
+
+    // Audio
+    private AudioSource audioSource;
+    private float footstepTimer = 0f;
+    private bool isMoving = false;
+    private Rigidbody rb;
 
     // Wizualizacje
     private GameObject visualObj;
@@ -45,7 +72,13 @@ public class ShepherdAbilities : MonoBehaviour
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
-        // Stwórz obiekt do wizualizacji
+        // Audio
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.spatialBlend = 0.5f;
+        audioSource.volume = 0.5f;
+        rb = GetComponent<Rigidbody>();
+
+        // Wizualizacje
         visualObj = new GameObject("AttackVisual");
         visualObj.transform.SetParent(transform);
         visualObj.transform.localPosition = Vector3.zero;
@@ -66,6 +99,26 @@ public class ShepherdAbilities : MonoBehaviour
     void Update()
     {
         if (player == null) return;
+
+        // Kroki
+        if (rb != null)
+        {
+            isMoving = rb.linearVelocity.magnitude > 0.5f;
+        }
+
+        if (isMoving)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer >= footstepInterval)
+            {
+                footstepTimer = 0f;
+                PlayFootstep();
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate)
@@ -193,7 +246,7 @@ public class ShepherdAbilities : MonoBehaviour
             {
                 sheep.SetTarget(target);
                 sheep.SetState(SheepState.Attacking);
-                AudioManager.Instance?.PlayAttack();
+                PlaySpecialSound();
             }
         }
         Debug.Log("🐑 Owce atakują wroga!");
@@ -207,7 +260,7 @@ public class ShepherdAbilities : MonoBehaviour
             {
                 sheep.SetTargetPosition(position);
                 sheep.SetState(SheepState.Charging);
-                AudioManager.Instance?.PlayCharge();
+                PlaySpecialSound();
             }
         }
         Debug.Log($"🐑 Owce szarżują do {position}!");
@@ -252,7 +305,7 @@ public class ShepherdAbilities : MonoBehaviour
         sheep.Add(sheepScript);
         Debug.Log($"🐑 Owca przywołana! ({sheep.Count}/{maxSheep})");
 
-        AudioManager.Instance?.PlaySheepSpawn();
+        PlaySheepSpawnSound();
         ShowCircleVisual(3f);
     }
 
@@ -265,7 +318,7 @@ public class ShepherdAbilities : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(attackDamage);
-                AudioManager.Instance?.PlayAttack();
+                PlayAttackSound();
                 ShowCircleVisual(attackRange);
                 continue;
             }
@@ -274,7 +327,7 @@ public class ShepherdAbilities : MonoBehaviour
             if (bazyliszek != null)
             {
                 bazyliszek.TakeDamage(attackDamage);
-                AudioManager.Instance?.PlayAttack();
+                PlayAttackSound();
                 ShowCircleVisual(attackRange);
                 continue;
             }
@@ -283,7 +336,7 @@ public class ShepherdAbilities : MonoBehaviour
             if (leszy != null)
             {
                 leszy.TakeDamage(attackDamage);
-                AudioManager.Instance?.PlayAttack();
+                PlayAttackSound();
                 ShowCircleVisual(attackRange);
                 continue;
             }
@@ -365,8 +418,34 @@ public class ShepherdAbilities : MonoBehaviour
             }
         }
         Debug.Log("🐕 Shepherd: Bark!");
-        AudioManager.Instance?.PlayBark();
+
+        PlayBarkSound();
         ShowCircleVisual(barkRange);
+    }
+
+    // ============================================================
+    // DŹWIĘKI
+    // ============================================================
+
+    public void PlayAttackSound() => PlayRandomClip(attackSounds, attackVolume);
+    public void PlayBarkSound() => PlayRandomClip(barkSounds, barkVolume);
+    public void PlaySpecialSound() => PlayRandomClip(specialSounds, specialVolume);
+    public void PlayUltimateSound() => PlayRandomClip(ultimateSounds, ultimateVolume);
+    public void PlayDeathSound() => PlayClip(deathSound, deathVolume);
+    public void PlayFootstep() => PlayRandomClip(footstepSounds, footstepVolume);
+    public void PlaySheepSpawnSound() => PlayRandomClip(sheepSpawnSounds, sheepSpawnVolume);
+
+    private void PlayRandomClip(AudioClip[] clips, float volume)
+    {
+        if (clips == null || clips.Length == 0 || audioSource == null) return;
+        AudioClip clip = clips[Random.Range(0, clips.Length)];
+        PlayClip(clip, volume);
+    }
+
+    private void PlayClip(AudioClip clip, float volume)
+    {
+        if (clip != null && audioSource != null)
+            audioSource.PlayOneShot(clip, volume);
     }
 
     public void OnSheepDied(Sheep sheep)

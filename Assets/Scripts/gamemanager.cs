@@ -2,13 +2,14 @@
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
     [Header("═══════════════ UI PANELE ═══════════════")]
     public GameObject gameOverPanel;
     public GameObject pausePanel;
-    public GameObject victoryPanel;
+    public GameObject victoryPanel; // ← TO SIĘ WŁĄCZA PRZY ZWYCIĘSTWIE
     public TextMeshProUGUI gameOverText;
     public TextMeshProUGUI victoryText;
     public TextMeshProUGUI finalLevelText;
@@ -33,7 +34,16 @@ public class GameManager : MonoBehaviour
 
     [Header("═══════════════ USTAWIENIA ═══════════════")]
     public float smoothSpeed = 5f;
-    public float gameDuration = 600f;
+    public float gameDuration = 600f; // Czas gry (10 minut)
+
+    [Header("═══════════════ PORTAL ═══════════════")]
+    public GameObject portalPrefab;
+    public Vector3 portalSpawnPosition = new Vector3(0, 0, 0);
+
+    [Header("═══════════════ KOMUNIKAT PORTALU ═══════════════")]
+    public GameObject portalMessagePanel;
+    public TextMeshProUGUI portalMessageText;
+    public float portalMessageDuration = 5f;
 
     [Header("═══════════════ REFERENCJE ═══════════════")]
     public WaveSpawner waveSpawner;
@@ -53,6 +63,11 @@ public class GameManager : MonoBehaviour
     private float targetHealthFill = 1f;
     private float targetXpFill = 0f;
 
+    // ===== PORTAL =====
+    private PortalTrigger portalTrigger;
+    private bool isGameFinished = false;
+    private bool portalSpawned = false;
+
     void Start()
     {
         levelSystem = FindFirstObjectByType<LevelSystem>();
@@ -60,9 +75,11 @@ public class GameManager : MonoBehaviour
         player = GameObject.FindWithTag("Player");
         if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
 
+        // Ukryj wszystkie panele
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
+        if (portalMessagePanel != null) portalMessagePanel.SetActive(false);
 
         if (healthFill != null)
         {
@@ -95,6 +112,12 @@ public class GameManager : MonoBehaviour
         gameTimer += Time.deltaTime;
         score += Time.deltaTime * scoreMultiplier;
 
+        // === SPAWN PORTALU PO CZASIE ===
+        if (gameTimer >= gameDuration && !portalSpawned && !isGameFinished)
+        {
+            SpawnPortal();
+        }
+
         if (healthFill != null)
         {
             currentHealthFill = Mathf.Lerp(currentHealthFill, targetHealthFill, Time.deltaTime * smoothSpeed);
@@ -107,9 +130,9 @@ public class GameManager : MonoBehaviour
             xpFill.fillAmount = currentXpFill;
         }
 
+        // Jeśli czas minął - nie sprawdzaj innych warunków końca gry
         if (gameTimer >= gameDuration)
         {
-            Victory("⏰ CZAS MINĄŁ!");
             return;
         }
 
@@ -168,8 +191,10 @@ public class GameManager : MonoBehaviour
     {
         if (!isGameActive) return;
         isGameActive = false;
+        isGameFinished = true;
         Time.timeScale = 0f;
 
+        // === WŁĄCZ VICTORY SCREEN ===
         if (victoryPanel != null)
         {
             victoryPanel.SetActive(true);
@@ -178,11 +203,103 @@ public class GameManager : MonoBehaviour
             if (finalWaveText != null && waveSpawner != null) finalWaveText.text = $"Fala: {waveSpawner.GetCurrentWave()}";
             if (finalScoreText != null) finalScoreText.text = $"Wynik: {Mathf.RoundToInt(score)}";
         }
+
+        Debug.Log($"🏆 VICTORY! {reason}");
+        AudioManager.Instance?.PlayVictory();
     }
+
+    // ============================================
+    // PORTAL
+    // ============================================
+
+    void SpawnPortal()
+    {
+        if (portalPrefab == null)
+        {
+            Debug.LogWarning("⚠️ Brak prefabu portalu!");
+            return;
+        }
+
+        if (player == null)
+        {
+            player = GameObject.FindWithTag("Player");
+        }
+
+        Vector3 spawnPos = portalSpawnPosition;
+        if (player != null)
+        {
+            Vector3 direction = player.transform.forward;
+            spawnPos = player.transform.position + direction * 12f;
+            spawnPos.y = 0.5f;
+        }
+
+        GameObject portalObj = Instantiate(portalPrefab, spawnPos, Quaternion.identity);
+        portalTrigger = portalObj.GetComponent<PortalTrigger>();
+
+        if (portalTrigger == null)
+        {
+            portalTrigger = portalObj.AddComponent<PortalTrigger>();
+        }
+
+        portalTrigger.gameManager = this;
+
+        // Szukaj PortalON w dzieciach
+        Transform portalON = portalObj.transform.Find("PortalON");
+        if (portalON != null)
+        {
+            portalTrigger.portalON = portalON.gameObject;
+            Debug.Log("🌀 Znaleziono PortalON w prefabie!");
+        }
+
+        portalSpawned = true;
+        isGameFinished = true;
+
+        Debug.Log($"🌀 Portal spawnnięty na pozycji: {spawnPos}");
+
+        // Wywołaj aktywację portalu
+        if (portalTrigger != null)
+        {
+            portalTrigger.ForceActivate();
+        }
+    }
+
+    public bool IsGameFinished()
+    {
+        return isGameFinished;
+    }
+
+    public void ShowPortalMessage(string message)
+    {
+        if (portalMessagePanel != null)
+        {
+            portalMessagePanel.SetActive(true);
+            if (portalMessageText != null)
+            {
+                portalMessageText.text = message;
+            }
+            StartCoroutine(HidePortalMessage());
+        }
+        else
+        {
+            Debug.Log($"📢 {message}");
+        }
+    }
+
+    IEnumerator HidePortalMessage()
+    {
+        yield return new WaitForSeconds(portalMessageDuration);
+        if (portalMessagePanel != null)
+        {
+            portalMessagePanel.SetActive(false);
+        }
+    }
+
+    // ============================================
+    // UI
+    // ============================================
 
     public void UpdateUI()
     {
-        // === ZDROWIE ===
         if (playerHealth != null)
         {
             float healthPercent = playerHealth.currentHealth / playerHealth.maxHealth;
@@ -204,7 +321,6 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // === XP ===
         if (levelSystem != null)
         {
             float xpPercent = (float)levelSystem.currentXP / levelSystem.xpRequired;
@@ -237,6 +353,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // ============================================
+    // METODY PUBLICZNE
+    // ============================================
+
     public void RestartGame()
     {
         Time.timeScale = 1f;
@@ -265,10 +385,18 @@ public class GameManager : MonoBehaviour
     public GameObject GetPlayer() => player;
     public float GetGameTime() => gameTimer;
 
+    // ============================================
+    // PRZYCISKI UI
+    // ============================================
+
     public void OnRestartButton() => RestartGame();
     public void OnMainMenuButton() => LoadMainMenu();
     public void OnResumeButton() => ResumeGame();
     public void OnQuitButton() => QuitGame();
+
+    // ============================================
+    // METODY TESTOWE
+    // ============================================
 
     public void SpawnTestBoss() => Debug.Log("👑 Test Boss");
     public void SpawnTestBazyliszek() => Debug.Log("🐉 Test Bazyliszek");

@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
 using System.Collections;
 
 public class AudioManager : MonoBehaviour
@@ -11,64 +10,108 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 1f)] public float sfxVolume = 1f;
     [Range(0f, 1f)] public float musicVolume = 0.5f;
 
-    [Header("═══════════════ DŹWIĘKI OGÓLNE ═══════════════")]
-    public AudioClip[] footstepClips;
-    public AudioClip[] damageClips;
-    public AudioClip deathClip;
-    public AudioClip healClip;
+    [Header("═══════════════ MUZYKA ═══════════════")]
+    public AudioClip backgroundMusic;
+    public AudioClip bossMusic;
+    public AudioClip combatMusic;
 
-    [Header("═══════════════ DŹWIĘKI - GÓRAL (Mountain Man) ═══════════════")]
-    public AudioClip[] goralAttackClips;
-    public AudioClip goralStompClip;
-    public AudioClip goralSpecialClip;
-    public AudioClip goralUltimateClip;
+    [Header("═══════════════ DŹWIĘKI ŚRODOWISKA ═══════════════")]
+    public AudioClip levelUpClip;
+    public AudioClip perkSelectClip;
+    public AudioClip waveStartClip;
+    public AudioClip waveCompleteClip;
+    public AudioClip portalOpenClip;
+    public AudioClip portalCloseClip;
+    public AudioClip victoryClip;
+    public AudioClip gameOverClip;
 
-    [Header("═══════════════ DŹWIĘKI - SERAPHIM (Anioł) ═══════════════")]
-    public AudioClip[] seraphimAttackClips;
-    public AudioClip seraphimLaserClip;
-    public AudioClip seraphimHealClip;
-    public AudioClip seraphimChargeClip;
-    public AudioClip seraphimSpecialClip;
-    public AudioClip seraphimUltimateClip;
-
-    [Header("═══════════════ DŹWIĘKI - PASTERZ (Shepherd) ═══════════════")]
-    public AudioClip[] shepherdAttackClips;
-    public AudioClip shepherdBarkClip;
-    public AudioClip shepherdSheepSpawnClip;
-    public AudioClip shepherdSpecialClip;
+    [Header("═══════════════ DŹWIĘKI LASERA ═══════════════")]
+    public AudioClip laserClip;
 
     [Header("═══════════════ DŹWIĘKI PRZECIWNIKÓW ═══════════════")]
     public AudioClip[] enemyHitClips;
     public AudioClip[] enemyDeathClips;
     public AudioClip[] enemyAttackClips;
 
-    [Header("═══════════════ DŹWIĘKI ŚRODOWISKA ═══════════════")]
-    public AudioClip portalOpenClip;
-    public AudioClip portalCloseClip;
-    public AudioClip levelUpClip;
-    public AudioClip perkSelectClip;
-    public AudioClip waveStartClip;
-    public AudioClip waveCompleteClip;
+    [Header("═══════════════ DŹWIĘKI GRACZA (OGÓLNE) ═══════════════")]
+    public AudioClip deathClip;
+    public AudioClip healClip;
+    public AudioClip[] damageClips;
 
-    [Header("═══════════════ MUZYKA ═══════════════")]
-    public AudioClip backgroundMusic;
-    public AudioClip bossMusic;
-    public AudioClip combatMusic;
+    // ============================================================
+    // GŁOŚNOŚĆ POSZCZEGÓLNYCH DŹWIĘKÓW
+    // ============================================================
+    [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
+    [Range(0f, 1f)] public float musicVolumeMultiplier = 1f;
+    [Range(0f, 1f)] public float levelUpVolume = 0.8f;
+    [Range(0f, 1f)] public float perkSelectVolume = 0.6f;
+    [Range(0f, 1f)] public float waveStartVolume = 0.7f;
+    [Range(0f, 1f)] public float waveCompleteVolume = 0.6f;
+    [Range(0f, 1f)] public float portalOpenVolume = 0.7f;
+    [Range(0f, 1f)] public float portalCloseVolume = 0.7f;
+    [Range(0f, 1f)] public float victoryVolume = 0.9f;
+    [Range(0f, 1f)] public float gameOverVolume = 0.8f;
+    [Range(0f, 1f)] public float laserVolume = 0.8f;
+    [Range(0f, 1f)] public float enemyHitVolume = 0.4f;
+    [Range(0f, 1f)] public float enemyDeathVolume = 0.5f;
+    [Range(0f, 1f)] public float enemyAttackVolume = 0.5f;
+    [Range(0f, 1f)] public float deathVolume = 0.7f;
+    [Range(0f, 1f)] public float healVolume = 0.5f;
+    [Range(0f, 1f)] public float damageVolume = 0.6f;
+
+    // ============================================================
+    // FADE IN / FADE OUT DLA KAŻDEGO DŹWIĘKU OSOBNO
+    // ============================================================
+    [Header("═══════════════ FADE IN DLA KAŻDEGO DŹWIĘKU ═══════════════")]
+    [Range(0f, 2f)] public float levelUpFadeIn = 0.1f;
+    [Range(0f, 2f)] public float perkSelectFadeIn = 0.1f;
+    [Range(0f, 2f)] public float waveStartFadeIn = 0.1f;
+    [Range(0f, 2f)] public float waveCompleteFadeIn = 0.1f;
+    [Range(0f, 2f)] public float portalOpenFadeIn = 0.1f;
+    [Range(0f, 2f)] public float portalCloseFadeIn = 0.1f;
+    [Range(0f, 2f)] public float victoryFadeIn = 0.2f;
+    [Range(0f, 2f)] public float gameOverFadeIn = 0.2f;
+    [Range(0f, 2f)] public float laserFadeIn = 0.05f;
+    [Range(0f, 2f)] public float enemyHitFadeIn = 0.05f;
+    [Range(0f, 2f)] public float enemyDeathFadeIn = 0.05f;
+    [Range(0f, 2f)] public float enemyAttackFadeIn = 0.05f;
+    [Range(0f, 2f)] public float deathFadeIn = 0.1f;
+    [Range(0f, 2f)] public float healFadeIn = 0.05f;
+    [Range(0f, 2f)] public float damageFadeIn = 0.05f;
+
+    [Header("═══════════════ FADE OUT DLA KAŻDEGO DŹWIĘKU ═══════════════")]
+    [Range(0f, 2f)] public float levelUpFadeOut = 0.2f;
+    [Range(0f, 2f)] public float perkSelectFadeOut = 0.2f;
+    [Range(0f, 2f)] public float waveStartFadeOut = 0.2f;
+    [Range(0f, 2f)] public float waveCompleteFadeOut = 0.2f;
+    [Range(0f, 2f)] public float portalOpenFadeOut = 0.2f;
+    [Range(0f, 2f)] public float portalCloseFadeOut = 0.2f;
+    [Range(0f, 2f)] public float victoryFadeOut = 0.3f;
+    [Range(0f, 2f)] public float gameOverFadeOut = 0.3f;
+    [Range(0f, 2f)] public float laserFadeOut = 0.1f;
+    [Range(0f, 2f)] public float enemyHitFadeOut = 0.1f;
+    [Range(0f, 2f)] public float enemyDeathFadeOut = 0.1f;
+    [Range(0f, 2f)] public float enemyAttackFadeOut = 0.1f;
+    [Range(0f, 2f)] public float deathFadeOut = 0.2f;
+    [Range(0f, 2f)] public float healFadeOut = 0.1f;
+    [Range(0f, 2f)] public float damageFadeOut = 0.1f;
+
+    [Header("═══════════════ USTAWIENIA FADE MUZYKI ═══════════════")]
+    [Range(0f, 3f)] public float musicFadeIn = 0.5f;
+    [Range(0f, 3f)] public float musicFadeOut = 0.5f;
+    [Range(0f, 3f)] public float bossMusicFadeIn = 0.5f;
+    [Range(0f, 3f)] public float bossMusicFadeOut = 0.5f;
 
     private AudioSource musicSource;
     private AudioSource sfxSource;
-    private Dictionary<string, float> lastPlayTime = new Dictionary<string, float>();
-    private float footstepCooldown = 0.3f;
+    private bool isInitialized = false;
     private bool isBossFight = false;
     private bool isCombat = false;
-    private bool isInitialized = false;
+    private Coroutine currentFadeCoroutine;
 
-    // === WYKRYWANIE POSTACI ===
-    private string currentCharacter = "None";
-    private GameObject playerObject;
-    private float characterCheckTimer = 0f;
-    private float characterCheckInterval = 0.5f;
-
+    // ============================================================
+    // AWAKE
+    // ============================================================
     void Awake()
     {
         if (Instance == null)
@@ -97,7 +140,7 @@ public class AudioManager : MonoBehaviour
 
         musicSource = gameObject.AddComponent<AudioSource>();
         musicSource.loop = true;
-        musicSource.volume = musicVolume * masterVolume;
+        musicSource.volume = musicVolume * masterVolume * musicVolumeMultiplier;
 
         sfxSource = gameObject.AddComponent<AudioSource>();
         sfxSource.volume = sfxVolume * masterVolume;
@@ -116,423 +159,323 @@ public class AudioManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        characterCheckTimer += Time.deltaTime;
-        if (characterCheckTimer >= characterCheckInterval)
-        {
-            characterCheckTimer = 0f;
-            DetectCharacter();
-        }
-
         if (!isBossFight && isCombat && combatMusic != null && musicSource.clip != combatMusic)
         {
-            musicSource.clip = combatMusic;
-            musicSource.Play();
+            StartCoroutine(FadeMusic(combatMusic, musicFadeIn));
         }
         else if (!isBossFight && !isCombat && backgroundMusic != null && musicSource.clip != backgroundMusic)
         {
-            musicSource.clip = backgroundMusic;
-            musicSource.Play();
+            StartCoroutine(FadeMusic(backgroundMusic, musicFadeIn));
         }
     }
 
-    // ============================================
-    // WYKRYWANIE POSTACI
-    // ============================================
-
-    void DetectCharacter()
+    // ============================================================
+    // FADE MUZYKI
+    // ============================================================
+    private IEnumerator FadeMusic(AudioClip newClip, float fadeDuration)
     {
-        if (playerObject == null)
+        if (musicSource.clip == newClip) yield break;
+
+        float startVolume = musicSource.volume;
+        float timer = 0f;
+        while (timer < musicFadeOut)
         {
-            playerObject = GameObject.FindWithTag("Player");
-            if (playerObject != null)
-            {
-                UpdateCharacter();
-            }
-            return;
+            timer += Time.deltaTime;
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / musicFadeOut);
+            yield return null;
         }
 
-        string newCharacter = GetCharacterType();
-        if (newCharacter != currentCharacter)
+        musicSource.clip = newClip;
+        musicSource.Play();
+
+        timer = 0f;
+        while (timer < fadeDuration)
         {
-            currentCharacter = newCharacter;
-            Debug.Log($"🎵 Wykryto postać: {currentCharacter}");
+            timer += Time.deltaTime;
+            musicSource.volume = Mathf.Lerp(0f, musicVolume * masterVolume * musicVolumeMultiplier, timer / fadeDuration);
+            yield return null;
         }
+
+        musicSource.volume = musicVolume * masterVolume * musicVolumeMultiplier;
     }
 
-    string GetCharacterType()
+    // ============================================================
+    // FADE DLA SFX (POJEDYNCZY DŹWIĘK)
+    // ============================================================
+    private IEnumerator FadeSFX(AudioClip clip, float volume, float fadeIn, float fadeOut)
     {
-        if (playerObject == null) return "None";
+        if (clip == null) yield break;
 
-        if (playerObject.GetComponent<AbilitiesMountainMan>() != null)
-            return "Goral";
-        else if (playerObject.GetComponent<AbilitiesSeraphim>() != null)
-            return "Seraphim";
-        else if (playerObject.GetComponent<ShepherdAbilities>() != null)
-            return "Shepherd";
+        sfxSource.volume = 0f;
+        sfxSource.PlayOneShot(clip, 0f);
 
-        return "None";
-    }
+        float timer = 0f;
+        float targetVolume = volume * sfxVolume * masterVolume;
 
-    void UpdateCharacter()
-    {
-        currentCharacter = GetCharacterType();
-        Debug.Log($"🎵 Wykryto postać: {currentCharacter}");
-    }
-
-    public void SetCharacter(string characterName)
-    {
-        currentCharacter = characterName;
-        Debug.Log($"🎵 Ręcznie ustawiono postać: {currentCharacter}");
-    }
-
-    public string GetCurrentCharacter()
-    {
-        return currentCharacter;
-    }
-
-    // ============================================
-    // DŹWIĘKI OGÓLNE
-    // ============================================
-
-    public void PlayFootstep()
-    {
-        if (!isInitialized) return;
-        if (footstepClips.Length == 0) return;
-
-        if (!lastPlayTime.ContainsKey("Footstep"))
-            lastPlayTime["Footstep"] = 0;
-
-        if (Time.time - lastPlayTime["Footstep"] >= footstepCooldown)
+        while (timer < fadeIn)
         {
-            lastPlayTime["Footstep"] = Time.time;
-            PlaySound(footstepClips[Random.Range(0, footstepClips.Length)], 0.3f);
+            timer += Time.deltaTime;
+            sfxSource.volume = Mathf.Lerp(0f, targetVolume, timer / fadeIn);
+            yield return null;
         }
-    }
 
-    public void PlayDamage()
-    {
-        if (!isInitialized) return;
-        if (damageClips.Length > 0)
-            PlaySound(damageClips[Random.Range(0, damageClips.Length)], 0.6f);
-    }
+        sfxSource.volume = targetVolume;
 
-    public void PlayDeath()
-    {
-        if (!isInitialized) return;
-        if (deathClip != null)
-            PlaySound(deathClip, 0.7f);
-    }
+        float clipLength = clip.length;
+        float waitTime = Mathf.Max(0f, clipLength - fadeIn - fadeOut);
+        yield return new WaitForSeconds(waitTime);
 
-    // ============================================
-    // DŹWIĘKI ATAKU - ZALEŻNE OD POSTACI
-    // ============================================
-
-    public void PlayAttack()
-    {
-        if (!isInitialized) return;
-
-        switch (currentCharacter)
+        timer = 0f;
+        float startVolume = sfxSource.volume;
+        while (timer < fadeOut)
         {
-            case "Goral":
-                if (goralAttackClips.Length > 0)
-                    PlaySound(goralAttackClips[Random.Range(0, goralAttackClips.Length)], 0.6f);
-                break;
-
-            case "Seraphim":
-                if (seraphimAttackClips.Length > 0)
-                    PlaySound(seraphimAttackClips[Random.Range(0, seraphimAttackClips.Length)], 0.5f);
-                break;
-
-            case "Shepherd":
-                if (shepherdAttackClips.Length > 0)
-                    PlaySound(shepherdAttackClips[Random.Range(0, shepherdAttackClips.Length)], 0.5f);
-                break;
+            timer += Time.deltaTime;
+            sfxSource.volume = Mathf.Lerp(startVolume, 0f, timer / fadeOut);
+            yield return null;
         }
+
+        sfxSource.volume = 0f;
+        sfxSource.Stop();
     }
 
-    // ============================================
-    // DŹWIĘKI UMIEJĘTNOŚCI - ZALEŻNE OD POSTACI
-    // ============================================
+    // ============================================================
+    // METODY ODTWARZANIA Z FADE IN/OUT
+    // ============================================================
 
-    public void PlayStomp()
-    {
-        if (!isInitialized) return;
-        if (currentCharacter == "Goral" && goralStompClip != null)
-            PlaySound(goralStompClip, 0.8f);
-    }
+    public void PlayLevelUp() => StartCoroutine(FadeSFX(levelUpClip, levelUpVolume, levelUpFadeIn, levelUpFadeOut));
+    public void PlayPerkSelect() => StartCoroutine(FadeSFX(perkSelectClip, perkSelectVolume, perkSelectFadeIn, perkSelectFadeOut));
+    public void PlayWaveStart() => StartCoroutine(FadeSFX(waveStartClip, waveStartVolume, waveStartFadeIn, waveStartFadeOut));
+    public void PlayWaveComplete() => StartCoroutine(FadeSFX(waveCompleteClip, waveCompleteVolume, waveCompleteFadeIn, waveCompleteFadeOut));
+    public void PlayPortalOpen() => StartCoroutine(FadeSFX(portalOpenClip, portalOpenVolume, portalOpenFadeIn, portalOpenFadeOut));
+    public void PlayPortalClose() => StartCoroutine(FadeSFX(portalCloseClip, portalCloseVolume, portalCloseFadeIn, portalCloseFadeOut));
+    public void PlayVictory() => StartCoroutine(FadeSFX(victoryClip, victoryVolume, victoryFadeIn, victoryFadeOut));
+    public void PlayGameOver() => StartCoroutine(FadeSFX(gameOverClip, gameOverVolume, gameOverFadeIn, gameOverFadeOut));
+    public void PlayLaser() => StartCoroutine(FadeSFX(laserClip, laserVolume, laserFadeIn, laserFadeOut));
+    public void PlayDeath() => StartCoroutine(FadeSFX(deathClip, deathVolume, deathFadeIn, deathFadeOut));
+    public void PlayHeal() => StartCoroutine(FadeSFX(healClip, healVolume, healFadeIn, healFadeOut));
+    public void PlayDamage() => StartCoroutine(FadeSFXArray(damageClips, damageVolume, damageFadeIn, damageFadeOut));
 
-    public void PlaySpecialAbility()
-    {
-        if (!isInitialized) return;
-
-        switch (currentCharacter)
-        {
-            case "Goral":
-                if (goralSpecialClip != null)
-                    PlaySound(goralSpecialClip, 0.8f);
-                break;
-
-            case "Seraphim":
-                if (seraphimSpecialClip != null)
-                    PlaySound(seraphimSpecialClip, 0.8f);
-                break;
-
-            case "Shepherd":
-                if (shepherdSpecialClip != null)
-                    PlaySound(shepherdSpecialClip, 0.8f);
-                break;
-        }
-    }
-
-    public void PlayUltimate()
-    {
-        if (!isInitialized) return;
-
-        switch (currentCharacter)
-        {
-            case "Goral":
-                if (goralUltimateClip != null)
-                    PlaySound(goralUltimateClip, 0.9f);
-                break;
-
-            case "Seraphim":
-                if (seraphimUltimateClip != null)
-                    PlaySound(seraphimUltimateClip, 0.9f);
-                break;
-        }
-    }
-
-    public void PlayCharge()
-    {
-        if (!isInitialized) return;
-        if (currentCharacter == "Seraphim" && seraphimChargeClip != null)
-            PlaySound(seraphimChargeClip, 0.7f);
-    }
-
-    public void PlayLaser()
-    {
-        if (!isInitialized) return;
-        if (currentCharacter == "Seraphim" && seraphimLaserClip != null)
-            PlaySound(seraphimLaserClip, 0.8f);
-    }
-
-    public void PlayHeal()
-    {
-        if (!isInitialized) return;
-
-        if (currentCharacter == "Seraphim" && seraphimHealClip != null)
-            PlaySound(seraphimHealClip, 0.6f);
-        else if (healClip != null)
-            PlaySound(healClip, 0.5f);
-    }
-
-    public void PlayBark()
-    {
-        if (!isInitialized) return;
-        if (currentCharacter == "Shepherd" && shepherdBarkClip != null)
-            PlaySound(shepherdBarkClip, 0.7f);
-    }
-
-    public void PlaySheepSpawn()
-    {
-        if (!isInitialized) return;
-        if (currentCharacter == "Shepherd" && shepherdSheepSpawnClip != null)
-            PlaySound(shepherdSheepSpawnClip, 0.5f);
-    }
-
-    // ============================================
     // DŹWIĘKI PRZECIWNIKÓW
-    // ============================================
+    public void PlayEnemyHit() => StartCoroutine(FadeSFXArray(enemyHitClips, enemyHitVolume, enemyHitFadeIn, enemyHitFadeOut));
+    public void PlayEnemyDeath() => StartCoroutine(FadeSFXArray(enemyDeathClips, enemyDeathVolume, enemyDeathFadeIn, enemyDeathFadeOut));
+    public void PlayEnemyAttack() => StartCoroutine(FadeSFXArray(enemyAttackClips, enemyAttackVolume, enemyAttackFadeIn, enemyAttackFadeOut));
 
-    public void PlayEnemyHit()
+    // ============================================================
+    // FADE DLA TABLICY DŹWIĘKÓW
+    // ============================================================
+    private IEnumerator FadeSFXArray(AudioClip[] clips, float volume, float fadeIn, float fadeOut)
     {
-        if (!isInitialized) return;
-        if (enemyHitClips.Length > 0)
-            PlaySound(enemyHitClips[Random.Range(0, enemyHitClips.Length)], 0.4f);
+        if (clips == null || clips.Length == 0) yield break;
+        AudioClip clip = clips[Random.Range(0, clips.Length)];
+        yield return StartCoroutine(FadeSFX(clip, volume, fadeIn, fadeOut));
     }
 
-    public void PlayEnemyDeath()
+    // ============================================================
+    // ODTWARZANIE PRZEZ NAZWĘ
+    // ============================================================
+    public void PlaySoundByName(string soundName)
     {
         if (!isInitialized) return;
-        if (enemyDeathClips.Length > 0)
-            PlaySound(enemyDeathClips[Random.Range(0, enemyDeathClips.Length)], 0.5f);
-    }
 
-    public void PlayEnemyAttack()
-    {
-        if (!isInitialized) return;
-        if (enemyAttackClips.Length > 0)
-            PlaySound(enemyAttackClips[Random.Range(0, enemyAttackClips.Length)], 0.5f);
-    }
-
-    // ============================================
-    // DŹWIĘKI ŚRODOWISKA
-    // ============================================
-
-    public void PlayPortalOpen()
-    {
-        if (!isInitialized) return;
-        if (portalOpenClip != null)
-            PlaySound(portalOpenClip, 0.7f);
-    }
-
-    public void PlayPortalClose()
-    {
-        if (!isInitialized) return;
-        if (portalCloseClip != null)
-            PlaySound(portalCloseClip, 0.7f);
-    }
-
-    public void PlayLevelUp()
-    {
-        if (!isInitialized) return;
-        if (levelUpClip != null)
-            PlaySound(levelUpClip, 0.8f);
-    }
-
-    public void PlayPerkSelect()
-    {
-        if (!isInitialized) return;
-        if (perkSelectClip != null)
-            PlaySound(perkSelectClip, 0.6f);
-    }
-
-    public void PlayWaveStart()
-    {
-        if (!isInitialized) return;
-        if (waveStartClip != null)
+        switch (soundName)
         {
-            PlaySound(waveStartClip, 0.7f);
-            SetCombatMode(true);
+            case "LevelUp": PlayLevelUp(); break;
+            case "PerkSelect": PlayPerkSelect(); break;
+            case "WaveStart": PlayWaveStart(); break;
+            case "WaveComplete": PlayWaveComplete(); break;
+            case "PortalOpen": PlayPortalOpen(); break;
+            case "PortalClose": PlayPortalClose(); break;
+            case "Victory": PlayVictory(); break;
+            case "GameOver": PlayGameOver(); break;
+            case "Laser": PlayLaser(); break;
+            case "Death": PlayDeath(); break;
+            case "Heal": PlayHeal(); break;
+            case "Damage": PlayDamage(); break;
+            case "EnemyHit": PlayEnemyHit(); break;
+            case "EnemyDeath": PlayEnemyDeath(); break;
+            case "EnemyAttack": PlayEnemyAttack(); break;
+            default:
+                Debug.LogWarning($"⚠️ Nieznany dźwięk: {soundName}");
+                break;
         }
     }
 
-    public void PlayWaveComplete()
+    // ============================================================
+    // !!! METODY DLA MUZYKI !!!
+    // ============================================================
+
+    public void PlayBackgroundMusic()
     {
         if (!isInitialized) return;
-        if (waveCompleteClip != null)
-        {
-            PlaySound(waveCompleteClip, 0.6f);
-            SetCombatMode(false);
-        }
+        if (backgroundMusic == null) return;
+
+        if (isBossFight) return; // Boss ma priorytet
+
+        isCombat = false;
+        StartCoroutine(FadeMusic(backgroundMusic, musicFadeIn));
+        Debug.Log("🎵 Odtwarzam muzykę tła");
     }
 
-    // ============================================
-    // MUZYKA
-    // ============================================
+    public void PlayCombatMusic()
+    {
+        if (!isInitialized) return;
+        if (combatMusic == null) return;
+        if (isBossFight) return; // Boss ma priorytet
+
+        isCombat = true;
+        StartCoroutine(FadeMusic(combatMusic, musicFadeIn));
+        Debug.Log("🎵 Odtwarzam muzykę walki");
+    }
 
     public void StartBossMusic()
     {
         if (!isInitialized) return;
-        if (bossMusic != null && !isBossFight)
-        {
-            isBossFight = true;
-            isCombat = false;
-            musicSource.clip = bossMusic;
-            musicSource.Play();
-            Debug.Log("🎵 MUZYKA BOSSA!");
-        }
+        if (bossMusic == null) return;
+
+        isBossFight = true;
+        isCombat = false;
+        StartCoroutine(FadeMusic(bossMusic, bossMusicFadeIn));
+        Debug.Log("🎵 Odtwarzam muzykę bossa");
     }
 
     public void StopBossMusic()
     {
         if (!isInitialized) return;
-        if (isBossFight)
+
+        isBossFight = false;
+
+        if (isCombat && combatMusic != null)
         {
-            isBossFight = false;
-            if (backgroundMusic != null)
-            {
-                musicSource.clip = backgroundMusic;
-                musicSource.Play();
-                Debug.Log("🎵 Powrót do muzyki tła");
-            }
+            StartCoroutine(FadeMusic(combatMusic, musicFadeIn));
         }
+        else if (backgroundMusic != null)
+        {
+            StartCoroutine(FadeMusic(backgroundMusic, musicFadeIn));
+        }
+        Debug.Log("🎵 Wyłączono muzykę bossa");
     }
 
-    public void SetCombatMode(bool inCombat)
+    // ============================================================
+    // METODY DLA characterSelector.cs
+    // ============================================================
+    public void OnCharacterSelected()
     {
         if (!isInitialized) return;
-        isCombat = inCombat;
+
+        // Jeśli są wrogowie - włącz combat music, jeśli nie - wróć do tła
+        if (isCombat && combatMusic != null)
+        {
+            PlayCombatMusic();
+        }
+        else if (backgroundMusic != null)
+        {
+            PlayBackgroundMusic();
+        }
+
+        Debug.Log("🎵 Postać wybrana - przełączono muzykę!");
     }
 
-    // ============================================
-    // METODY POMOCNICZE
-    // ============================================
-
-    private void PlaySound(AudioClip clip, float volume)
+    // ============================================================
+    // METODY DLA leszy.cs
+    // ============================================================
+    public void OnBossSpawn()
     {
-        if (clip == null) return;
-        if (Camera.main != null)
-            AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, volume * sfxVolume * masterVolume);
-        else
-            AudioSource.PlayClipAtPoint(clip, Vector3.zero, volume * sfxVolume * masterVolume);
+        StartBossMusic();
     }
 
-    public void SetMasterVolume(float volume)
+    public void OnBossDeath()
     {
-        masterVolume = Mathf.Clamp01(volume);
-        if (musicSource != null) musicSource.volume = musicVolume * masterVolume;
-        if (sfxSource != null) sfxSource.volume = sfxVolume * masterVolume;
+        StopBossMusic();
     }
 
-    public void SetSFXVolume(float volume)
-    {
-        sfxVolume = Mathf.Clamp01(volume);
-        if (sfxSource != null) sfxSource.volume = sfxVolume * masterVolume;
-    }
-
-    public void SetMusicVolume(float volume)
-    {
-        musicVolume = Mathf.Clamp01(volume);
-        if (musicSource != null) musicSource.volume = musicVolume * masterVolume;
-    }
-
-    // ============================================
-    // METODY DLA WAVESPAWNER
-    // ============================================
-
+    // ============================================================
+    // METODY DLA enemyHealth.cs i waveSpawner.cs
+    // ============================================================
     public void OnEnemySpawned()
     {
         if (!isInitialized) return;
         if (!isCombat && !isBossFight)
-            SetCombatMode(true);
+        {
+            PlayCombatMusic();
+        }
     }
 
     public void OnEnemyDied()
     {
         if (!isInitialized) return;
+        PlayEnemyDeath();
+
+        // Sprawdź czy są jeszcze jacyś wrogowie
         BaseEnemy[] enemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
-        if (enemies.Length == 0 && isCombat)
+        if (enemies.Length == 0 && isCombat && !isBossFight)
         {
-            SetCombatMode(false);
+            isCombat = false;
+            PlayBackgroundMusic();
         }
     }
 
-    public void OnBossSpawned()
+    public void SetCombatMode(bool inCombat)
     {
-        StartBossMusic();
+        if (isBossFight) return;
+
+        isCombat = inCombat;
+        if (inCombat)
+        {
+            PlayCombatMusic();
+        }
+        else
+        {
+            PlayBackgroundMusic();
+        }
     }
 
-    public void OnBossDied()
+    // ============================================================
+    // USTAWIANIE GŁOŚNOŚCI
+    // ============================================================
+    public void SetMasterVolume(float volume)
     {
-        StopBossMusic();
+        masterVolume = Mathf.Clamp01(volume);
+        musicSource.volume = musicVolume * masterVolume * musicVolumeMultiplier;
+        sfxSource.volume = sfxVolume * masterVolume;
     }
 
-    // ============================================
-    // METODY DLA GAME MANAGER
-    // ============================================
-
-    public void PlayGameOver()
+    public void SetSFXVolume(float volume)
     {
-        if (!isInitialized) return;
-        if (deathClip != null)
-            PlaySound(deathClip, 0.8f);
+        sfxVolume = Mathf.Clamp01(volume);
+        sfxSource.volume = sfxVolume * masterVolume;
     }
 
-    public void PlayVictory()
+    public void SetMusicVolume(float volume)
     {
-        if (!isInitialized) return;
-        if (levelUpClip != null)
-            PlaySound(levelUpClip, 0.9f);
+        musicVolume = Mathf.Clamp01(volume);
+        musicSource.volume = musicVolume * masterVolume * musicVolumeMultiplier;
+    }
+
+    public void SetMusicVolumeMultiplier(float volume)
+    {
+        musicVolumeMultiplier = Mathf.Clamp01(volume);
+        musicSource.volume = musicVolume * masterVolume * musicVolumeMultiplier;
+    }
+
+    // ============================================================
+    // ZATRZYMYWANIE
+    // ============================================================
+    public void StopAllSFX() => sfxSource.Stop();
+    public void StopMusic() => musicSource.Stop();
+    public void PauseMusic() => musicSource.Pause();
+    public void ResumeMusic() => musicSource.UnPause();
+
+    // ============================================================
+    // LISTA WSZYSTKICH DŹWIĘKÓW (DLA UI)
+    // ============================================================
+    public string[] GetAllSoundNames()
+    {
+        return new string[]
+        {
+            "LevelUp", "PerkSelect", "WaveStart", "WaveComplete",
+            "PortalOpen", "PortalClose", "Victory", "GameOver",
+            "Laser", "Death", "Heal", "Damage",
+            "EnemyHit", "EnemyDeath", "EnemyAttack"
+        };
     }
 }

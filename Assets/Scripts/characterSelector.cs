@@ -27,6 +27,12 @@ public class CharacterSelector : MonoBehaviour
         // Upewnij się że gra nie jest zamrożona
         Time.timeScale = 1f;
 
+        // Odtwórz muzykę tła
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayBackgroundMusic();
+        }
+
         Debug.Log("🎮 Wybierz postać: 1 - Góral, 2 - Seraphim, 3 - Pasterz");
     }
 
@@ -95,7 +101,7 @@ public class CharacterSelector : MonoBehaviour
         }
 
         // Dodaj brakujące komponenty
-        AddMissingComponents(name);
+        AddMissingComponents(currentCharacter, name);
 
         // PlayerHealth
         PlayerHealth health = currentCharacter.GetComponent<PlayerHealth>();
@@ -127,6 +133,13 @@ public class CharacterSelector : MonoBehaviour
             Debug.Log("🎮 LevelSystem rozpoczęty");
         }
 
+        // Powiadom AudioManager o wyborze postaci
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.OnCharacterSelected();
+            Debug.Log("🎵 Przełączono na muzykę walki!");
+        }
+
         // Zablokuj możliwość zmiany postaci
         hasSelected = true;
 
@@ -137,32 +150,32 @@ public class CharacterSelector : MonoBehaviour
         Debug.Log($"🎮 Wybrano: {name}! Gra rozpoczęta.");
     }
 
-    void AddMissingComponents(string name)
+    void AddMissingComponents(GameObject character, string name)
     {
-        if (currentCharacter == null) return;
+        if (character == null) return;
 
         // Abilities dla danej postaci
         if (name == "Góral" || name == "Goral")
         {
-            if (currentCharacter.GetComponent<AbilitiesMountainMan>() == null)
+            if (character.GetComponent<AbilitiesMountainMan>() == null)
             {
-                currentCharacter.AddComponent<AbilitiesMountainMan>();
+                character.AddComponent<AbilitiesMountainMan>();
                 Debug.Log("⚔️ Dodano AbilitiesMountainMan");
             }
         }
         else if (name == "Seraphim")
         {
-            if (currentCharacter.GetComponent<AbilitiesSeraphim>() == null)
+            if (character.GetComponent<AbilitiesSeraphim>() == null)
             {
-                currentCharacter.AddComponent<AbilitiesSeraphim>();
+                character.AddComponent<AbilitiesSeraphim>();
                 Debug.Log("✨ Dodano AbilitiesSeraphim");
             }
         }
         else if (name == "Pasterz" || name == "Shepherd")
         {
-            if (currentCharacter.GetComponent<ShepherdAbilities>() == null)
+            if (character.GetComponent<ShepherdAbilities>() == null)
             {
-                currentCharacter.AddComponent<ShepherdAbilities>();
+                character.AddComponent<ShepherdAbilities>();
                 Debug.Log("🐕 Dodano ShepherdAbilities");
             }
         }

@@ -32,6 +32,25 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float visualDuration = 0.3f;
     public float visualLineWidth = 0.08f;
 
+    [Header("═══════════════ DŹWIĘKI ═══════════════")]
+    public AudioClip[] attackSounds;
+    public AudioClip[] specialSounds;
+    public AudioClip[] ultimateSounds;
+    public AudioClip[] hitSounds;
+    public AudioClip deathSound;
+    public AudioClip[] footstepSounds;
+
+    [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
+    [Range(0f, 1f)] public float attackVolume = 0.7f;
+    [Range(0f, 1f)] public float specialVolume = 0.8f;
+    [Range(0f, 1f)] public float ultimateVolume = 0.9f;
+    [Range(0f, 1f)] public float hitVolume = 0.5f;
+    [Range(0f, 1f)] public float deathVolume = 0.7f;
+    [Range(0f, 1f)] public float footstepVolume = 0.3f;
+
+    [Header("═══════════════ INTERWAŁ KROKÓW ═══════════════")]
+    public float footstepInterval = 0.5f;
+
     private float attackTimer = 0f;
     private float stompTimer = 0f;
     private float ultimateTimer = 0f;
@@ -39,6 +58,12 @@ public class AbilitiesMountainMan : MonoBehaviour
     private Transform player;
     private Camera mainCamera;
     private bool canAttack = true;
+
+    // Audio
+    private AudioSource audioSource;
+    private float footstepTimer = 0f;
+    private bool isMoving = false;
+    private Rigidbody rb;
 
     // Wizualizacje
     private GameObject visualObj;
@@ -53,7 +78,13 @@ public class AbilitiesMountainMan : MonoBehaviour
         ultimateTimer = ultimateCooldown;
         specialTimer = specialCooldown;
 
-        // Stwórz obiekt do wizualizacji
+        // Audio
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.spatialBlend = 0.5f;
+        audioSource.volume = 0.5f;
+        rb = GetComponent<Rigidbody>();
+
+        // Wizualizacje
         visualObj = new GameObject("AttackVisual");
         visualObj.transform.SetParent(transform);
         visualObj.transform.localPosition = Vector3.zero;
@@ -70,6 +101,26 @@ public class AbilitiesMountainMan : MonoBehaviour
     void Update()
     {
         if (player == null) return;
+
+        // Kroki
+        if (rb != null)
+        {
+            isMoving = rb.linearVelocity.magnitude > 0.5f;
+        }
+
+        if (isMoving)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer >= footstepInterval)
+            {
+                footstepTimer = 0f;
+                PlayFootstep();
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
 
         float distance = Vector3.Distance(transform.position, player.position);
 
@@ -200,7 +251,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     baseEnemy.TakeDamage(attackDamage);
                     PushbackEnemy(baseEnemy);
-                    AudioManager.Instance?.PlayAttack();
+                    PlayAttackSound();
                 }
                 continue;
             }
@@ -214,7 +265,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     bazyliszek.TakeDamage(attackDamage);
                     PushbackEnemy(bazyliszek);
-                    AudioManager.Instance?.PlayAttack();
+                    PlayAttackSound();
                 }
                 continue;
             }
@@ -228,7 +279,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     leszy.TakeDamage(attackDamage);
                     PushbackEnemy(leszy);
-                    AudioManager.Instance?.PlayAttack();
+                    PlayAttackSound();
                 }
                 continue;
             }
@@ -247,7 +298,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(stompDamage);
                 PushbackEnemy(baseEnemy, 1.5f);
-                AudioManager.Instance?.PlayStomp();
+                PlaySpecialSound();
                 continue;
             }
 
@@ -256,7 +307,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(stompDamage);
                 PushbackEnemy(bazyliszek, 1.5f);
-                AudioManager.Instance?.PlayStomp();
+                PlaySpecialSound();
                 continue;
             }
 
@@ -265,7 +316,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(stompDamage);
                 PushbackEnemy(leszy, 1.5f);
-                AudioManager.Instance?.PlayStomp();
+                PlaySpecialSound();
                 continue;
             }
         }
@@ -283,7 +334,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(ultimateDamage);
                 PushbackEnemy(baseEnemy, 2f);
-                AudioManager.Instance?.PlayUltimate();
+                PlayUltimateSound();
                 continue;
             }
 
@@ -292,7 +343,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(ultimateDamage);
                 PushbackEnemy(bazyliszek, 2f);
-                AudioManager.Instance?.PlayUltimate();
+                PlayUltimateSound();
                 continue;
             }
 
@@ -301,7 +352,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(ultimateDamage);
                 PushbackEnemy(leszy, 2f);
-                AudioManager.Instance?.PlayUltimate();
+                PlayUltimateSound();
                 continue;
             }
         }
@@ -319,7 +370,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(specialDamage);
                 PushbackEnemy(baseEnemy);
-                AudioManager.Instance?.PlaySpecialAbility();
+                PlaySpecialSound();
                 continue;
             }
 
@@ -328,7 +379,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(specialDamage);
                 PushbackEnemy(bazyliszek);
-                AudioManager.Instance?.PlaySpecialAbility();
+                PlaySpecialSound();
                 continue;
             }
 
@@ -337,7 +388,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(specialDamage);
                 PushbackEnemy(leszy);
-                AudioManager.Instance?.PlaySpecialAbility();
+                PlaySpecialSound();
                 continue;
             }
         }
@@ -376,6 +427,30 @@ public class AbilitiesMountainMan : MonoBehaviour
             rb.useGravity = true;
             rb.AddForce(direction * pushbackForce * forceMultiplier, ForceMode.Impulse);
         }
+    }
+
+    // ============================================================
+    // DŹWIĘKI
+    // ============================================================
+
+    public void PlayAttackSound() => PlayRandomClip(attackSounds, attackVolume);
+    public void PlaySpecialSound() => PlayRandomClip(specialSounds, specialVolume);
+    public void PlayUltimateSound() => PlayRandomClip(ultimateSounds, ultimateVolume);
+    public void PlayHitSound() => PlayRandomClip(hitSounds, hitVolume);
+    public void PlayDeathSound() => PlayClip(deathSound, deathVolume);
+    public void PlayFootstep() => PlayRandomClip(footstepSounds, footstepVolume);
+
+    private void PlayRandomClip(AudioClip[] clips, float volume)
+    {
+        if (clips == null || clips.Length == 0 || audioSource == null) return;
+        AudioClip clip = clips[Random.Range(0, clips.Length)];
+        PlayClip(clip, volume);
+    }
+
+    private void PlayClip(AudioClip clip, float volume)
+    {
+        if (clip != null && audioSource != null)
+            audioSource.PlayOneShot(clip, volume);
     }
 
     public void SetCanAttack(bool value)

@@ -40,6 +40,27 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float visualDuration = 0.3f;
     public float visualLineWidth = 0.08f;
 
+    [Header("═══════════════ DŹWIĘKI ═══════════════")]
+    public AudioClip[] laserSounds;
+    public AudioClip[] specialSounds;
+    public AudioClip[] ultimateSounds;
+    public AudioClip[] healSounds;
+    public AudioClip[] chargeSounds;
+    public AudioClip deathSound;
+    public AudioClip[] footstepSounds;
+
+    [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
+    [Range(0f, 1f)] public float laserVolume = 0.7f;
+    [Range(0f, 1f)] public float specialVolume = 0.8f;
+    [Range(0f, 1f)] public float ultimateVolume = 0.9f;
+    [Range(0f, 1f)] public float healVolume = 0.6f;
+    [Range(0f, 1f)] public float chargeVolume = 0.7f;
+    [Range(0f, 1f)] public float deathVolume = 0.7f;
+    [Range(0f, 1f)] public float footstepVolume = 0.2f;
+
+    [Header("═══════════════ INTERWAŁ KROKÓW ═══════════════")]
+    public float footstepInterval = 0.35f;
+
     private float attackTimer = 0f;
     private float healTimer = 0f;
     private float ultimateTimer = 0f;
@@ -52,6 +73,11 @@ public class AbilitiesSeraphim : MonoBehaviour
     private Rigidbody rb;
     private Camera mainCamera;
     private bool canShoot = true;
+
+    // Audio
+    private AudioSource audioSource;
+    private float footstepTimer = 0f;
+    private bool isMoving = false;
 
     // Wizualizacje
     private GameObject visualObj;
@@ -76,6 +102,11 @@ public class AbilitiesSeraphim : MonoBehaviour
             if (fp != null) firePoint = fp;
             else firePoint = transform;
         }
+
+        // Audio
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.spatialBlend = 0.5f;
+        audioSource.volume = 0.5f;
 
         CreateVisualLine();
     }
@@ -160,6 +191,26 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (player == null) return;
 
+        // Kroki
+        if (rb != null)
+        {
+            isMoving = rb.linearVelocity.magnitude > 0.5f;
+        }
+
+        if (isMoving)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer >= footstepInterval)
+            {
+                footstepTimer = 0f;
+                PlayFootstep();
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
+
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canShoot)
         {
@@ -238,12 +289,10 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (lightBeam != null)
         {
             lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
-
-            // === POPRAWIONE - 2 ARGUMENTY ===
             lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce);
         }
 
-        AudioManager.Instance?.PlayLaser();
+        PlayLaserSound();
         ShowTrajectoryVisual();
     }
 
@@ -271,13 +320,13 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Heal(healAmount);
-            AudioManager.Instance?.PlayHeal();
+            PlayHealSound();
         }
     }
 
     IEnumerator Judgment()
     {
-        AudioManager.Instance?.PlayUltimate();
+        PlayUltimateSound();
         ShowCircleVisual(judgmentRadius);
 
         if (judgmentEffect != null)
@@ -361,7 +410,7 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void SpecialAttack()
     {
-        AudioManager.Instance?.PlaySpecialAbility();
+        PlaySpecialSound();
         ShowCircleVisual(specialRange);
 
         RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, specialRange);
@@ -424,7 +473,7 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (isCharging) yield break;
 
-        AudioManager.Instance?.PlayCharge();
+        PlayChargeSound();
         ShowCircleVisual(chargeRange);
 
         isCharging = true;
@@ -537,6 +586,31 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (rb != null) rb.linearVelocity = Vector3.zero;
 
         Debug.Log($"⚡ Seraphim Charge: {chargeDamage} obrażeń!");
+    }
+
+    // ============================================================
+    // DŹWIĘKI
+    // ============================================================
+
+    public void PlayLaserSound() => PlayRandomClip(laserSounds, laserVolume);
+    public void PlaySpecialSound() => PlayRandomClip(specialSounds, specialVolume);
+    public void PlayUltimateSound() => PlayRandomClip(ultimateSounds, ultimateVolume);
+    public void PlayHealSound() => PlayRandomClip(healSounds, healVolume);
+    public void PlayChargeSound() => PlayRandomClip(chargeSounds, chargeVolume);
+    public void PlayDeathSound() => PlayClip(deathSound, deathVolume);
+    public void PlayFootstep() => PlayRandomClip(footstepSounds, footstepVolume);
+
+    private void PlayRandomClip(AudioClip[] clips, float volume)
+    {
+        if (clips == null || clips.Length == 0 || audioSource == null) return;
+        AudioClip clip = clips[Random.Range(0, clips.Length)];
+        PlayClip(clip, volume);
+    }
+
+    private void PlayClip(AudioClip clip, float volume)
+    {
+        if (clip != null && audioSource != null)
+            audioSource.PlayOneShot(clip, volume);
     }
 
     public void ActivateShield()

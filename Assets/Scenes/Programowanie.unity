@@ -539,11 +539,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55a0a7b3f5b16e744823b67359833f1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  attackClips: []
-  barkClips: []
-  specialClips: []
-  ultimateClips: []
-  deathClip: {fileID: 0}
+  attackClips:
+  - {fileID: 8300000, guid: 0803ebc5bc6ddb74e9c3e27094a65fc7, type: 3}
+  - {fileID: 8300000, guid: 9c6c309b8de175541abe0febfc00b026, type: 3}
+  - {fileID: 8300000, guid: 9fdc710155006e9498007fec46fb9eba, type: 3}
+  barkClips:
+  - {fileID: 8300000, guid: 0803ebc5bc6ddb74e9c3e27094a65fc7, type: 3}
+  - {fileID: 8300000, guid: 9c6c309b8de175541abe0febfc00b026, type: 3}
+  - {fileID: 8300000, guid: 9fdc710155006e9498007fec46fb9eba, type: 3}
+  specialClips:
+  - {fileID: 8300000, guid: 55e27d9d079c65345a0c72e51b5dec3a, type: 3}
+  ultimateClips:
+  - {fileID: 8300000, guid: 0c983215b0fb5714cae086dedde07ff3, type: 3}
+  deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   footstepClips: []
   sheepSpawnClips: []
   attackVolume: 0.7
@@ -781,12 +789,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95ee074d8d357fa47beb9cb7c231bbe6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  laserClips: []
-  specialClips: []
-  ultimateClips: []
-  healClips: []
-  chargeClips: []
-  deathClip: {fileID: 0}
+  laserClips:
+  - {fileID: 8300000, guid: 74ac969ce47a5ec47a97b8255b12de1c, type: 3}
+  - {fileID: 8300000, guid: f9d71b59801af5e49a0e281caa57d172, type: 3}
+  - {fileID: 8300000, guid: c80bf7aa4e4201c42a9e94c078b53212, type: 3}
+  - {fileID: 8300000, guid: 347779be129ddc64990cc5c031dd1ca9, type: 3}
+  - {fileID: 8300000, guid: f1b858529410f7f49a401ee7275a832b, type: 3}
+  - {fileID: 8300000, guid: 77035d109ebe3aa4faf7d56db4278566, type: 3}
+  specialClips:
+  - {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  ultimateClips:
+  - {fileID: 8300000, guid: 9fae452af4a1e5444a249db7c732b5e1, type: 3}
+  healClips:
+  - {fileID: 8300000, guid: f7c538247b24639488c5e1f9c0c52a97, type: 3}
+  chargeClips:
+  - {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   footstepClips: []
   laserVolume: 0.7
   specialVolume: 0.8
@@ -4547,11 +4565,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32d3a30fc491a044980be63dab47ab26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  attackClips: []
-  specialClips: []
-  ultimateClips: []
+  attackClips:
+  - {fileID: 8300000, guid: b0484a84494877546817dcfec174fa2c, type: 3}
+  - {fileID: 8300000, guid: 1bb39cb3cf250234e877f5c4419a4f90, type: 3}
+  - {fileID: 8300000, guid: b12e2e112b0d2df419e1dbfc5a1929f3, type: 3}
+  - {fileID: 8300000, guid: 44236675485d4bf4ebf66696516fc6eb, type: 3}
+  - {fileID: 8300000, guid: 986140dc11acdbe4bb13cbedf27121cb, type: 3}
+  - {fileID: 8300000, guid: c063a9c627e39fd43bf627bf6cf5d697, type: 3}
+  specialClips:
+  - {fileID: 8300000, guid: 0ef9b1854a38ea94f966d55b5027edbf, type: 3}
+  ultimateClips:
+  - {fileID: 8300000, guid: 167411e7734a458438857ef2d90b76e8, type: 3}
   hitClips: []
-  deathClip: {fileID: 0}
+  deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   footstepClips: []
   attackVolume: 0.7
   specialVolume: 0.8
@@ -6862,15 +6888,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   masterVolume: 1
   sfxVolume: 1
-  musicVolume: 0.5
+  musicVolume: 0.056
   backgroundMusic: {fileID: 8300000, guid: 24b246b170d874f45b6f9a1e4e80ca69, type: 3}
   bossMusic: {fileID: 0}
   combatMusic: {fileID: 0}
   levelUpClip: {fileID: 8300000, guid: 3dd0fd780ccfed34b9692aa8882e7c7c, type: 3}
-  perkSelectClip: {fileID: 0}
+  perkSelectClip: {fileID: 8300000, guid: 9a7193d882e4c7b4e8a38ba5f5ec0f72, type: 3}
   waveStartClip: {fileID: 8300000, guid: 809eb92b3b4627942817e976b85e4a26, type: 3}
-  waveCompleteClip: {fileID: 0}
-  portalOpenClip: {fileID: 0}
+  waveCompleteClip: {fileID: 8300000, guid: c3d4c85afa07ce34dbbe7ee9a7a64141, type: 3}
+  portalOpenClip: {fileID: 8300000, guid: dfac146b14bfdbf42985ffc65d7f5b15, type: 3}
   portalCloseClip: {fileID: 0}
   victoryClip: {fileID: 0}
   gameOverClip: {fileID: 0}
@@ -6880,7 +6906,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
   enemyAttackClips: []
   deathClip: {fileID: 8300000, guid: 493333d0cbc11584387c984b513640df, type: 3}
-  healClip: {fileID: 0}
+  healClip: {fileID: 8300000, guid: f7c538247b24639488c5e1f9c0c52a97, type: 3}
   damageClips: []
   musicVolumeMultiplier: 1
   levelUpVolume: 0.8
@@ -6896,7 +6922,7 @@ MonoBehaviour:
   enemyDeathVolume: 0.5
   enemyAttackVolume: 0.5
   deathVolume: 0.7
-  healVolume: 0.5
+  healVolume: 0.162
   damageVolume: 0.6
   levelUpFadeIn: 0.1
   perkSelectFadeIn: 0.1

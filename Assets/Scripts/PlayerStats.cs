@@ -52,7 +52,7 @@ public class PlayerStats : MonoBehaviour
             Debug.Log($"Pasterz: HP={pasterzHealth}, Speed={pasterzSpeed}, Armor={pasterzArmor}");
         }
 
-        // === TYLKO GAME MANAGER ===
+        // === UPDATE UI ===
         if (gameManager != null)
         {
             gameManager.UpdateUI();

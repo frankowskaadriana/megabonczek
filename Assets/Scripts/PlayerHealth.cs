@@ -20,11 +20,29 @@ public class PlayerHealth : MonoBehaviour
     private bool isDead = false;
     private GameManager gameManager;
 
+    // ============================================================
+    // REFERENCJA DO HealthBar
+    // ============================================================
+    private HealthBar healthBar;
+
     void Start()
     {
         currentHealth = maxHealth;
         levelSystem = FindFirstObjectByType<LevelSystem>();
         gameManager = FindFirstObjectByType<GameManager>();
+
+        // ============================================================
+        // ZNAJDŹ HealthBar
+        // ============================================================
+        healthBar = FindFirstObjectByType<HealthBar>();
+        if (healthBar != null)
+        {
+            Debug.Log("✅ PlayerHealth znalazł HealthBar!");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ HealthBar nie znaleziony!");
+        }
     }
 
     public void SetBaseHealth(float health, float initialArmor)
@@ -45,6 +63,25 @@ public class PlayerHealth : MonoBehaviour
 
         AudioManager.Instance?.PlayDamage();
         PushbackEnemies();
+
+        // ============================================================
+        // ODSWIEŻ HealthBar
+        // ============================================================
+        if (healthBar != null)
+        {
+            healthBar.UpdateHealthBar();
+            Debug.Log($"🔄 HealthBar odświeżony: {currentHealth}/{maxHealth}");
+        }
+        else
+        {
+            // Spróbuj znaleźć ponownie
+            healthBar = FindFirstObjectByType<HealthBar>();
+            if (healthBar != null)
+            {
+                healthBar.UpdateHealthBar();
+                Debug.Log($"🔄 HealthBar znaleziony i odświeżony: {currentHealth}/{maxHealth}");
+            }
+        }
 
         RefreshUI();
 
@@ -69,7 +106,6 @@ public class PlayerHealth : MonoBehaviour
             BaseEnemy enemy = hit.GetComponent<BaseEnemy>();
             if (enemy != null) enemiesHit.Add(enemy);
 
-            // Sprawdź też Bazyliszka i Leszego
             Bazyliszek bazyliszek = hit.GetComponent<Bazyliszek>();
             if (bazyliszek != null)
             {
@@ -119,7 +155,6 @@ public class PlayerHealth : MonoBehaviour
 
         yield return new WaitForSeconds(pushbackDuration);
 
-        // Przywróć kinematykę
         foreach (BaseEnemy enemy in enemiesHit)
         {
             if (enemy != null)
@@ -141,6 +176,8 @@ public class PlayerHealth : MonoBehaviour
     {
         currentHealth = Mathf.Clamp(currentHealth + amount, 0f, maxHealth);
         AudioManager.Instance?.PlayHeal();
+
+        if (healthBar != null) healthBar.UpdateHealthBar();
         RefreshUI();
     }
 
@@ -149,6 +186,8 @@ public class PlayerHealth : MonoBehaviour
         maxHealth += amount;
         currentHealth = maxHealth;
         AudioManager.Instance?.PlayHeal();
+
+        if (healthBar != null) healthBar.UpdateHealthBar();
         RefreshUI();
     }
 
@@ -158,10 +197,20 @@ public class PlayerHealth : MonoBehaviour
     private void RefreshUI()
     {
         if (gameManager == null)
+        {
             gameManager = FindFirstObjectByType<GameManager>();
+        }
 
         if (gameManager != null)
+        {
             gameManager.UpdateUI();
+        }
+
+        // Dodatkowe odświeżenie HealthBar
+        if (healthBar != null)
+        {
+            healthBar.UpdateHealthBar();
+        }
     }
 
     public void UpdateUI() => RefreshUI();
@@ -177,6 +226,9 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Player died!");
         AudioManager.Instance?.PlayDeath();
         Time.timeScale = 0f;
+
+        if (healthBar != null) healthBar.UpdateHealthBar();
+
         Destroy(gameObject);
     }
 

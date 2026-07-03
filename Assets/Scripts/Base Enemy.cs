@@ -19,18 +19,26 @@ public class BaseEnemy : MonoBehaviour
 
     [Header("═══════════════ ODRZUT ═══════════════")]
     public float hitPushForce = 5f;
-    public float hitPushUpForce = 0.5f;
     public float hitStunDuration = 0.2f;
 
-    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
+    [Header("═══════════════ VFX ATAKU ═══════════════")]
+    public GameObject attackVFXPrefab;
+    public float vfxDuration = 0.5f;
+    public Vector3 vfxOffset = new Vector3(0f, 1f, 0f);
+
+    [Header("═══════════════ EFEKTY WIZUALNE ATAKU ═══════════════")]
     public Color attackChargeColor = new Color(0f, 0.5f, 1f, 0.5f);
     public Color attackHitColor = new Color(1f, 0f, 0f, 0.6f);
     public Color hitColor = Color.red;
     public float hitFlashDuration = 0.15f;
     public float attackVisualDuration = 0.3f;
+    public float visualHeight = 0.1f;
 
-    [Header("═══════════════ KOLOR WROGA (USTAW W INSPECTORZE) ═══════════════")]
-    public Color enemyColor = new Color(0.6f, 0.3f, 0.8f); // Domyślnie Polnocnica
+    [Header("═══════════════ NAWIGACJA ═══════════════")]
+    public float pathUpdateInterval = 0.3f;
+    public float stuckThreshold = 2f;
+    public float angularSpeed = 720f;
+    public float acceleration = 25f;
 
     private float currentHealth;
     private Transform player;
@@ -52,6 +60,10 @@ public class BaseEnemy : MonoBehaviour
     private LineRenderer visualLine;
     private Transform firePoint;
 
+    private float pathUpdateTimer = 0f;
+    private float stuckTimer = 0f;
+    private Vector3 lastPosition;
+
     void Start()
     {
         gameObject.tag = "Enemy";
@@ -69,54 +81,47 @@ public class BaseEnemy : MonoBehaviour
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
 
-        SetupNavMeshAgent();
-        SetupRigidbody();
-        SetupFirePoint();
-        CollectAllMeshRenderers();
-        CreateAttackVisual();
-
-        // Ustaw kolor
-        SetAllMeshesColor(enemyColor);
-
-        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}");
-    }
-
-    void SetupNavMeshAgent()
-    {
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
+
         agent.speed = moveSpeed;
-        agent.angularSpeed = 720f;
-        agent.acceleration = 25f;
+        agent.angularSpeed = angularSpeed;
+        agent.acceleration = acceleration;
         agent.stoppingDistance = 0.3f;
         agent.autoBraking = false;
         agent.autoRepath = true;
+        agent.updatePosition = true;
+        agent.updateRotation = true;
         agent.radius = 0.3f;
         agent.height = 1.8f;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.enabled = true;
-    }
 
-    void SetupRigidbody()
-    {
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 50f;
         rb.isKinematic = true;
         rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
-    }
 
-    void SetupFirePoint()
-    {
         Transform fp = transform.Find("FirePoint");
         if (fp != null) firePoint = fp;
         else
         {
             GameObject fpObj = new GameObject("FirePoint");
             fpObj.transform.SetParent(transform);
-            fpObj.transform.localPosition = new Vector3(0, 0.1f, 0);
+            fpObj.transform.localPosition = new Vector3(0, visualHeight, 0);
             firePoint = fpObj.transform;
         }
+
+        CollectAllMeshRenderers();
+        CreateAttackVisual();
+
+        SetAllMeshesColor(Color.gray);
+
+        lastPosition = transform.position;
+
+        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}, Atak co {attackCooldown}s");
     }
 
     void CollectAllMeshRenderers()
@@ -158,6 +163,11 @@ public class BaseEnemy : MonoBehaviour
                 color = mesh.material.GetColor("_BaseColor");
                 hasColor = true;
             }
+            else if (mesh.material != null && mesh.material.HasProperty("_MainColor"))
+            {
+                color = mesh.material.GetColor("_MainColor");
+                hasColor = true;
+            }
             else
             {
                 color = Color.white;
@@ -183,6 +193,8 @@ public class BaseEnemy : MonoBehaviour
                     mesh.material.color = color;
                 else if (mesh.material.HasProperty("_BaseColor"))
                     mesh.material.SetColor("_BaseColor", color);
+                else if (mesh.material.HasProperty("_MainColor"))
+                    mesh.material.SetColor("_MainColor", color);
             }
             catch { }
         }
@@ -193,6 +205,7 @@ public class BaseEnemy : MonoBehaviour
         attackVisual = new GameObject("AttackVisual");
         attackVisual.transform.SetParent(transform);
         attackVisual.transform.localPosition = Vector3.zero;
+        attackVisual.transform.localRotation = Quaternion.identity;
 
         visualLine = attackVisual.AddComponent<LineRenderer>();
         visualLine.useWorldSpace = false;
@@ -275,12 +288,37 @@ public class BaseEnemy : MonoBehaviour
 
         if (agent != null && agent.isOnNavMesh && agent.enabled && !isAttacking)
         {
-            agent.SetDestination(player.position);
+            pathUpdateTimer += Time.deltaTime;
+            if (pathUpdateTimer >= pathUpdateInterval || agent.pathStatus == NavMeshPathStatus.PathInvalid)
+            {
+                pathUpdateTimer = 0f;
+                agent.SetDestination(player.position);
+            }
+
+            float speed = agent.velocity.magnitude;
+            if (speed < 0.1f && dist > 2f)
+            {
+                stuckTimer += Time.deltaTime;
+                if (stuckTimer > stuckThreshold)
+                {
+                    agent.Warp(transform.position);
+                    agent.SetDestination(player.position);
+                    stuckTimer = 0f;
+                }
+            }
+            else
+            {
+                stuckTimer = 0f;
+            }
 
             if (dist <= attackRange * 0.5f && !isAttacking)
+            {
                 agent.isStopped = true;
+            }
             else
+            {
                 agent.isStopped = false;
+            }
 
             if (dist > 0.5f)
             {
@@ -291,6 +329,8 @@ public class BaseEnemy : MonoBehaviour
                     transform.rotation = Quaternion.LookRotation(direction);
                 }
             }
+
+            lastPosition = transform.position;
         }
 
         if (dist <= attackRange && !isAttacking)
@@ -302,11 +342,16 @@ public class BaseEnemy : MonoBehaviour
                 StartCoroutine(AttackWithVisual());
             }
         }
+        else if (dist > attackRange * 1.5f)
+        {
+            attackTimer = Mathf.Max(0, attackTimer - Time.deltaTime * 0.5f);
+        }
     }
 
     IEnumerator AttackWithVisual()
     {
         isAttacking = true;
+
         if (agent != null) agent.isStopped = true;
 
         ShowAttackCone(attackRange, attackAngle, attackChargeColor);
@@ -347,8 +392,36 @@ public class BaseEnemy : MonoBehaviour
                     dir.y = 0.5f;
                     playerRb.AddForce(dir * 5f, ForceMode.Impulse);
                 }
+
+                // ============================================================
+                // VFX ATAKU
+                // ============================================================
+                SpawnAttackVFX();
             }
         }
+    }
+
+    void SpawnAttackVFX()
+    {
+        if (attackVFXPrefab == null) return;
+
+        Vector3 spawnPos = transform.position + transform.forward * attackRange * 0.5f + vfxOffset;
+
+        if (player != null)
+        {
+            Vector3 directionToPlayer = (player.position - transform.position).normalized;
+            spawnPos = transform.position + directionToPlayer * attackRange * 0.5f + vfxOffset;
+        }
+
+        GameObject vfx = Instantiate(attackVFXPrefab, spawnPos, Quaternion.identity);
+
+        if (player != null)
+        {
+            Vector3 direction = (player.position - transform.position).normalized;
+            vfx.transform.rotation = Quaternion.LookRotation(direction);
+        }
+
+        Destroy(vfx, vfxDuration);
     }
 
     public void TakeDamage(float amount)
@@ -408,6 +481,7 @@ public class BaseEnemy : MonoBehaviour
     IEnumerator HitPushback()
     {
         if (isDead) yield break;
+
         if (player == null) yield break;
 
         Vector3 direction = (transform.position - player.position).normalized;
@@ -427,6 +501,7 @@ public class BaseEnemy : MonoBehaviour
         }
 
         isStunned = true;
+
         yield return new WaitForSeconds(hitStunDuration);
 
         if (rb != null)

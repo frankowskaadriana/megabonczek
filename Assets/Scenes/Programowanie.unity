@@ -15474,7 +15474,7 @@ MonoBehaviour:
   enemyDeathVolume: 0.5
   enemyAttackVolume: 0.5
   deathVolume: 0.7
-  healVolume: 0.162
+  healVolume: 0.091
   damageVolume: 0.6
   levelUpFadeIn: 0.1
   perkSelectFadeIn: 0.1

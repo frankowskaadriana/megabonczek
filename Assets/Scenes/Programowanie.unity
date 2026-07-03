@@ -558,7 +558,7 @@ MonoBehaviour:
   attackVolume: 0.7
   barkVolume: 0.8
   specialVolume: 0.7
-  ultimateVolume: 0.9
+  ultimateVolume: 1
   deathVolume: 0.7
   footstepVolume: 0.3
   sheepSpawnVolume: 0.6

@@ -15408,12 +15408,39 @@ MonoBehaviour:
   waveText: {fileID: 0}
   enemiesLeftText: {fileID: 0}
   perkPanel: {fileID: 698982010}
-  perkContainer: {fileID: 0}
-  perkButtonPrefab: {fileID: 0}
   perkStatsText: {fileID: 0}
+  perkSlot1: {fileID: 1887632206}
+  perkSlot2: {fileID: 1154925382}
+  perkSlot3: {fileID: 1753542952}
+  perkSlot4: {fileID: 99868612}
+  perkButton_Attack: {fileID: 1604813132}
+  perkButton_Range: {fileID: 1229591524}
+  perkButton_Health: {fileID: 53001434}
+  perkButton_AttackSpeed: {fileID: 1274088155}
+  perkButton_Speed: {fileID: 2058887498}
+  perkButton_XP: {fileID: 778117599}
+  perkButton_Armor: {fileID: 328107991}
+  perkButton_Bleed: {fileID: 1213799934}
+  perkButton_Shield: {fileID: 625582201}
+  perkButton_Vampire: {fileID: 1068791211}
+  perkButton_UltimateDuration: {fileID: 987176333}
+  perkButton_UltimateDamage: {fileID: 1336028681}
+  perkButton_GoralMocnyCios: {fileID: 411727140}
+  perkButton_GoralZiemia: {fileID: 344962935}
+  perkButton_GoralWytrzymalosc: {fileID: 2073985970}
+  perkButton_GoralStompCzas: {fileID: 892480980}
+  perkButton_GoralSpecialCzas: {fileID: 2132826823}
+  perkButton_GoralUltimateCzas: {fileID: 1989125869}
+  perkButton_GoralSpecialCD: {fileID: 2132826823}
+  perkButton_SeraphimSwiatlo: {fileID: 1311629429}
+  perkButton_SeraphimUzdrowienie: {fileID: 435076428}
+  perkButton_SeraphimAniol: {fileID: 1311629429}
+  perkButton_SeraphimPrzebicie: {fileID: 486402779}
+  perkButton_ShepherdOwca: {fileID: 525263456}
+  perkButton_ShepherdStado: {fileID: 56772495}
+  perkButton_ShepherdPasterz: {fileID: 898012804}
   levelUpMessage: {fileID: 0}
   messageDuration: 2
-  iconFolderPath: PerkIcons/
   waveSpawner: {fileID: 2097285954}
   playerUI: {fileID: 0}
 --- !u!1001 &2115370522

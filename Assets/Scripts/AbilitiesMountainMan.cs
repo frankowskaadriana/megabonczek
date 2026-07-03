@@ -23,6 +23,11 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float ultimateDamage = 100f;
     public float ultimateCooldown = 30f;
 
+    [Header("═══════════════ CZAS UMIEJĘTNOŚCI ═══════════════")]
+    public float stompDuration = 0.5f;
+    public float specialDuration = 0.5f;
+    public float ultimateTime = 3f;
+
     [Header("═══════════════ ODRZUT ═══════════════")]
     public float pushbackForce = 10f;
     public float pushbackUpForce = 2f;
@@ -48,7 +53,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float effectDestroyTime = 1.5f;
 
     [Header("═══════════════ USTAWIENIA ROTACJI PARTICLE 2D ═══════════════")]
-    public float particleRotationOffset = 90f; // Kompensacja dla prefaba (twój ma -90)
+    public float particleRotationOffset = 90f;
 
     [Header("═══════════════ WIZUALIZACJE ═══════════════")]
     public Color visualColor = new Color(1f, 0f, 0f, 0.5f);
@@ -62,14 +67,11 @@ public class AbilitiesMountainMan : MonoBehaviour
     private Transform player;
     private bool canAttack = true;
 
-    // Referencja do PlayerMovement
     private PlayerMovement playerMovement;
 
-    // Wizualizacje
     private GameObject visualObj;
     private LineRenderer visualLine;
 
-    // === WSKAŹNIK ZASIĘGU ===
     private GameObject rangeIndicator;
     private SpriteRenderer rangeSprite;
 
@@ -90,12 +92,8 @@ public class AbilitiesMountainMan : MonoBehaviour
             firePoint = transform;
         }
 
-        // ============================================================
-        // STWÓRZ WSKAŹNIK ZASIĘGU
-        // ============================================================
         CreateRangeIndicator();
 
-        // Wizualizacje
         visualObj = new GameObject("AttackVisual");
         visualObj.transform.SetParent(transform);
         visualObj.transform.localPosition = Vector3.zero;
@@ -113,7 +111,6 @@ public class AbilitiesMountainMan : MonoBehaviour
     {
         if (rangeIndicatorPrefab == null)
         {
-            // Stwórz domyślny wskaźnik jeśli nie ma prefaba
             rangeIndicator = new GameObject("RangeIndicator");
             rangeIndicator.transform.SetParent(transform);
             rangeIndicator.transform.localPosition = indicatorOffset;
@@ -141,7 +138,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             }
         }
 
-        // Ustaw początkowy zasięg
         UpdateRangeIndicator(attackRange);
     }
 
@@ -205,7 +201,6 @@ public class AbilitiesMountainMan : MonoBehaviour
     {
         if (player == null) return;
 
-        // Obrót wskaźnika z graczem
         if (rangeIndicator != null)
         {
             rangeIndicator.transform.rotation = transform.rotation * Quaternion.Euler(indicatorRotation);
@@ -307,9 +302,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         if (visualObj != null) visualObj.SetActive(false);
     }
 
-    // ============================================================
-    // SPAWN EFEKTU Z ROTACJĄ DLA 2D PARTICLE SYSTEM
-    // ============================================================
     private void SpawnEffect(GameObject effectPrefab, Vector3 position, float scale = 1f)
     {
         if (effectPrefab == null) return;
@@ -317,9 +309,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         GameObject effect = Instantiate(effectPrefab, position, Quaternion.identity);
         effect.transform.localScale = Vector3.one * scale;
 
-        // ============================================================
-        // USTAW START ROTATION W PARTICLE SYSTEM (2D)
-        // ============================================================
         ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>();
         foreach (ParticleSystem ps in particleSystems)
         {
@@ -331,12 +320,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             main.duration = 0.5f;
             main.startLifetime = 0.3f;
 
-            // ============================================================
-            // POPRAWA: OBRÓT W KIERUNKU MYSZKI (ZAMIANA - NA +)
-            // ============================================================
             float playerAngle = transform.eulerAngles.y;
-
-            // ZMIANA: -playerAngle na +playerAngle
             float rotationZ = playerAngle + particleRotationOffset;
 
             main.startRotation3D = false;
@@ -348,9 +332,6 @@ public class AbilitiesMountainMan : MonoBehaviour
 
         Destroy(effect, effectDestroyTime);
     }
-    // ============================================================
-    // ATAK
-    // ============================================================
 
     void MeleeAttack()
     {
@@ -409,10 +390,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         ShowAttackVisual(attackRange, attackAngle);
     }
 
-    // ============================================================
-    // STOMP
-    // ============================================================
-
     void Stomp()
     {
         UpdateRangeIndicator(stompRange);
@@ -455,10 +432,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         ShowCircleVisual(stompRange);
         Invoke(nameof(ResetRangeIndicator), 0.5f);
     }
-
-    // ============================================================
-    // ULTIMATE
-    // ============================================================
 
     void Ultimate()
     {
@@ -503,10 +476,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         Invoke(nameof(ResetRangeIndicator), 0.5f);
     }
 
-    // ============================================================
-    // SPECIAL ATTACK
-    // ============================================================
-
     void SpecialAttack()
     {
         UpdateRangeIndicator(specialRange);
@@ -550,10 +519,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         Invoke(nameof(ResetRangeIndicator), 0.5f);
     }
 
-    // ============================================================
-    // RESET WSKAŹNIKA
-    // ============================================================
-
     void ResetRangeIndicator()
     {
         if (canAttack)
@@ -561,10 +526,6 @@ public class AbilitiesMountainMan : MonoBehaviour
             UpdateRangeIndicator(attackRange);
         }
     }
-
-    // ============================================================
-    // ODRZUT
-    // ============================================================
 
     void PushbackEnemy(object enemy, float forceMultiplier = 1f)
     {

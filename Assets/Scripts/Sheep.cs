@@ -42,10 +42,10 @@ public class Sheep : MonoBehaviour
     public float attackFlashDuration = 0.1f;
 
     [Header("═══════════════ DŹWIĘKI ═══════════════")]
-    public AudioClip[] attackSounds;      // Dźwięki ataku owcy
-    public AudioClip[] hitSounds;         // Dźwięki otrzymania obrażeń
-    public AudioClip deathSound;          // Dźwięk śmierci
-    public AudioClip[] footstepSounds;    // Dźwięki kroków
+    public AudioClip[] attackSounds;
+    public AudioClip[] hitSounds;
+    public AudioClip deathSound;
+    public AudioClip[] footstepSounds;
 
     private NavMeshAgent agent;
     private Transform targetEnemy;
@@ -66,7 +66,6 @@ public class Sheep : MonoBehaviour
     private float pushCooldown = 0f;
     private float pushCooldownTime = 0.5f;
 
-    // === AudioSource dla dźwięków ===
     private AudioSource audioSource;
 
     void Start()
@@ -86,7 +85,6 @@ public class Sheep : MonoBehaviour
             }
         }
 
-        // === AUDIO SOURCE ===
         audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.volume = 0.5f;
         audioSource.spatialBlend = 0.5f;
@@ -167,6 +165,9 @@ public class Sheep : MonoBehaviour
     {
         if (isDead) return;
 
+        // ============================================================
+        // SZUKAJ BaseEnemy
+        // ============================================================
         BaseEnemy[] baseEnemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
         if (baseEnemies.Length > 0)
         {
@@ -198,6 +199,9 @@ public class Sheep : MonoBehaviour
             }
         }
 
+        // ============================================================
+        // SZUKAJ Bazyliszka
+        // ============================================================
         Bazyliszek[] bazyliszki = FindObjectsByType<Bazyliszek>(FindObjectsSortMode.None);
         if (bazyliszki.Length > 0)
         {
@@ -229,6 +233,9 @@ public class Sheep : MonoBehaviour
             }
         }
 
+        // ============================================================
+        // SZUKAJ Leszego
+        // ============================================================
         Leszy[] lesze = FindObjectsByType<Leszy>(FindObjectsSortMode.None);
         if (lesze.Length > 0)
         {
@@ -346,7 +353,7 @@ public class Sheep : MonoBehaviour
     {
         while (state == SheepState.AutoAttacking && !isDead)
         {
-            if (targetEnemy == null || targetEnemy.GetComponent<EnemyHealth>() == null)
+            if (targetEnemy == null)
             {
                 state = SheepState.Following;
                 if (followTarget != null)
@@ -371,14 +378,40 @@ public class Sheep : MonoBehaviour
                 if (attackTimer >= attackCooldown)
                 {
                     attackTimer = 0f;
-                    EnemyHealth enemy = targetEnemy.GetComponent<EnemyHealth>();
-                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
-                    {
-                        enemy.TakeDamage(attackDamage);
-                        PushbackEnemy(enemy);
-                        FlashAttack();
 
-                        // === DŹWIĘK ATAKU OWCY ===
+                    // ============================================================
+                    // ATAK NA BaseEnemy
+                    // ============================================================
+                    BaseEnemy baseEnemy = targetEnemy.GetComponent<BaseEnemy>();
+                    if (baseEnemy != null)
+                    {
+                        baseEnemy.TakeDamage(attackDamage);
+                        PushbackEnemy(baseEnemy);
+                        FlashAttack();
+                        PlayAttackSound();
+                    }
+
+                    // ============================================================
+                    // ATAK NA Bazyliszka
+                    // ============================================================
+                    Bazyliszek bazyliszek = targetEnemy.GetComponent<Bazyliszek>();
+                    if (bazyliszek != null)
+                    {
+                        bazyliszek.TakeDamage(attackDamage);
+                        PushbackEnemy(bazyliszek);
+                        FlashAttack();
+                        PlayAttackSound();
+                    }
+
+                    // ============================================================
+                    // ATAK NA Leszego
+                    // ============================================================
+                    Leszy leszy = targetEnemy.GetComponent<Leszy>();
+                    if (leszy != null)
+                    {
+                        leszy.TakeDamage(attackDamage);
+                        PushbackEnemy(leszy);
+                        FlashAttack();
                         PlayAttackSound();
                     }
                 }
@@ -428,20 +461,46 @@ public class Sheep : MonoBehaviour
                 if (attackTimer >= attackCooldown)
                 {
                     attackTimer = 0f;
-                    EnemyHealth enemy = targetEnemy.GetComponent<EnemyHealth>();
-                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
-                    {
-                        enemy.TakeDamage(attackDamage);
-                        PushbackEnemy(enemy);
-                        FlashAttack();
 
-                        // === DŹWIĘK ATAKU OWCY ===
+                    // ============================================================
+                    // ATAK NA BaseEnemy
+                    // ============================================================
+                    BaseEnemy baseEnemy = targetEnemy.GetComponent<BaseEnemy>();
+                    if (baseEnemy != null)
+                    {
+                        baseEnemy.TakeDamage(attackDamage);
+                        PushbackEnemy(baseEnemy);
+                        FlashAttack();
+                        PlayAttackSound();
+                    }
+
+                    // ============================================================
+                    // ATAK NA Bazyliszka
+                    // ============================================================
+                    Bazyliszek bazyliszek = targetEnemy.GetComponent<Bazyliszek>();
+                    if (bazyliszek != null)
+                    {
+                        bazyliszek.TakeDamage(attackDamage);
+                        PushbackEnemy(bazyliszek);
+                        FlashAttack();
+                        PlayAttackSound();
+                    }
+
+                    // ============================================================
+                    // ATAK NA Leszego
+                    // ============================================================
+                    Leszy leszy = targetEnemy.GetComponent<Leszy>();
+                    if (leszy != null)
+                    {
+                        leszy.TakeDamage(attackDamage);
+                        PushbackEnemy(leszy);
+                        FlashAttack();
                         PlayAttackSound();
                     }
                 }
             }
 
-            if (targetEnemy == null || targetEnemy.GetComponent<EnemyHealth>() == null)
+            if (targetEnemy == null)
             {
                 state = SheepState.Following;
                 if (followTarget != null)
@@ -476,14 +535,39 @@ public class Sheep : MonoBehaviour
                 Collider[] hitColliders = Physics.OverlapSphere(transform.position, pushbackRadius);
                 foreach (var hit in hitColliders)
                 {
-                    EnemyHealth enemy = hit.GetComponent<EnemyHealth>();
-                    if (enemy != null && !enemy.gameObject.CompareTag("Dead"))
+                    // ============================================================
+                    // ATAK SZARŻY NA BaseEnemy
+                    // ============================================================
+                    BaseEnemy baseEnemy = hit.GetComponent<BaseEnemy>();
+                    if (baseEnemy != null)
                     {
-                        enemy.TakeDamage(attackDamage * 1.5f);
-                        PushbackEnemy(enemy, 1.5f);
+                        baseEnemy.TakeDamage(attackDamage * 1.5f);
+                        PushbackEnemy(baseEnemy, 1.5f);
                         FlashAttack();
+                        PlayAttackSound();
+                    }
 
-                        // === DŹWIĘK SZARŻY ===
+                    // ============================================================
+                    // ATAK SZARŻY NA Bazyliszka
+                    // ============================================================
+                    Bazyliszek bazyliszek = hit.GetComponent<Bazyliszek>();
+                    if (bazyliszek != null)
+                    {
+                        bazyliszek.TakeDamage(attackDamage * 1.5f);
+                        PushbackEnemy(bazyliszek, 1.5f);
+                        FlashAttack();
+                        PlayAttackSound();
+                    }
+
+                    // ============================================================
+                    // ATAK SZARŻY NA Leszego
+                    // ============================================================
+                    Leszy leszy = hit.GetComponent<Leszy>();
+                    if (leszy != null)
+                    {
+                        leszy.TakeDamage(attackDamage * 1.5f);
+                        PushbackEnemy(leszy, 1.5f);
+                        FlashAttack();
                         PlayAttackSound();
                     }
                 }
@@ -511,14 +595,35 @@ public class Sheep : MonoBehaviour
             mesh.material.color = originalColor;
     }
 
-    void PushbackEnemy(EnemyHealth enemy, float forceMultiplier = 1f)
+    // ============================================================
+    // ODRZUT - OBSŁUGA WSZYSTKICH TYPÓW WROGÓW
+    // ============================================================
+    void PushbackEnemy(object enemy, float forceMultiplier = 1f)
     {
         if (enemy == null) return;
 
-        Rigidbody enemyRb = enemy.GetComponent<Rigidbody>();
-        if (enemyRb != null)
+        Rigidbody enemyRb = null;
+        Transform enemyTransform = null;
+
+        if (enemy is BaseEnemy baseEnemy)
         {
-            Vector3 direction = (enemy.transform.position - transform.position).normalized;
+            enemyRb = baseEnemy.GetComponent<Rigidbody>();
+            enemyTransform = baseEnemy.transform;
+        }
+        else if (enemy is Bazyliszek bazyliszek)
+        {
+            enemyRb = bazyliszek.GetComponent<Rigidbody>();
+            enemyTransform = bazyliszek.transform;
+        }
+        else if (enemy is Leszy leszy)
+        {
+            enemyRb = leszy.GetComponent<Rigidbody>();
+            enemyTransform = leszy.transform;
+        }
+
+        if (enemyRb != null && enemyTransform != null)
+        {
+            Vector3 direction = (enemyTransform.position - transform.position).normalized;
             direction.y = pushbackUpForce;
 
             enemyRb.isKinematic = false;
@@ -527,7 +632,9 @@ public class Sheep : MonoBehaviour
         }
     }
 
-    // === DŹWIĘKI ===
+    // ============================================================
+    // DŹWIĘKI
+    // ============================================================
 
     void PlayAttackSound()
     {
@@ -558,20 +665,22 @@ public class Sheep : MonoBehaviour
         }
     }
 
-    // === KOLIZJE I OBRAŻENIA ===
+    // ============================================================
+    // KOLIZJE Z WROGAMI
+    // ============================================================
 
     void OnCollisionEnter(Collision collision)
     {
         if (isDead) return;
 
-        // Sprawdź czy to przeciwnik (BaseEnemy)
+        // ============================================================
+        // KOLIZJA Z BaseEnemy
+        // ============================================================
         BaseEnemy baseEnemy = collision.gameObject.GetComponent<BaseEnemy>();
         if (baseEnemy != null)
         {
-            // Owca otrzymuje obrażenia od przeciwnika
             TakeDamage(10f);
 
-            // Odepchnij owcę od przeciwnika
             Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
             pushDirection.y = 0.2f;
 
@@ -581,13 +690,14 @@ public class Sheep : MonoBehaviour
                 rb.useGravity = true;
                 rb.AddForce(pushDirection * collisionPushForce * 2f, ForceMode.Impulse);
                 pushCooldown = pushCooldownTime;
-
                 StartCoroutine(ResetKinematic());
             }
             return;
         }
 
-        // Sprawdź czy to Bazyliszek
+        // ============================================================
+        // KOLIZJA Z Bazyliszkiem
+        // ============================================================
         Bazyliszek bazyliszek = collision.gameObject.GetComponent<Bazyliszek>();
         if (bazyliszek != null)
         {
@@ -602,13 +712,14 @@ public class Sheep : MonoBehaviour
                 rb.useGravity = true;
                 rb.AddForce(pushDirection * collisionPushForce * 2f, ForceMode.Impulse);
                 pushCooldown = pushCooldownTime;
-
                 StartCoroutine(ResetKinematic());
             }
             return;
         }
 
-        // Sprawdź czy to Leszy
+        // ============================================================
+        // KOLIZJA Z Leszym
+        // ============================================================
         Leszy leszy = collision.gameObject.GetComponent<Leszy>();
         if (leszy != null)
         {
@@ -623,17 +734,17 @@ public class Sheep : MonoBehaviour
                 rb.useGravity = true;
                 rb.AddForce(pushDirection * collisionPushForce * 3f, ForceMode.Impulse);
                 pushCooldown = pushCooldownTime;
-
                 StartCoroutine(ResetKinematic());
             }
             return;
         }
 
-        // Sprawdź czy to inna owca (unikaj kolizji z owcami)
+        // ============================================================
+        // KOLIZJA Z INNĄ OWCĄ
+        // ============================================================
         Sheep otherSheep = collision.gameObject.GetComponent<Sheep>();
         if (otherSheep != null && otherSheep != this)
         {
-            // Lekko odepchnij owce od siebie
             Vector3 pushDirection = (transform.position - collision.transform.position).normalized;
             if (rb != null && pushCooldown <= 0)
             {
@@ -644,18 +755,16 @@ public class Sheep : MonoBehaviour
         }
     }
 
-    // === ZDROWIE I ŚMIERĆ ===
+    // ============================================================
+    // ZDROWIE I ŚMIERĆ
+    // ============================================================
 
     public void TakeDamage(float damage)
     {
         if (isDead) return;
 
         currentHealth -= damage;
-
-        // === DŹWIĘK OBRAŻEŃ ===
         PlayHitSound();
-
-        // === EFEKT MIGANIA ===
         FlashHit();
 
         Debug.Log($"🐑 Owca otrzymała {damage} obrażeń! HP: {currentHealth}/{maxHealth}");
@@ -672,7 +781,6 @@ public class Sheep : MonoBehaviour
         if (agent != null) agent.isStopped = true;
         if (mesh != null) mesh.material.color = Color.gray;
 
-        // === DŹWIĘK ŚMIERCI ===
         PlayDeathSound();
 
         if (owner != null) owner.OnSheepDied(this);
@@ -725,19 +833,49 @@ public class Sheep : MonoBehaviour
     {
         if (isDead) return;
 
-        EnemyHealth enemy = other.GetComponent<EnemyHealth>();
-        if (enemy != null && state == SheepState.Charging)
+        // ============================================================
+        // ATAK SZARŻY NA BaseEnemy
+        // ============================================================
+        BaseEnemy baseEnemy = other.GetComponent<BaseEnemy>();
+        if (baseEnemy != null && state == SheepState.Charging)
         {
-            enemy.TakeDamage(attackDamage * 1.5f);
-            PushbackEnemy(enemy, 1.5f);
+            baseEnemy.TakeDamage(attackDamage * 1.5f);
+            PushbackEnemy(baseEnemy, 1.5f);
             FlashAttack();
-
-            // === DŹWIĘK ATAKU ===
             PlayAttackSound();
+            return;
+        }
+
+        // ============================================================
+        // ATAK SZARŻY NA Bazyliszka
+        // ============================================================
+        Bazyliszek bazyliszek = other.GetComponent<Bazyliszek>();
+        if (bazyliszek != null && state == SheepState.Charging)
+        {
+            bazyliszek.TakeDamage(attackDamage * 1.5f);
+            PushbackEnemy(bazyliszek, 1.5f);
+            FlashAttack();
+            PlayAttackSound();
+            return;
+        }
+
+        // ============================================================
+        // ATAK SZARŻY NA Leszego
+        // ============================================================
+        Leszy leszy = other.GetComponent<Leszy>();
+        if (leszy != null && state == SheepState.Charging)
+        {
+            leszy.TakeDamage(attackDamage * 1.5f);
+            PushbackEnemy(leszy, 1.5f);
+            FlashAttack();
+            PlayAttackSound();
+            return;
         }
     }
 
-    // === EFEKTY WIZUALNE ===
+    // ============================================================
+    // EFEKTY WIZUALNE
+    // ============================================================
 
     public void FlashHit()
     {
@@ -775,7 +913,9 @@ public class Sheep : MonoBehaviour
         }
     }
 
-    // ===== METODY PUBLICZNE =====
+    // ============================================================
+    // METODY PUBLICZNE
+    // ============================================================
 
     public void SetStats(float speed, float attackRange, float damage, float cooldown)
     {

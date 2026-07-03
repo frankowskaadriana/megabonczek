@@ -12,28 +12,25 @@ public class BaseEnemy : MonoBehaviour
     public int expReward = 10;
 
     [Header("═══════════════ ATAK ═══════════════")]
-    public float attackRange = 2f;           // ZWIĘKSZONE
-    public float attackCooldown = 0.8f;       // SZYBSZE (z 1.5 na 0.8)
-    public float attackDelay = 0.2f;          // SZYBSZE (z 0.5 na 0.2)
-    public float attackAngle = 90f;           // KĄT ATAKU (stożek)
+    public float attackRange = 2f;
+    public float attackCooldown = 0.8f;
+    public float attackDelay = 0.2f;
+    public float attackAngle = 90f;
 
     [Header("═══════════════ ODRZUT ═══════════════")]
     public float hitPushForce = 5f;
+    public float hitPushUpForce = 0.5f;
     public float hitStunDuration = 0.2f;
 
-    [Header("═══════════════ EFEKTY WIZUALNE ATAKU ═══════════════")]
+    [Header("═══════════════ EFEKTY WIZUALNE ═══════════════")]
     public Color attackChargeColor = new Color(0f, 0.5f, 1f, 0.5f);
     public Color attackHitColor = new Color(1f, 0f, 0f, 0.6f);
     public Color hitColor = Color.red;
     public float hitFlashDuration = 0.15f;
     public float attackVisualDuration = 0.3f;
-    public float visualHeight = 0.1f;
 
-    [Header("═══════════════ NAWIGACJA ═══════════════")]
-    public float pathUpdateInterval = 0.3f;
-    public float stuckThreshold = 2f;
-    public float angularSpeed = 720f;
-    public float acceleration = 25f;
+    [Header("═══════════════ KOLOR WROGA (USTAW W INSPECTORZE) ═══════════════")]
+    public Color enemyColor = new Color(0.6f, 0.3f, 0.8f); // Domyślnie Polnocnica
 
     private float currentHealth;
     private Transform player;
@@ -55,10 +52,6 @@ public class BaseEnemy : MonoBehaviour
     private LineRenderer visualLine;
     private Transform firePoint;
 
-    private float pathUpdateTimer = 0f;
-    private float stuckTimer = 0f;
-    private Vector3 lastPosition;
-
     void Start()
     {
         gameObject.tag = "Enemy";
@@ -76,47 +69,54 @@ public class BaseEnemy : MonoBehaviour
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
 
+        SetupNavMeshAgent();
+        SetupRigidbody();
+        SetupFirePoint();
+        CollectAllMeshRenderers();
+        CreateAttackVisual();
+
+        // Ustaw kolor
+        SetAllMeshesColor(enemyColor);
+
+        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}");
+    }
+
+    void SetupNavMeshAgent()
+    {
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) agent = gameObject.AddComponent<NavMeshAgent>();
-
         agent.speed = moveSpeed;
-        agent.angularSpeed = angularSpeed;
-        agent.acceleration = acceleration;
+        agent.angularSpeed = 720f;
+        agent.acceleration = 25f;
         agent.stoppingDistance = 0.3f;
         agent.autoBraking = false;
         agent.autoRepath = true;
-        agent.updatePosition = true;
-        agent.updateRotation = true;
         agent.radius = 0.3f;
         agent.height = 1.8f;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.enabled = true;
+    }
 
+    void SetupRigidbody()
+    {
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 50f;
         rb.isKinematic = true;
         rb.useGravity = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
+    }
 
+    void SetupFirePoint()
+    {
         Transform fp = transform.Find("FirePoint");
         if (fp != null) firePoint = fp;
         else
         {
             GameObject fpObj = new GameObject("FirePoint");
             fpObj.transform.SetParent(transform);
-            fpObj.transform.localPosition = new Vector3(0, visualHeight, 0);
+            fpObj.transform.localPosition = new Vector3(0, 0.1f, 0);
             firePoint = fpObj.transform;
         }
-
-        CollectAllMeshRenderers();
-        CreateAttackVisual();
-
-        SetAllMeshesColor(Color.gray);
-
-        lastPosition = transform.position;
-
-        Debug.Log($"✅ {gameObject.name} gotowy! HP: {currentHealth}, Atak co {attackCooldown}s");
     }
 
     void CollectAllMeshRenderers()
@@ -158,11 +158,6 @@ public class BaseEnemy : MonoBehaviour
                 color = mesh.material.GetColor("_BaseColor");
                 hasColor = true;
             }
-            else if (mesh.material != null && mesh.material.HasProperty("_MainColor"))
-            {
-                color = mesh.material.GetColor("_MainColor");
-                hasColor = true;
-            }
             else
             {
                 color = Color.white;
@@ -188,8 +183,6 @@ public class BaseEnemy : MonoBehaviour
                     mesh.material.color = color;
                 else if (mesh.material.HasProperty("_BaseColor"))
                     mesh.material.SetColor("_BaseColor", color);
-                else if (mesh.material.HasProperty("_MainColor"))
-                    mesh.material.SetColor("_MainColor", color);
             }
             catch { }
         }
@@ -200,7 +193,6 @@ public class BaseEnemy : MonoBehaviour
         attackVisual = new GameObject("AttackVisual");
         attackVisual.transform.SetParent(transform);
         attackVisual.transform.localPosition = Vector3.zero;
-        attackVisual.transform.localRotation = Quaternion.identity;
 
         visualLine = attackVisual.AddComponent<LineRenderer>();
         visualLine.useWorldSpace = false;
@@ -283,37 +275,12 @@ public class BaseEnemy : MonoBehaviour
 
         if (agent != null && agent.isOnNavMesh && agent.enabled && !isAttacking)
         {
-            pathUpdateTimer += Time.deltaTime;
-            if (pathUpdateTimer >= pathUpdateInterval || agent.pathStatus == NavMeshPathStatus.PathInvalid)
-            {
-                pathUpdateTimer = 0f;
-                agent.SetDestination(player.position);
-            }
-
-            float speed = agent.velocity.magnitude;
-            if (speed < 0.1f && dist > 2f)
-            {
-                stuckTimer += Time.deltaTime;
-                if (stuckTimer > stuckThreshold)
-                {
-                    agent.Warp(transform.position);
-                    agent.SetDestination(player.position);
-                    stuckTimer = 0f;
-                }
-            }
-            else
-            {
-                stuckTimer = 0f;
-            }
+            agent.SetDestination(player.position);
 
             if (dist <= attackRange * 0.5f && !isAttacking)
-            {
                 agent.isStopped = true;
-            }
             else
-            {
                 agent.isStopped = false;
-            }
 
             if (dist > 0.5f)
             {
@@ -324,8 +291,6 @@ public class BaseEnemy : MonoBehaviour
                     transform.rotation = Quaternion.LookRotation(direction);
                 }
             }
-
-            lastPosition = transform.position;
         }
 
         if (dist <= attackRange && !isAttacking)
@@ -337,23 +302,16 @@ public class BaseEnemy : MonoBehaviour
                 StartCoroutine(AttackWithVisual());
             }
         }
-        else if (dist > attackRange * 1.5f)
-        {
-            attackTimer = Mathf.Max(0, attackTimer - Time.deltaTime * 0.5f);
-        }
     }
 
     IEnumerator AttackWithVisual()
     {
         isAttacking = true;
-
         if (agent != null) agent.isStopped = true;
 
-        // Pokaż NIEBIESKI stożek (przygotowanie)
         ShowAttackCone(attackRange, attackAngle, attackChargeColor);
         yield return new WaitForSeconds(attackDelay);
 
-        // Zmień na CZERWONY stożek (atak)
         ShowAttackCone(attackRange, attackAngle, attackHitColor);
         MeleeAttack();
 
@@ -371,7 +329,6 @@ public class BaseEnemy : MonoBehaviour
         float dist = Vector3.Distance(transform.position, player.position);
         if (dist > attackRange * 1.2f) return;
 
-        // Sprawdź czy gracz jest w stożku ataku
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
         float angle = Vector3.Angle(transform.forward, directionToPlayer);
 
@@ -451,7 +408,6 @@ public class BaseEnemy : MonoBehaviour
     IEnumerator HitPushback()
     {
         if (isDead) yield break;
-
         if (player == null) yield break;
 
         Vector3 direction = (transform.position - player.position).normalized;
@@ -471,7 +427,6 @@ public class BaseEnemy : MonoBehaviour
         }
 
         isStunned = true;
-
         yield return new WaitForSeconds(hitStunDuration);
 
         if (rb != null)
@@ -498,9 +453,11 @@ public class BaseEnemy : MonoBehaviour
 
         Debug.Log($"💀 {gameObject.name} zginął! +{expReward} XP");
 
+        AudioManager.Instance?.OnEnemyDied();
+
         if (levelSystem != null)
         {
-            for (int i = 0; i < expReward / 10; i++)
+            for (int i = 0; i < Mathf.Max(1, expReward / 10); i++)
             {
                 levelSystem.EnemyDied();
             }
@@ -519,11 +476,9 @@ public class BaseEnemy : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // Zasięg ataku
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        // Stożek ataku
         Vector3 forward = transform.forward;
         float halfAngle = attackAngle / 2f;
 
@@ -534,7 +489,6 @@ public class BaseEnemy : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + leftDir * attackRange);
         Gizmos.DrawLine(transform.position, transform.position + rightDir * attackRange);
 
-        // Łuk
         int points = 20;
         for (int i = 0; i <= points; i++)
         {

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class Leszy : MonoBehaviour
 {
-    [Header("═══════════════ STATYSTYKI ═══════════════")]
+    [Header("═══════════════ STATYSTYKI BOSSA ═══════════════")]
     public float maxHealth = 1200f;
     public float moveSpeed = 2f;
     public float damage = 45f;
@@ -41,7 +41,6 @@ public class Leszy : MonoBehaviour
     private bool isAttacking = false;
     private bool isChargingLaser = false;
 
-    private MeshRenderer mainMesh;
     private List<MeshRenderer> childMeshes = new List<MeshRenderer>();
     private List<Color> originalColors = new List<Color>();
 
@@ -50,9 +49,6 @@ public class Leszy : MonoBehaviour
     private GameObject attackVisual;
     private LineRenderer visualLine;
 
-    // ============================================================
-    // !!! NOWE: Flaga informująca AudioManager że Leszy żyje !!!
-    // ============================================================
     private bool bossMusicStarted = false;
 
     void Start()
@@ -60,8 +56,14 @@ public class Leszy : MonoBehaviour
         gameObject.tag = "Enemy";
         IgnoreEnemyCollisions();
 
-        currentHealth = maxHealth;
+        // Pobierz statystyki z LevelSystem
         levelSystem = FindFirstObjectByType<LevelSystem>();
+        if (levelSystem != null)
+        {
+            maxHealth = levelSystem.GetEnemyHealth() * 10f; // Leszy ma 10x więcej HP
+            expReward = levelSystem.GetEnemyExpReward() * 5;
+        }
+        currentHealth = maxHealth;
 
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
@@ -84,9 +86,10 @@ public class Leszy : MonoBehaviour
         transform.localScale = Vector3.one * 1.8f;
         CreateAttackVisual();
 
-        // ============================================================
-        // !!! NOWE: Włącz muzykę bossa gdy Leszy się pojawi !!!
-        // ============================================================
+        // Kolor Leszego
+        SetAllMeshesColor(new Color(0.2f, 0.7f, 0.2f));
+
+        // Włącz muzykę bossa
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.OnBossSpawn();
@@ -94,7 +97,7 @@ public class Leszy : MonoBehaviour
             Debug.Log("🎵 Muzyka bossa włączona!");
         }
 
-        Debug.Log($"🌲 Leszy (BOSS) gotowy! HP: {currentHealth}, Znaleziono {childMeshes.Count} meshów");
+        Debug.Log($"🌲 Leszy (BOSS) gotowy! HP: {currentHealth}");
     }
 
     void CollectAllMeshRenderers()
@@ -102,7 +105,7 @@ public class Leszy : MonoBehaviour
         childMeshes.Clear();
         originalColors.Clear();
 
-        mainMesh = GetComponent<MeshRenderer>();
+        MeshRenderer mainMesh = GetComponent<MeshRenderer>();
         if (mainMesh != null)
         {
             childMeshes.Add(mainMesh);
@@ -120,12 +123,22 @@ public class Leszy : MonoBehaviour
         }
     }
 
+    void SetAllMeshesColor(Color color)
+    {
+        foreach (MeshRenderer mesh in childMeshes)
+        {
+            if (mesh != null && mesh.material != null)
+            {
+                mesh.material.color = color;
+            }
+        }
+    }
+
     void CreateAttackVisual()
     {
         attackVisual = new GameObject("AttackVisual");
         attackVisual.transform.SetParent(transform);
         attackVisual.transform.localPosition = Vector3.zero;
-        attackVisual.transform.localRotation = Quaternion.identity;
 
         visualLine = attackVisual.AddComponent<LineRenderer>();
         visualLine.startWidth = 0.1f;
@@ -137,8 +150,6 @@ public class Leszy : MonoBehaviour
         Material mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = attackChargeColor;
         visualLine.material = mat;
-        visualLine.startColor = attackChargeColor;
-        visualLine.endColor = attackChargeColor;
 
         attackVisual.SetActive(false);
     }
@@ -176,10 +187,10 @@ public class Leszy : MonoBehaviour
         Collider myCollider = GetComponent<Collider>();
         if (myCollider == null) return;
 
-        GameObject[] taggedEnemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (GameObject enemy in taggedEnemies)
+        BaseEnemy[] enemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
+        foreach (BaseEnemy enemy in enemies)
         {
-            if (enemy != null && enemy != gameObject)
+            if (enemy != null && enemy.gameObject != gameObject)
             {
                 Collider otherCollider = enemy.GetComponent<Collider>();
                 if (otherCollider != null)
@@ -201,9 +212,7 @@ public class Leszy : MonoBehaviour
             agent.SetDestination(player.position);
 
             if (dist > attackRange * 0.8f)
-            {
                 agent.isStopped = false;
-            }
             else
             {
                 agent.isStopped = true;
@@ -237,7 +246,6 @@ public class Leszy : MonoBehaviour
     IEnumerator AttackWithVisual()
     {
         isAttacking = true;
-
         if (agent != null) agent.isStopped = true;
 
         ShowAttackVisual(attackRange, attackChargeColor);
@@ -271,7 +279,6 @@ public class Leszy : MonoBehaviour
     IEnumerator LaserAttack()
     {
         isChargingLaser = true;
-
         ShowAttackVisual(laserRange * 0.25f, attackChargeColor);
 
         yield return new WaitForSeconds(laserChargeTime);
@@ -349,9 +356,7 @@ public class Leszy : MonoBehaviour
 
         Debug.Log($"💀 Leszy (BOSS) zginął!");
 
-        // ============================================================
-        // !!! NOWE: Wyłącz muzykę bossa gdy Leszy umiera !!!
-        // ============================================================
+        // Wyłącz muzykę bossa
         if (AudioManager.Instance != null && bossMusicStarted)
         {
             AudioManager.Instance.OnBossDeath();
@@ -359,7 +364,13 @@ public class Leszy : MonoBehaviour
             Debug.Log("🎵 Muzyka bossa wyłączona!");
         }
 
-        if (levelSystem != null) levelSystem.EnemyDied();
+        AudioManager.Instance?.OnEnemyDied();
+
+        if (levelSystem != null)
+        {
+            for (int i = 0; i < 5; i++)
+                levelSystem.EnemyDied();
+        }
 
         WaveSpawner ws = FindFirstObjectByType<WaveSpawner>();
         if (ws != null) ws.EnemyDied();

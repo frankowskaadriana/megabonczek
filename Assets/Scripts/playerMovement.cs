@@ -22,8 +22,10 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+
+        // Zablokuj ruch w pionie
         rb.useGravity = false;
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
 
         if (mainCamera == null)
             mainCamera = Camera.main;
@@ -58,13 +60,11 @@ public class PlayerMovement : MonoBehaviour
             mouseWorldPosition = ray.GetPoint(distance);
             mouseWorldPosition.y = 0f;
 
-            // Oblicz kierunek od gracza do myszki
             Vector3 direction = mouseWorldPosition - transform.position;
             direction.y = 0f;
 
             if (direction.magnitude > 0.1f)
             {
-                // Płynny obrót w kierunku myszki
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
             }
@@ -73,9 +73,6 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        // ============================================================
-        // RUCH
-        // ============================================================
         if (moveDirection.magnitude > 0.1f)
         {
             Vector3 targetVelocity = moveDirection * maxSpeed;
@@ -86,7 +83,8 @@ public class PlayerMovement : MonoBehaviour
             currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, deceleration * Time.fixedDeltaTime);
         }
 
-        rb.linearVelocity = new Vector3(currentVelocity.x, rb.linearVelocity.y, currentVelocity.z);
+        // Tylko X i Z, Y zablokowane
+        rb.linearVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
     }
 
     // ============================================================

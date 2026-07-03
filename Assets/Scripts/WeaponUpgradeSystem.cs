@@ -28,6 +28,14 @@ public class WeaponUpgradeSystem : MonoBehaviour
     public float currentFeastRadius = 3f;
     public int currentRemainingSheep = 1;
 
+    // ============================================================
+    // NOWE STATYSTYKI DLA GÓRALA (CZAS UMIEJÊTNOŒCI)
+    // ============================================================
+    public float currentStompDuration = 0.5f;
+    public float currentSpecialDuration = 0.5f;
+    public float currentUltimateTime = 3f;
+    public float currentSpecialCooldownReduction = 0f;
+
     private int damageLevel = 0;
     private int rangeLevel = 0;
     private int swingLevel = 0;
@@ -45,7 +53,17 @@ public class WeaponUpgradeSystem : MonoBehaviour
     private int feastDamageLevel = 0;
     private int feastRadiusLevel = 0;
 
-    // Goral
+    // ============================================================
+    // NOWE POZIOMY DLA GÓRALA
+    // ============================================================
+    private int stompDurationLevel = 0;
+    private int specialDurationLevel = 0;
+    private int ultimateTimeLevel = 0;
+    private int specialCooldownReductionLevel = 0;
+
+    // ============================================================
+    // GÓRAL - ISTNIEJ¥CE
+    // ============================================================
     public void UpgradeDamage() { damageLevel++; currentDamage = 50f + (damageLevel * 10f); Debug.Log("Obrazenia: " + currentDamage); }
     public void UpgradeRange() { rangeLevel++; currentRange = Mathf.Min(1.5f + (rangeLevel * 0.1f), 2f); Debug.Log("Zasieg: " + currentRange + "m"); }
     public void UpgradeSwingAngle() { swingLevel++; currentSwingAngle = Mathf.Min(90f + (swingLevel * 10f), 150f); Debug.Log("Kat zamachu: " + currentSwingAngle + "°"); }
@@ -57,11 +75,83 @@ public class WeaponUpgradeSystem : MonoBehaviour
     public void UpgradeUltimateRadius() { ultimateRadiusLevel++; currentUltimateRadius = Mathf.Min(1.25f + (ultimateRadiusLevel * 0.25f), 3f); Debug.Log("Promien ultimate: " + currentUltimateRadius + "m"); }
     public void UpgradeUltimateDamage() { ultimateDamageLevel++; currentUltimateDamage = 50f + (ultimateDamageLevel * 15f); Debug.Log("Obrazenia ultimate: " + currentUltimateDamage + "/s"); }
 
-    // Seraphim
+    // ============================================================
+    // GÓRAL - NOWE PERKI (CZAS UMIEJÊTNOŒCI)
+    // ============================================================
+
+    /// <summary>
+    /// Wyd³u¿a czas trwania Stomp o 0.2s
+    /// </summary>
+    public void UpgradeStompDuration()
+    {
+        stompDurationLevel++;
+        currentStompDuration = 0.5f + (stompDurationLevel * 0.2f);
+        Debug.Log("Czas Stomp: " + currentStompDuration + "s");
+
+        AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
+        if (mountain != null)
+        {
+            mountain.stompDuration = currentStompDuration;
+        }
+    }
+
+    /// <summary>
+    /// Wyd³u¿a czas trwania Special o 0.2s
+    /// </summary>
+    public void UpgradeSpecialDuration()
+    {
+        specialDurationLevel++;
+        currentSpecialDuration = 0.5f + (specialDurationLevel * 0.2f);
+        Debug.Log("Czas Special: " + currentSpecialDuration + "s");
+
+        AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
+        if (mountain != null)
+        {
+            mountain.specialDuration = currentSpecialDuration;
+        }
+    }
+
+    /// <summary>
+    /// Wyd³u¿a czas trwania Ultimate o 1s
+    /// </summary>
+    public void UpgradeUltimateTime()
+    {
+        ultimateTimeLevel++;
+        currentUltimateTime = 3f + (ultimateTimeLevel * 1f);
+        Debug.Log("Czas Ultimate: " + currentUltimateTime + "s");
+
+        AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
+        if (mountain != null)
+        {
+            mountain.ultimateTime = currentUltimateTime;
+        }
+    }
+
+    /// <summary>
+    /// Zmniejsza cooldown Special o 1.5s
+    /// </summary>
+    public void UpgradeSpecialCooldownReduction()
+    {
+        specialCooldownReductionLevel++;
+        currentSpecialCooldownReduction = specialCooldownReductionLevel * 1.5f;
+        Debug.Log("Redukcja cooldown Special: -" + currentSpecialCooldownReduction + "s");
+
+        AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
+        if (mountain != null)
+        {
+            mountain.specialCooldown = Mathf.Max(3f, 12f - currentSpecialCooldownReduction);
+        }
+    }
+
+    // ============================================================
+    // SERAPHIM
+    // ============================================================
     public void UpgradeProjectileCount() { projectileCountLevel++; currentProjectileCount = 1 + projectileCountLevel; Debug.Log("Liczba pociskow: " + currentProjectileCount); }
     public void UpgradePierce() { pierceLevel++; canPierce = true; pierceCount = pierceLevel; Debug.Log("Przebicie: " + pierceCount); }
 
-    // Shepherd
+    // ============================================================
+    // SHEPHERD
+    // ============================================================
     public void UpgradeSheepDamage() { sheepDamageLevel++; currentSheepDamage = 20f + (sheepDamageLevel * 10f); Debug.Log("Obrazenia owcy: " + currentSheepDamage); }
     public void UpgradeSheepSpawnCooldown() { sheepCooldownLevel++; currentSheepSpawnCooldown = Mathf.Max(10f, 45f - (sheepCooldownLevel * 3f)); Debug.Log("Cooldown przyzywania: " + currentSheepSpawnCooldown + "s"); }
     public void UpgradeFeastDamage() { feastDamageLevel++; currentFeastDamage = 350f + (feastDamageLevel * 50f); Debug.Log("Obrazenia Wilczej Uczty: " + currentFeastDamage); }

@@ -32,8 +32,6 @@ public class PlayerHealth : MonoBehaviour
         maxHealth = health;
         currentHealth = health;
         armor = initialArmor;
-
-        // Odśwież UI przez GameManager
         RefreshUI();
     }
 
@@ -64,15 +62,46 @@ public class PlayerHealth : MonoBehaviour
         isPushingBack = true;
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, pushbackRadius);
-        List<EnemyHealth> enemiesHit = new List<EnemyHealth>();
+        List<BaseEnemy> enemiesHit = new List<BaseEnemy>();
 
         foreach (var hit in hitColliders)
         {
-            EnemyHealth enemy = hit.GetComponent<EnemyHealth>();
+            BaseEnemy enemy = hit.GetComponent<BaseEnemy>();
             if (enemy != null) enemiesHit.Add(enemy);
+
+            // Sprawdź też Bazyliszka i Leszego
+            Bazyliszek bazyliszek = hit.GetComponent<Bazyliszek>();
+            if (bazyliszek != null)
+            {
+                Rigidbody rb = bazyliszek.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 dir = (bazyliszek.transform.position - transform.position).normalized;
+                    dir.y = pushbackUpForce;
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.AddForce(dir * pushbackForce, ForceMode.Impulse);
+                }
+                continue;
+            }
+
+            Leszy leszy = hit.GetComponent<Leszy>();
+            if (leszy != null)
+            {
+                Rigidbody rb = leszy.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    Vector3 dir = (leszy.transform.position - transform.position).normalized;
+                    dir.y = pushbackUpForce;
+                    rb.isKinematic = false;
+                    rb.useGravity = true;
+                    rb.AddForce(dir * pushbackForce, ForceMode.Impulse);
+                }
+                continue;
+            }
         }
 
-        foreach (EnemyHealth enemy in enemiesHit)
+        foreach (BaseEnemy enemy in enemiesHit)
         {
             if (enemy != null)
             {
@@ -90,7 +119,8 @@ public class PlayerHealth : MonoBehaviour
 
         yield return new WaitForSeconds(pushbackDuration);
 
-        foreach (EnemyHealth enemy in enemiesHit)
+        // Przywróć kinematykę
+        foreach (BaseEnemy enemy in enemiesHit)
         {
             if (enemy != null)
             {
@@ -125,41 +155,19 @@ public class PlayerHealth : MonoBehaviour
     public void AddArmor(int amount) => armor += amount;
     public void LevelUpHealth() => AddMaxHealth(5);
 
-    // ============================================
-    // ODRZEŚWIEŻ UI - TYLKO PRZEZ GAME MANAGER
-    // ============================================
-
     private void RefreshUI()
     {
         if (gameManager == null)
-        {
             gameManager = FindFirstObjectByType<GameManager>();
-        }
 
         if (gameManager != null)
-        {
             gameManager.UpdateUI();
-        }
     }
 
-    public void UpdateUI()
-    {
-        RefreshUI();
-    }
+    public void UpdateUI() => RefreshUI();
 
-    // ============================================
-    // METODY POMOCNICZE
-    // ============================================
-
-    public float GetHealthPercent()
-    {
-        return currentHealth / maxHealth;
-    }
-
-    public bool IsDead()
-    {
-        return isDead;
-    }
+    public float GetHealthPercent() => currentHealth / maxHealth;
+    public bool IsDead() => isDead;
 
     void Die()
     {

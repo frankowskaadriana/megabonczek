@@ -40,8 +40,6 @@ public class Bazyliszek : MonoBehaviour
     private bool isAttacking = false;
     private bool isChargingLaser = false;
 
-    // === MESH RENDERERY - GŁÓWNY I DZIECI ===
-    private MeshRenderer mainMesh;
     private List<MeshRenderer> childMeshes = new List<MeshRenderer>();
     private List<Color> originalColors = new List<Color>();
 
@@ -56,8 +54,14 @@ public class Bazyliszek : MonoBehaviour
         gameObject.tag = "Enemy";
         IgnoreEnemyCollisions();
 
-        currentHealth = maxHealth;
+        // Pobierz statystyki z LevelSystem
         levelSystem = FindFirstObjectByType<LevelSystem>();
+        if (levelSystem != null)
+        {
+            maxHealth = levelSystem.GetEnemyHealth() * 3f; // Bazyliszek ma 3x więcej HP
+            expReward = levelSystem.GetEnemyExpReward() * 2;
+        }
+        currentHealth = maxHealth;
 
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
@@ -77,16 +81,12 @@ public class Bazyliszek : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
         CollectAllMeshRenderers();
-
-        // Ustaw domyślny kolor
-        if (mainMesh != null)
-        {
-            mainMesh.material.color = new Color(0.9f, 0.7f, 0.2f);
-        }
-
         CreateAttackVisual();
 
-        Debug.Log($"🐉 Bazyliszek gotowy! HP: {currentHealth}, Znaleziono {childMeshes.Count} meshów");
+        // Kolor Bazyliszka
+        SetAllMeshesColor(new Color(0.9f, 0.7f, 0.2f));
+
+        Debug.Log($"🐉 Bazyliszek gotowy! HP: {currentHealth}");
     }
 
     void CollectAllMeshRenderers()
@@ -94,7 +94,7 @@ public class Bazyliszek : MonoBehaviour
         childMeshes.Clear();
         originalColors.Clear();
 
-        mainMesh = GetComponent<MeshRenderer>();
+        MeshRenderer mainMesh = GetComponent<MeshRenderer>();
         if (mainMesh != null)
         {
             childMeshes.Add(mainMesh);
@@ -112,12 +112,22 @@ public class Bazyliszek : MonoBehaviour
         }
     }
 
+    void SetAllMeshesColor(Color color)
+    {
+        foreach (MeshRenderer mesh in childMeshes)
+        {
+            if (mesh != null && mesh.material != null)
+            {
+                mesh.material.color = color;
+            }
+        }
+    }
+
     void CreateAttackVisual()
     {
         attackVisual = new GameObject("AttackVisual");
         attackVisual.transform.SetParent(transform);
         attackVisual.transform.localPosition = Vector3.zero;
-        attackVisual.transform.localRotation = Quaternion.identity;
 
         visualLine = attackVisual.AddComponent<LineRenderer>();
         visualLine.startWidth = 0.08f;
@@ -129,8 +139,6 @@ public class Bazyliszek : MonoBehaviour
         Material mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = attackChargeColor;
         visualLine.material = mat;
-        visualLine.startColor = attackChargeColor;
-        visualLine.endColor = attackChargeColor;
 
         attackVisual.SetActive(false);
     }
@@ -168,10 +176,10 @@ public class Bazyliszek : MonoBehaviour
         Collider myCollider = GetComponent<Collider>();
         if (myCollider == null) return;
 
-        GameObject[] taggedEnemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (GameObject enemy in taggedEnemies)
+        BaseEnemy[] enemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
+        foreach (BaseEnemy enemy in enemies)
         {
-            if (enemy != null && enemy != gameObject)
+            if (enemy != null && enemy.gameObject != gameObject)
             {
                 Collider otherCollider = enemy.GetComponent<Collider>();
                 if (otherCollider != null)
@@ -193,9 +201,7 @@ public class Bazyliszek : MonoBehaviour
             agent.SetDestination(player.position);
 
             if (dist > attackRange * 0.8f)
-            {
                 agent.isStopped = false;
-            }
             else
             {
                 agent.isStopped = true;
@@ -229,7 +235,6 @@ public class Bazyliszek : MonoBehaviour
     IEnumerator AttackWithVisual()
     {
         isAttacking = true;
-
         if (agent != null) agent.isStopped = true;
 
         ShowAttackVisual(attackRange, attackChargeColor);
@@ -263,7 +268,6 @@ public class Bazyliszek : MonoBehaviour
     IEnumerator LaserAttack()
     {
         isChargingLaser = true;
-
         ShowAttackVisual(laserRange * 0.3f, attackChargeColor);
 
         yield return new WaitForSeconds(laserChargeTime);
@@ -329,6 +333,8 @@ public class Bazyliszek : MonoBehaviour
         isDead = true;
 
         Debug.Log($"💀 Bazyliszek zginął!");
+
+        AudioManager.Instance?.OnEnemyDied();
 
         if (levelSystem != null) levelSystem.EnemyDied();
 

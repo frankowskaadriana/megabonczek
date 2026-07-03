@@ -32,20 +32,55 @@ public class LevelSystem : MonoBehaviour
 
     [Header("Panel wyboru perkow")]
     public GameObject perkPanel;
-    public Transform perkContainer;
-    public GameObject perkButtonPrefab;
     public TextMeshProUGUI perkStatsText;
+
+    [Header("Miejsca na perki (podpinasz ręcznie)")]
+    public Transform perkSlot1;
+    public Transform perkSlot2;
+    public Transform perkSlot3;
+    public Transform perkSlot4;
+
+    [Header("Gotowe przyciski z ikonami (podpinasz ręcznie)")]
+    public GameObject perkButton_Attack;
+    public GameObject perkButton_Range;
+    public GameObject perkButton_Health;
+    public GameObject perkButton_AttackSpeed;
+    public GameObject perkButton_Speed;
+    public GameObject perkButton_XP;
+    public GameObject perkButton_Armor;
+    public GameObject perkButton_Bleed;
+    public GameObject perkButton_Shield;
+    public GameObject perkButton_Vampire;
+    public GameObject perkButton_UltimateDuration;
+    public GameObject perkButton_UltimateDamage;
+
+    // GÓRAL
+    public GameObject perkButton_GoralMocnyCios;
+    public GameObject perkButton_GoralZiemia;
+    public GameObject perkButton_GoralWytrzymalosc;
+    public GameObject perkButton_GoralStompCzas;
+    public GameObject perkButton_GoralSpecialCzas;
+    public GameObject perkButton_GoralUltimateCzas;
+    public GameObject perkButton_GoralSpecialCD;
+
+    // SERAPHIM
+    public GameObject perkButton_SeraphimSwiatlo;
+    public GameObject perkButton_SeraphimUzdrowienie;
+    public GameObject perkButton_SeraphimAniol;
+    public GameObject perkButton_SeraphimPrzebicie;
+
+    // PASTERZ
+    public GameObject perkButton_ShepherdOwca;
+    public GameObject perkButton_ShepherdStado;
+    public GameObject perkButton_ShepherdPasterz;
 
     [Header("Komunikaty")]
     public TextMeshProUGUI levelUpMessage;
     public float messageDuration = 2f;
 
-    [Header("Folder z ikonami")]
-    public string iconFolderPath = "PerkIcons/";
-
     [Header("Referencje")]
     public WaveSpawner waveSpawner;
-    public PlayerUI playerUI; // Referencja do PlayerUI
+    public PlayerUI playerUI;
 
     private PlayerHealth playerHealth;
     private bool isChoosingPerk = false;
@@ -74,6 +109,9 @@ public class LevelSystem : MonoBehaviour
     private float baseAttackRange = 3f;
     private float baseAttackRate = 1f;
     private float baseMoveSpeed = 5f;
+
+    private Transform[] perkSlots;
+    private Dictionary<string, GameObject> perkButtonsMap = new Dictionary<string, GameObject>();
 
     [System.Serializable]
     public class PerkData
@@ -106,6 +144,9 @@ public class LevelSystem : MonoBehaviour
         if (waveSpawner == null) waveSpawner = FindFirstObjectByType<WaveSpawner>();
         if (playerUI == null) playerUI = FindFirstObjectByType<PlayerUI>();
 
+        perkSlots = new Transform[] { perkSlot1, perkSlot2, perkSlot3, perkSlot4 };
+        BuildPerkButtonMap();
+
         GetBaseStats();
         CreatePerks();
 
@@ -119,6 +160,37 @@ public class LevelSystem : MonoBehaviour
         UpdateUI();
         UpdatePerkStatsUI();
         Debug.Log("LevelSystem gotowy!");
+    }
+
+    void BuildPerkButtonMap()
+    {
+        perkButtonsMap.Clear();
+        perkButtonsMap["damage"] = perkButton_Attack;
+        perkButtonsMap["range"] = perkButton_Range;
+        perkButtonsMap["health"] = perkButton_Health;
+        perkButtonsMap["attackSpeed"] = perkButton_AttackSpeed;
+        perkButtonsMap["speed"] = perkButton_Speed;
+        perkButtonsMap["xp"] = perkButton_XP;
+        perkButtonsMap["armor"] = perkButton_Armor;
+        perkButtonsMap["bleed"] = perkButton_Bleed;
+        perkButtonsMap["shield"] = perkButton_Shield;
+        perkButtonsMap["vampire"] = perkButton_Vampire;
+        perkButtonsMap["ultimateDuration"] = perkButton_UltimateDuration;
+        perkButtonsMap["ultimateDamage"] = perkButton_UltimateDamage;
+        perkButtonsMap["goral_mocnyCios"] = perkButton_GoralMocnyCios;
+        perkButtonsMap["goral_ziemia"] = perkButton_GoralZiemia;
+        perkButtonsMap["goral_wytrzymalosc"] = perkButton_GoralWytrzymalosc;
+        perkButtonsMap["goral_stompTime"] = perkButton_GoralStompCzas;
+        perkButtonsMap["goral_specialTime"] = perkButton_GoralSpecialCzas;
+        perkButtonsMap["goral_ultimateTime"] = perkButton_GoralUltimateCzas;
+        perkButtonsMap["goral_specialCD"] = perkButton_GoralSpecialCD;
+        perkButtonsMap["seraphim_swiatlo"] = perkButton_SeraphimSwiatlo;
+        perkButtonsMap["seraphim_uzdrowienie"] = perkButton_SeraphimUzdrowienie;
+        perkButtonsMap["seraphim_aniol"] = perkButton_SeraphimAniol;
+        perkButtonsMap["seraphim_pierce"] = perkButton_SeraphimPrzebicie;
+        perkButtonsMap["shepherd_owca"] = perkButton_ShepherdOwca;
+        perkButtonsMap["shepherd_stado"] = perkButton_ShepherdStado;
+        perkButtonsMap["shepherd_pasterz"] = perkButton_ShepherdPasterz;
     }
 
     void GetBaseStats()
@@ -176,7 +248,6 @@ public class LevelSystem : MonoBehaviour
             if (p != null) playerHealth = p.GetComponent<PlayerHealth>();
         }
 
-        // XP fill - aktualizacja przez PlayerUI
         if (playerUI != null)
         {
             playerUI.UpdateUI();
@@ -206,10 +277,6 @@ public class LevelSystem : MonoBehaviour
     void CreatePerks()
     {
         allPerks.Clear();
-
-        // ============================================================
-        // UNIWERSALNE PERKI
-        // ============================================================
 
         allPerks.Add(new PerkData("damage", "Obrazenia", "IkonaAtak", () => {
             currentDamageBonus += 10;
@@ -308,10 +375,8 @@ public class LevelSystem : MonoBehaviour
         allPerks.Add(new PerkData("ultimateDuration", "Wydluzenie ultimate", "IkonaUltimateCzas", () => {
             AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
             if (mountain != null) mountain.ultimateCooldown += 2f;
-
             AbilitiesSeraphim seraphim = FindFirstObjectByType<AbilitiesSeraphim>();
             if (seraphim != null) seraphim.judgmentDuration += 2f;
-
             UpdatePerkStatsUI();
         }, () => {
             return "+2s czasu ultimate (obecnie: " + GetCurrentUltimateDuration().ToString("F1") + "s)";
@@ -320,30 +385,21 @@ public class LevelSystem : MonoBehaviour
         allPerks.Add(new PerkData("ultimateDamage", "Obrazenia ultimate", "IkonaUltimateObrazenia", () => {
             AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
             if (mountain != null) mountain.ultimateDamage += 15f;
-
             AbilitiesSeraphim seraphim = FindFirstObjectByType<AbilitiesSeraphim>();
             if (seraphim != null) seraphim.judgmentDamage += 15f;
-
             UpdatePerkStatsUI();
         }, () => {
             float current = GetCurrentUltimateDamage();
             return "+15 obrazen ultimate (obecnie: " + current.ToString("F0") + ")";
         }, maxLevel: 3));
 
-        // ============================================================
-        // UNIKALNE PERKI - GÓRAL
-        // ============================================================
+        // ====== GÓRAL ======
         bool isGoral = FindFirstObjectByType<AbilitiesMountainMan>() != null;
-
         if (isGoral)
         {
             allPerks.Add(new PerkData("goral_mocnyCios", "Mocny cios", "GoralIkonaMocnyCios", () => {
                 AbilitiesMountainMan mountain = FindFirstObjectByType<AbilitiesMountainMan>();
-                if (mountain != null)
-                {
-                    mountain.attackDamage += 15f;
-                    mountain.attackRate += 0.3f;
-                }
+                if (mountain != null) { mountain.attackDamage += 15f; mountain.attackRate += 0.3f; }
                 UpdatePerkStatsUI();
             }, () => {
                 float dmg = FindFirstObjectByType<AbilitiesMountainMan>()?.attackDamage ?? 25f;
@@ -360,20 +416,12 @@ public class LevelSystem : MonoBehaviour
             }, maxLevel: 3));
 
             allPerks.Add(new PerkData("goral_wytrzymalosc", "Wytrzymalosc", "GoralIkonaWytrzymalosc", () => {
-                if (playerHealth != null)
-                {
-                    playerHealth.AddMaxHealth(30);
-                    playerHealth.AddArmor(5);
-                }
+                if (playerHealth != null) { playerHealth.AddMaxHealth(30); playerHealth.AddArmor(5); }
                 UpdatePerkStatsUI();
             }, () => {
                 float hp = playerHealth?.maxHealth ?? 100f;
                 return "+30 HP, +5 pancerza (obecnie: " + hp.ToString("F0") + " HP)";
             }, maxLevel: 3));
-
-            // ============================================================
-            // GÓRAL - PERKI CZASU UMIEJĘTNOŚCI
-            // ============================================================
 
             allPerks.Add(new PerkData("goral_stompTime", "Dlugi stomp", "GoralIkonaStompCzas", () => {
                 WeaponUpgradeSystem weapon = FindFirstObjectByType<WeaponUpgradeSystem>();
@@ -412,11 +460,8 @@ public class LevelSystem : MonoBehaviour
             }, maxLevel: 3));
         }
 
-        // ============================================================
-        // UNIKALNE PERKI - SERAPHIM
-        // ============================================================
+        // ====== SERAPHIM ======
         bool isSeraphim = FindFirstObjectByType<AbilitiesSeraphim>() != null;
-
         if (isSeraphim)
         {
             allPerks.Add(new PerkData("seraphim_swiatlo", "Swiatlo", "SeraphimIkonaSwiatlo", () => {
@@ -456,11 +501,8 @@ public class LevelSystem : MonoBehaviour
             }, maxLevel: 2));
         }
 
-        // ============================================================
-        // UNIKALNE PERKI - PASTERZ
-        // ============================================================
+        // ====== PASTERZ ======
         bool isShepherd = FindFirstObjectByType<ShepherdAbilities>() != null;
-
         if (isShepherd)
         {
             allPerks.Add(new PerkData("shepherd_owca", "Wiecej owiec", "PasterzIkonaOwca", () => {
@@ -493,7 +535,7 @@ public class LevelSystem : MonoBehaviour
     }
 
     // ============================================================
-    // POMOCNICZE - OBLICZANIE AKTUALNYCH STATYSTYK
+    // POMOCNICZE
     // ============================================================
 
     float GetCurrentDamage()
@@ -564,67 +606,24 @@ public class LevelSystem : MonoBehaviour
         return 50f;
     }
 
-    // ============================================================
-    // WYSZUKIWANIE IKON
-    // ============================================================
-
-    Sprite LoadPerkIcon(string iconName)
-    {
-        if (string.IsNullOrEmpty(iconName)) return null;
-
-        Sprite icon = Resources.Load<Sprite>(iconFolderPath + iconName);
-        if (icon != null) return icon;
-
-        icon = Resources.Load<Sprite>(iconName);
-        if (icon != null) return icon;
-
-        Debug.LogWarning("Nie znaleziono ikony: " + iconName);
-        return null;
-    }
-
-    // ============================================================
-    // WYŚWIETLANIE STATYSTYK PERKÓW
-    // ============================================================
-
     void UpdatePerkStatsUI()
     {
         if (perkStatsText == null) return;
-
         string stats = "";
-
-        if (currentDamageBonus > 0)
-            stats += "Obrazenia: +" + currentDamageBonus + "\n";
-
-        if (currentHealthBonus > 0)
-            stats += "Zdrowie: +" + currentHealthBonus + "\n";
-
-        if (currentAttackSpeedBonus > 0)
-            stats += "Szybkosc ataku: -" + currentAttackSpeedBonus.ToString("F2") + "s\n";
-
-        if (currentSpeedBonus > 0)
-            stats += "Predkosc: +" + (currentSpeedBonus * 100).ToString("F0") + "%\n";
-
-        if (currentXpBonus > 0)
-            stats += "XP: +" + currentXpBonus + "\n";
-
-        if (currentArmorBonus > 0)
-            stats += "Pancerz: +" + currentArmorBonus + "\n";
-
-        if (currentRangeBonus > 0)
-            stats += "Zasieg: +" + currentRangeBonus.ToString("F1") + "\n";
-
-        if (string.IsNullOrEmpty(stats))
-        {
-            stats = "Brak ulepszen";
-        }
-
+        if (currentDamageBonus > 0) stats += "Obrazenia: +" + currentDamageBonus + "\n";
+        if (currentHealthBonus > 0) stats += "Zdrowie: +" + currentHealthBonus + "\n";
+        if (currentAttackSpeedBonus > 0) stats += "Szybkosc ataku: -" + currentAttackSpeedBonus.ToString("F2") + "s\n";
+        if (currentSpeedBonus > 0) stats += "Predkosc: +" + (currentSpeedBonus * 100).ToString("F0") + "%\n";
+        if (currentXpBonus > 0) stats += "XP: +" + currentXpBonus + "\n";
+        if (currentArmorBonus > 0) stats += "Pancerz: +" + currentArmorBonus + "\n";
+        if (currentRangeBonus > 0) stats += "Zasieg: +" + currentRangeBonus.ToString("F1") + "\n";
+        if (string.IsNullOrEmpty(stats)) stats = "Brak ulepszen";
         perkStatsText.text = stats;
     }
 
     int GetPerkLevel(string id)
     {
-        if (perkLevels.ContainsKey(id))
-            return perkLevels[id];
+        if (perkLevels.ContainsKey(id)) return perkLevels[id];
         return 0;
     }
 
@@ -644,16 +643,10 @@ public class LevelSystem : MonoBehaviour
 
         for (int i = temp.Count - 1; i >= 0; i--)
         {
-            if (GetPerkLevel(temp[i].id) >= temp[i].maxLevel)
-            {
-                temp.RemoveAt(i);
-            }
+            if (GetPerkLevel(temp[i].id) >= temp[i].maxLevel) temp.RemoveAt(i);
         }
 
-        if (temp.Count == 0)
-        {
-            temp = new List<PerkData>(allPerks);
-        }
+        if (temp.Count == 0) temp = new List<PerkData>(allPerks);
 
         int perksToShow = Mathf.Min(4, temp.Count);
         while (currentPerks.Count < perksToShow && temp.Count > 0)
@@ -664,77 +657,57 @@ public class LevelSystem : MonoBehaviour
         }
 
         // ============================================================
-        // UŻYJ GOTOWYCH PRZYCISKÓW
+        // WKLEJ PRZYCISKI DO SLOTÓW I USTAW OPIS
         // ============================================================
-        if (perkContainer != null)
+        for (int i = 0; i < perkSlots.Length && i < currentPerks.Count; i++)
         {
-            Button[] perkButtons = perkContainer.GetComponentsInChildren<Button>();
+            Transform slot = perkSlots[i];
+            if (slot == null) continue;
 
-            for (int i = 0; i < perkButtons.Length && i < 4; i++)
+            // Usuń stare dzieci
+            foreach (Transform child in slot) Destroy(child.gameObject);
+
+            PerkData perk = currentPerks[i];
+            GameObject sourceButton = perkButtonsMap.ContainsKey(perk.id) ? perkButtonsMap[perk.id] : null;
+
+            if (sourceButton == null)
             {
-                Button btn = perkButtons[i];
+                Debug.LogWarning("Brak przycisku dla perka: " + perk.id);
+                continue;
+            }
 
-                if (i < currentPerks.Count)
-                {
-                    PerkData perk = currentPerks[i];
+            // Skopiuj przycisk
+            GameObject newButton = Instantiate(sourceButton, slot);
+            newButton.transform.localPosition = Vector3.zero;
+            newButton.transform.localScale = Vector3.one;
+            newButton.transform.localRotation = Quaternion.identity;
 
-                    btn.gameObject.SetActive(true);
+            // ============================================================
+            // USTAW OPIS W SKOPIOWANYM PRZYCISKU (szukamy "opis")
+            // ============================================================
+            TextMeshProUGUI descTxt = newButton.transform.Find("opis")?.GetComponent<TextMeshProUGUI>();
 
-                    int index = i;
-                    btn.onClick.RemoveAllListeners();
-                    btn.onClick.AddListener(() => ChoosePerk(index));
+            if (descTxt != null)
+            {
+                descTxt.text = perk.getDescription?.Invoke() ?? perk.description;
+                Debug.Log("Ustawiono opis w " + newButton.name + ": " + descTxt.text);
+            }
+            else
+            {
+                Debug.LogWarning("Brak dziecka 'opis' w przycisku: " + newButton.name);
+            }
 
-                    // Szukaj dzieci
-                    Image iconImg = btn.transform.Find("Icon")?.GetComponent<Image>();
-                    if (iconImg == null)
-                    {
-                        iconImg = btn.GetComponentInChildren<Image>();
-                    }
-
-                    TextMeshProUGUI[] allTexts = btn.GetComponentsInChildren<TextMeshProUGUI>();
-                    TextMeshProUGUI nameTxt = allTexts.Length > 0 ? allTexts[0] : null;
-                    TextMeshProUGUI descTxt = allTexts.Length > 1 ? allTexts[1] : null;
-
-                    // Ustaw ikonę
-                    if (iconImg != null)
-                    {
-                        Sprite icon = LoadPerkIcon(perk.iconName);
-                        if (icon != null)
-                        {
-                            iconImg.sprite = icon;
-                            iconImg.gameObject.SetActive(true);
-                        }
-                        else
-                        {
-                            iconImg.gameObject.SetActive(false);
-                        }
-                    }
-
-                    // Ustaw nazwę
-                    if (nameTxt != null)
-                    {
-                        string lvlText = GetPerkLevel(perk.id) + 1 + "/" + perk.maxLevel;
-                        nameTxt.text = perk.name + " (Lvl " + lvlText + ")";
-                    }
-
-                    // Ustaw opis
-                    if (descTxt != null)
-                    {
-                        descTxt.text = perk.getDescription?.Invoke() ?? perk.description;
-                    }
-                }
-                else
-                {
-                    btn.gameObject.SetActive(false);
-                }
+            // Przypisz kliknięcie
+            Button btn = newButton.GetComponent<Button>();
+            if (btn != null)
+            {
+                int index = i;
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => ChoosePerk(index));
             }
         }
 
-        if (perkPanel != null)
-        {
-            perkPanel.SetActive(true);
-            Debug.Log("Panel perkow widoczny");
-        }
+        if (perkPanel != null) perkPanel.SetActive(true);
 
         ShowLevelUpMessage("AWANS! Wybierz perka (1-4)");
         AudioManager.Instance?.PlayPerkSelect();
@@ -752,20 +725,16 @@ public class LevelSystem : MonoBehaviour
         currentPerks[index].apply();
 
         string id = currentPerks[index].id;
-        if (perkLevels.ContainsKey(id))
-            perkLevels[id]++;
-        else
-            perkLevels[id] = 1;
+        if (perkLevels.ContainsKey(id)) perkLevels[id]++;
+        else perkLevels[id] = 1;
 
         Debug.Log("WYBRANO: " + currentPerks[index].name + " (Poziom " + perkLevels[id] + "/" + currentPerks[index].maxLevel + ")");
 
         isChoosingPerk = false;
-
         if (perkPanel != null) perkPanel.SetActive(false);
         if (levelUpMessage != null) levelUpMessage.gameObject.SetActive(false);
 
         Time.timeScale = 1f;
-
         AudioManager.Instance?.PlayPerkSelect();
 
         if (waveSpawner != null && waveSpawner.GetEnemyCount() == 0 && !waveSpawner.IsSpawning())
@@ -778,9 +747,7 @@ public class LevelSystem : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
         if (waveSpawner != null && waveSpawner.GetEnemyCount() == 0 && !waveSpawner.IsSpawning())
-        {
             waveSpawner.StartNextWave();
-        }
     }
 
     void ShowLevelUpMessage(string text)
@@ -831,10 +798,7 @@ public class LevelSystem : MonoBehaviour
             targetXpFill = 0f;
             currentXpFill = 0f;
 
-            if (playerHealth != null)
-            {
-                playerHealth.LevelUpHealth();
-            }
+            if (playerHealth != null) playerHealth.LevelUpHealth();
 
             UpdateEnemyStats();
             AudioManager.Instance?.PlayLevelUp();
@@ -875,11 +839,7 @@ public class LevelSystem : MonoBehaviour
             if (enemiesLeftText != null) enemiesLeftText.text = "Wrogowie: " + waveSpawner.GetEnemyCount();
         }
 
-        // Odśwież PlayerUI (paski zdrowia i XP)
-        if (playerUI != null)
-        {
-            playerUI.UpdateUI();
-        }
+        if (playerUI != null) playerUI.UpdateUI();
     }
 
     public bool IsChoosingPerk() => isChoosingPerk;

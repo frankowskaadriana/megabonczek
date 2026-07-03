@@ -56,12 +56,43 @@ public class AudioMountainMan : MonoBehaviour
         }
     }
 
-    public void PlayAttack() => PlayRandomClip(attackClips, attackVolume);
-    public void PlaySpecial() => PlayRandomClip(specialClips, specialVolume);
-    public void PlayUltimate() => PlayRandomClip(ultimateClips, ultimateVolume);
-    public void PlayHit() => PlayRandomClip(hitClips, hitVolume);
-    public void PlayDeath() => PlayClip(deathClip, deathVolume);
-    public void PlayFootstep() => PlayRandomClip(footstepClips, footstepVolume);
+    // ============================================================
+    // METODY PUBLICZNE
+    // ============================================================
+
+    public void PlayAttack()
+    {
+        PlayRandomClip(attackClips, attackVolume);
+    }
+
+    public void PlaySpecial()
+    {
+        PlayRandomClip(specialClips, specialVolume);
+    }
+
+    public void PlayUltimate()
+    {
+        PlayRandomClip(ultimateClips, ultimateVolume);
+    }
+
+    public void PlayHit()
+    {
+        PlayRandomClip(hitClips, hitVolume);
+    }
+
+    public void PlayDeath()
+    {
+        PlayClip(deathClip, deathVolume);
+    }
+
+    public void PlayFootstep()
+    {
+        PlayRandomClip(footstepClips, footstepVolume);
+    }
+
+    // ============================================================
+    // METODY POMOCNICZE
+    // ============================================================
 
     private void PlayRandomClip(AudioClip[] clips, float volume)
     {

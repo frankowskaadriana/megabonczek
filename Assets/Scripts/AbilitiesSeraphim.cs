@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 using System.Collections;
 
 public class AbilitiesSeraphim : MonoBehaviour
@@ -50,7 +52,15 @@ public class AbilitiesSeraphim : MonoBehaviour
     public float effectDestroyTime = 1.5f;
 
     [Header("═══════════════ USTAWIENIA ROTACJI 3D ═══════════════")]
-    public Vector3 rotationOffset = Vector3.zero; // Kompensacja rotacji dla prefaba
+    public Vector3 rotationOffset = Vector3.zero;
+
+    [Header("═══════════════ UI UMIEJĘTNOŚCI ═══════════════")]
+    public GameObject specialIconObject;
+    public GameObject ultimateIconObject;
+    public TextMeshProUGUI specialCDText;
+    public TextMeshProUGUI ultimateCDText;
+    public Color readyColor = Color.white;
+    public Color cooldownColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
 
     private float attackTimer = 0f;
     private float healTimer = 0f;
@@ -65,9 +75,16 @@ public class AbilitiesSeraphim : MonoBehaviour
     private Camera mainCamera;
     private bool canShoot = true;
 
-    // Wizualizacje
     private GameObject visualObj;
     private LineRenderer visualLine;
+
+    private Image specialIcon;
+    private Image ultimateIcon;
+
+    // ============================================================
+    // REFERENCJA DO AudioSeraphim
+    // ============================================================
+    private AudioSeraphim audioSeraphim;
 
     void Start()
     {
@@ -75,11 +92,21 @@ public class AbilitiesSeraphim : MonoBehaviour
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
+        // ============================================================
+        // POBRZ AudioSeraphim
+        // ============================================================
+        audioSeraphim = GetComponent<AudioSeraphim>();
+        if (audioSeraphim == null)
+        {
+            Debug.LogWarning("⚠️ AudioSeraphim nie znaleziony! Dźwięki nie będą odtwarzane.");
+        }
+
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
 
         ultimateTimer = judgmentCooldown;
         specialTimer = specialCooldown;
+        healTimer = healCooldown;
         chargeTimer = chargeCooldown;
 
         if (firePoint == null)
@@ -91,7 +118,21 @@ public class AbilitiesSeraphim : MonoBehaviour
 
         CreateVisualLine();
 
-        Debug.Log("✨ Seraphim gotowy!");
+        // ============================================================
+        // WŁĄCZ IKONY SERAPHIM
+        // ============================================================
+        if (specialIconObject != null)
+        {
+            specialIconObject.SetActive(true);
+            specialIcon = specialIconObject.GetComponent<Image>();
+        }
+        if (ultimateIconObject != null)
+        {
+            ultimateIconObject.SetActive(true);
+            ultimateIcon = ultimateIconObject.GetComponent<Image>();
+        }
+
+        UpdateAbilityUI();
     }
 
     void CreateVisualLine()
@@ -170,17 +211,12 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (visualObj != null) visualObj.SetActive(false);
     }
 
-    // ============================================================
-    // SPAWN EFEKTU
-    // ============================================================
     private void SpawnEffect(GameObject effectPrefab, Vector3 position, Quaternion rotation, float scale = 1f)
     {
         if (effectPrefab == null) return;
 
         GameObject effect = Instantiate(effectPrefab, position, rotation);
         effect.transform.localScale = Vector3.one * scale;
-
-        // Dodaj rotację offset
         effect.transform.Rotate(rotationOffset, Space.Self);
 
         ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>();
@@ -192,7 +228,6 @@ public class AbilitiesSeraphim : MonoBehaviour
             main.playOnAwake = false;
             main.duration = 0.5f;
             main.startLifetime = 0.3f;
-
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.Play();
         }
@@ -209,10 +244,12 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (player == null) return;
 
-        // ============================================================
-        // OBRACANIE ZA MYSZKĄ
-        // ============================================================
         RotateToMouse();
+
+        if (healTimer < healCooldown) healTimer += Time.deltaTime;
+        if (ultimateTimer < judgmentCooldown) ultimateTimer += Time.deltaTime;
+        if (specialTimer < specialCooldown) specialTimer += Time.deltaTime;
+        if (chargeTimer < chargeCooldown) chargeTimer += Time.deltaTime;
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canShoot)
@@ -221,28 +258,24 @@ public class AbilitiesSeraphim : MonoBehaviour
             RangedAttack();
         }
 
-        healTimer += Time.deltaTime;
         if (healTimer >= healCooldown && Input.GetKeyDown(KeyCode.Q))
         {
             healTimer = 0f;
             Heal();
         }
 
-        ultimateTimer += Time.deltaTime;
         if (ultimateTimer >= judgmentCooldown && Input.GetKeyDown(KeyCode.R))
         {
             ultimateTimer = 0f;
             StartCoroutine(Judgment());
         }
 
-        specialTimer += Time.deltaTime;
         if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
         {
             specialTimer = 0f;
             SpecialAttack();
         }
 
-        chargeTimer += Time.deltaTime;
         if (chargeTimer >= chargeCooldown && Input.GetKeyDown(KeyCode.LeftShift))
         {
             chargeTimer = 0f;
@@ -253,7 +286,82 @@ public class AbilitiesSeraphim : MonoBehaviour
         {
             rb.linearVelocity = chargeDirection * chargeSpeed;
         }
+
+        UpdateAbilityUI();
     }
+
+    void UpdateAbilityUI()
+    {
+        if (specialIcon != null)
+        {
+            bool ready = healTimer >= healCooldown;
+            specialIcon.color = ready ? readyColor : cooldownColor;
+        }
+        if (specialCDText != null)
+        {
+            float remaining = healCooldown - healTimer;
+            specialCDText.text = remaining > 0 ? Mathf.CeilToInt(remaining).ToString() : "";
+        }
+
+        if (ultimateIcon != null)
+        {
+            bool ready = ultimateTimer >= judgmentCooldown;
+            ultimateIcon.color = ready ? readyColor : cooldownColor;
+        }
+        if (ultimateCDText != null)
+        {
+            float remaining = judgmentCooldown - ultimateTimer;
+            ultimateCDText.text = remaining > 0 ? Mathf.CeilToInt(remaining).ToString() : "";
+        }
+    }
+
+    // ============================================================
+    // DŹWIĘKI – WYWOŁANIA AudioSeraphim
+    // ============================================================
+
+    void PlayLaserSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayLaser();
+    }
+
+    void PlaySpecialSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlaySpecial();
+    }
+
+    void PlayUltimateSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayUltimate();
+    }
+
+    void PlayHealSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayHeal();
+    }
+
+    void PlayChargeSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayCharge();
+    }
+
+    void PlayDeathSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayDeath();
+    }
+
+    void PlayFootstep()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayFootstep();
+    }
+
+    void PlayHitSound()
+    {
+        if (audioSeraphim != null) audioSeraphim.PlayHit();
+    }
+
+    // ============================================================
+    // RESZTA METOD
+    // ============================================================
 
     void RotateToMouse()
     {
@@ -276,60 +384,31 @@ public class AbilitiesSeraphim : MonoBehaviour
         }
     }
 
-    // ============================================================
-    // RANGED ATTACK - 3D
-    // ============================================================
     void RangedAttack()
     {
-        if (lightBeamPrefab == null || firePoint == null)
-        {
-            Debug.LogWarning("❌ lightBeamPrefab lub firePoint jest null!");
-            return;
-        }
+        if (lightBeamPrefab == null || firePoint == null) return;
 
-        if (mainCamera == null)
-        {
-            Debug.LogWarning("❌ mainCamera jest null! Ustaw tag MainCamera na kamerze.");
-            return;
-        }
+        if (mainCamera == null) return;
 
-        // ============================================================
-        // POZYCJA MYSZKI
-        // ============================================================
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, firePoint.position);
 
         float distance;
-        if (!groundPlane.Raycast(ray, out distance))
-        {
-            Debug.LogWarning("❌ Nie można znaleźć pozycji myszki!");
-            return;
-        }
+        if (!groundPlane.Raycast(ray, out distance)) return;
 
         Vector3 targetPosition = ray.GetPoint(distance);
         targetPosition.y = 0f;
 
-        // ============================================================
-        // KIERUNEK DO MYSZKI
-        // ============================================================
         Vector3 direction = (targetPosition - firePoint.position).normalized;
         direction.y = 0f;
 
         if (direction.magnitude < 0.01f)
         {
-            Debug.LogWarning("❌ Kierunek jest zerowy! Użyj domyślnego kierunku.");
             direction = transform.forward;
             direction.y = 0f;
         }
 
-        Debug.Log($"🎯 Atak w kierunku: {direction}");
-
-        // ============================================================
-        // SPAWN LIGHTBEAM - 3D ROTACJA
-        // ============================================================
         Quaternion rotation = Quaternion.LookRotation(direction);
-
-        // Dodaj kompensację rotacji jeśli prefab jest źle ustawiony
         rotation *= Quaternion.Euler(rotationOffset);
 
         GameObject beam = Instantiate(lightBeamPrefab, firePoint.position, rotation);
@@ -341,14 +420,7 @@ public class AbilitiesSeraphim : MonoBehaviour
             lightBeam.SetBeam(attackDamage, attackRange, 0.5f, 25f);
             lightBeam.SetPushback(beamPushbackForce, beamPushbackUpForce);
         }
-        else
-        {
-            Debug.LogWarning("❌ LightBeam nie znaleziony na prefabie!");
-        }
 
-        // ============================================================
-        // NAPRAWA PARTICLE SYSTEM (JEŚLI JEST)
-        // ============================================================
         ParticleSystem[] particleSystems = beam.GetComponentsInChildren<ParticleSystem>();
         foreach (ParticleSystem ps in particleSystems)
         {
@@ -358,14 +430,13 @@ public class AbilitiesSeraphim : MonoBehaviour
             main.playOnAwake = false;
             main.duration = 0.5f;
             main.startLifetime = 0.3f;
-
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.Play();
         }
 
         Destroy(beam, effectDestroyTime);
 
-        AudioManager.Instance?.PlayLaser();
+        PlayLaserSound();
         ShowTrajectoryVisual();
     }
 
@@ -395,14 +466,14 @@ public class AbilitiesSeraphim : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Heal(healAmount);
-            AudioManager.Instance?.PlayHeal();
+            PlayHealSound();
             SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 0.8f);
         }
     }
 
     IEnumerator Judgment()
     {
-        AudioManager.Instance?.PlayVictory();
+        PlayUltimateSound();
         ShowCircleVisual(judgmentRadius);
         SpawnEffect(ultimateEffectPrefab, firePoint.position, effectScale * 2f);
 
@@ -436,6 +507,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -455,6 +527,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -474,6 +547,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         rb.AddForce(dir * 5f * Time.deltaTime, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -493,7 +567,7 @@ public class AbilitiesSeraphim : MonoBehaviour
 
     void SpecialAttack()
     {
-        AudioManager.Instance?.PlayPerkSelect();
+        PlaySpecialSound();
         ShowCircleVisual(specialRange);
         SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 1.2f);
 
@@ -515,6 +589,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
 
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -534,6 +609,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
 
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -553,6 +629,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                     rb.AddForce(dir * beamPushbackForce * 1.5f, ForceMode.Impulse);
                 }
 
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -563,7 +640,7 @@ public class AbilitiesSeraphim : MonoBehaviour
     {
         if (isCharging) yield break;
 
-        AudioManager.Instance?.PlayLaser();
+        PlayChargeSound();
         ShowCircleVisual(chargeRange);
         SpawnEffect(specialEffectPrefab, firePoint.position, effectScale * 0.8f);
 
@@ -639,6 +716,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -655,6 +733,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -671,6 +750,7 @@ public class AbilitiesSeraphim : MonoBehaviour
                         enemyRb.AddForce(chargeDirection * 15f, ForceMode.Impulse);
                     }
 
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 0.5f);
                     continue;
                 }
@@ -709,6 +789,9 @@ public class AbilitiesSeraphim : MonoBehaviour
     void OnDestroy()
     {
         if (visualObj != null) Destroy(visualObj);
+        if (specialIconObject != null) specialIconObject.SetActive(false);
+        if (ultimateIconObject != null) ultimateIconObject.SetActive(false);
+        PlayDeathSound();
     }
 
     void OnDrawGizmosSelected()

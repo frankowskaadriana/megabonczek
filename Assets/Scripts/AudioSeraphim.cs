@@ -58,14 +58,53 @@ public class AudioSeraphim : MonoBehaviour
         }
     }
 
-    public void PlayLaser() => PlayRandomClip(laserClips, laserVolume);
-    public void PlaySpecial() => PlayRandomClip(specialClips, specialVolume);
-    public void PlayUltimate() => PlayRandomClip(ultimateClips, ultimateVolume);
-    public void PlayHeal() => PlayRandomClip(healClips, healVolume);
-    public void PlayCharge() => PlayRandomClip(chargeClips, chargeVolume);
-    public void PlayDeath() => PlayClip(deathClip, deathVolume);
-    public void PlayFootstep() => PlayRandomClip(footstepClips, footstepVolume);
-    public void PlayHit() => PlayRandomClip(laserClips, laserVolume * 0.5f);
+    // ============================================================
+    // METODY PUBLICZNE
+    // ============================================================
+
+    public void PlayLaser()
+    {
+        PlayRandomClip(laserClips, laserVolume);
+    }
+
+    public void PlaySpecial()
+    {
+        PlayRandomClip(specialClips, specialVolume);
+    }
+
+    public void PlayUltimate()
+    {
+        PlayRandomClip(ultimateClips, ultimateVolume);
+    }
+
+    public void PlayHeal()
+    {
+        PlayRandomClip(healClips, healVolume);
+    }
+
+    public void PlayCharge()
+    {
+        PlayRandomClip(chargeClips, chargeVolume);
+    }
+
+    public void PlayDeath()
+    {
+        PlayClip(deathClip, deathVolume);
+    }
+
+    public void PlayFootstep()
+    {
+        PlayRandomClip(footstepClips, footstepVolume);
+    }
+
+    public void PlayHit()
+    {
+        PlayRandomClip(laserClips, laserVolume * 0.5f);
+    }
+
+    // ============================================================
+    // METODY POMOCNICZE
+    // ============================================================
 
     private void PlayRandomClip(AudioClip[] clips, float volume)
     {

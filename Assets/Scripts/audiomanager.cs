@@ -38,9 +38,6 @@ public class AudioManager : MonoBehaviour
     public AudioClip healClip;
     public AudioClip[] damageClips;
 
-    // ============================================================
-    // GŁOŚNOŚĆ POSZCZEGÓLNYCH DŹWIĘKÓW
-    // ============================================================
     [Header("═══════════════ GŁOŚNOŚĆ DŹWIĘKÓW ═══════════════")]
     [Range(0f, 1f)] public float musicVolumeMultiplier = 1f;
     [Range(0f, 1f)] public float levelUpVolume = 0.8f;
@@ -59,10 +56,7 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 1f)] public float healVolume = 0.5f;
     [Range(0f, 1f)] public float damageVolume = 0.6f;
 
-    // ============================================================
-    // FADE IN / FADE OUT DLA KAŻDEGO DŹWIĘKU OSOBNO
-    // ============================================================
-    [Header("═══════════════ FADE IN DLA KAŻDEGO DŹWIĘKU ═══════════════")]
+    [Header("═══════════════ FADE IN ═══════════════")]
     [Range(0f, 2f)] public float levelUpFadeIn = 0.1f;
     [Range(0f, 2f)] public float perkSelectFadeIn = 0.1f;
     [Range(0f, 2f)] public float waveStartFadeIn = 0.1f;
@@ -79,7 +73,7 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 2f)] public float healFadeIn = 0.05f;
     [Range(0f, 2f)] public float damageFadeIn = 0.05f;
 
-    [Header("═══════════════ FADE OUT DLA KAŻDEGO DŹWIĘKU ═══════════════")]
+    [Header("═══════════════ FADE OUT ═══════════════")]
     [Range(0f, 2f)] public float levelUpFadeOut = 0.2f;
     [Range(0f, 2f)] public float perkSelectFadeOut = 0.2f;
     [Range(0f, 2f)] public float waveStartFadeOut = 0.2f;
@@ -96,7 +90,7 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 2f)] public float healFadeOut = 0.1f;
     [Range(0f, 2f)] public float damageFadeOut = 0.1f;
 
-    [Header("═══════════════ USTAWIENIA FADE MUZYKI ═══════════════")]
+    [Header("═══════════════ FADE MUZYKI ═══════════════")]
     [Range(0f, 3f)] public float musicFadeIn = 0.5f;
     [Range(0f, 3f)] public float musicFadeOut = 0.5f;
     [Range(0f, 3f)] public float bossMusicFadeIn = 0.5f;
@@ -107,25 +101,13 @@ public class AudioManager : MonoBehaviour
     private bool isInitialized = false;
     private bool isBossFight = false;
     private bool isCombat = false;
-    private Coroutine currentFadeCoroutine;
 
-    // ============================================================
-    // AWAKE
-    // ============================================================
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            if (transform.parent == null)
-            {
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                transform.SetParent(null);
-                DontDestroyOnLoad(gameObject);
-            }
+            DontDestroyOnLoad(gameObject);
             Initialize();
         }
         else
@@ -172,6 +154,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // FADE MUZYKI
     // ============================================================
+
     private IEnumerator FadeMusic(AudioClip newClip, float fadeDuration)
     {
         if (musicSource.clip == newClip) yield break;
@@ -202,6 +185,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // FADE DLA SFX (POJEDYNCZY DŹWIĘK)
     // ============================================================
+
     private IEnumerator FadeSFX(AudioClip clip, float volume, float fadeIn, float fadeOut)
     {
         if (clip == null) yield break;
@@ -263,6 +247,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // FADE DLA TABLICY DŹWIĘKÓW
     // ============================================================
+
     private IEnumerator FadeSFXArray(AudioClip[] clips, float volume, float fadeIn, float fadeOut)
     {
         if (clips == null || clips.Length == 0) yield break;
@@ -273,6 +258,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // ODTWARZANIE PRZEZ NAZWĘ
     // ============================================================
+
     public void PlaySoundByName(string soundName)
     {
         if (!isInitialized) return;
@@ -301,15 +287,14 @@ public class AudioManager : MonoBehaviour
     }
 
     // ============================================================
-    // !!! METODY DLA MUZYKI !!!
+    // MUZYKA
     // ============================================================
 
     public void PlayBackgroundMusic()
     {
         if (!isInitialized) return;
         if (backgroundMusic == null) return;
-
-        if (isBossFight) return; // Boss ma priorytet
+        if (isBossFight) return;
 
         isCombat = false;
         StartCoroutine(FadeMusic(backgroundMusic, musicFadeIn));
@@ -320,7 +305,7 @@ public class AudioManager : MonoBehaviour
     {
         if (!isInitialized) return;
         if (combatMusic == null) return;
-        if (isBossFight) return; // Boss ma priorytet
+        if (isBossFight) return;
 
         isCombat = true;
         StartCoroutine(FadeMusic(combatMusic, musicFadeIn));
@@ -358,11 +343,11 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // METODY DLA characterSelector.cs
     // ============================================================
+
     public void OnCharacterSelected()
     {
         if (!isInitialized) return;
 
-        // Jeśli są wrogowie - włącz combat music, jeśli nie - wróć do tła
         if (isCombat && combatMusic != null)
         {
             PlayCombatMusic();
@@ -378,6 +363,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // METODY DLA leszy.cs
     // ============================================================
+
     public void OnBossSpawn()
     {
         StartBossMusic();
@@ -391,6 +377,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // METODY DLA enemyHealth.cs i waveSpawner.cs
     // ============================================================
+
     public void OnEnemySpawned()
     {
         if (!isInitialized) return;
@@ -405,7 +392,6 @@ public class AudioManager : MonoBehaviour
         if (!isInitialized) return;
         PlayEnemyDeath();
 
-        // Sprawdź czy są jeszcze jacyś wrogowie
         BaseEnemy[] enemies = FindObjectsByType<BaseEnemy>(FindObjectsSortMode.None);
         if (enemies.Length == 0 && isCombat && !isBossFight)
         {
@@ -432,6 +418,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // USTAWIANIE GŁOŚNOŚCI
     // ============================================================
+
     public void SetMasterVolume(float volume)
     {
         masterVolume = Mathf.Clamp01(volume);
@@ -460,6 +447,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // ZATRZYMYWANIE
     // ============================================================
+
     public void StopAllSFX() => sfxSource.Stop();
     public void StopMusic() => musicSource.Stop();
     public void PauseMusic() => musicSource.Pause();
@@ -468,6 +456,7 @@ public class AudioManager : MonoBehaviour
     // ============================================================
     // LISTA WSZYSTKICH DŹWIĘKÓW (DLA UI)
     // ============================================================
+
     public string[] GetAllSoundNames()
     {
         return new string[]

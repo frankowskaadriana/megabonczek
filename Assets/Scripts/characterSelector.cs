@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class CharacterSelector : MonoBehaviour
 {
@@ -14,6 +15,22 @@ public class CharacterSelector : MonoBehaviour
     public Button seraphimButton;
     public Button shepherdButton;
 
+    [Header("═══════════════ IKONY SPECIAL (Q) ═══════════════")]
+    public GameObject goralSpecialIcon;
+    public GameObject seraphimSpecialIcon;
+    public GameObject shepherdSpecialIcon;
+    public TextMeshProUGUI goralSpecialCD;
+    public TextMeshProUGUI seraphimSpecialCD;
+    public TextMeshProUGUI shepherdSpecialCD;
+
+    [Header("═══════════════ IKONY ULTIMATE (R) ═══════════════")]
+    public GameObject goralUltimateIcon;
+    public GameObject seraphimUltimateIcon;
+    public GameObject shepherdUltimateIcon;
+    public TextMeshProUGUI goralUltimateCD;
+    public TextMeshProUGUI seraphimUltimateCD;
+    public TextMeshProUGUI shepherdUltimateCD;
+
     [Header("═══════════════ SYSTEMY ═══════════════")]
     public CameraController cameraController;
     public LevelSystem levelSystem;
@@ -25,13 +42,10 @@ public class CharacterSelector : MonoBehaviour
     void Start()
     {
         SetActiveAll(false);
+        HideAllIcons();
 
-        // ============================================================
-        // NIGDY NIE BLOKUJ KURSORA!
-        // ============================================================
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
         Time.timeScale = 1f;
 
         if (mountainManButton != null)
@@ -71,6 +85,25 @@ public class CharacterSelector : MonoBehaviour
         if (shepherd != null) shepherd.SetActive(active);
     }
 
+    void HideAllIcons()
+    {
+        // Special (Q)
+        if (goralSpecialIcon != null) goralSpecialIcon.SetActive(false);
+        if (seraphimSpecialIcon != null) seraphimSpecialIcon.SetActive(false);
+        if (shepherdSpecialIcon != null) shepherdSpecialIcon.SetActive(false);
+        if (goralSpecialCD != null) goralSpecialCD.gameObject.SetActive(false);
+        if (seraphimSpecialCD != null) seraphimSpecialCD.gameObject.SetActive(false);
+        if (shepherdSpecialCD != null) shepherdSpecialCD.gameObject.SetActive(false);
+
+        // Ultimate (R)
+        if (goralUltimateIcon != null) goralUltimateIcon.SetActive(false);
+        if (seraphimUltimateIcon != null) seraphimUltimateIcon.SetActive(false);
+        if (shepherdUltimateIcon != null) shepherdUltimateIcon.SetActive(false);
+        if (goralUltimateCD != null) goralUltimateCD.gameObject.SetActive(false);
+        if (seraphimUltimateCD != null) seraphimUltimateCD.gameObject.SetActive(false);
+        if (shepherdUltimateCD != null) shepherdUltimateCD.gameObject.SetActive(false);
+    }
+
     void SelectCharacter(GameObject character, string name)
     {
         if (character == null)
@@ -88,6 +121,33 @@ public class CharacterSelector : MonoBehaviour
         currentCharacter.tag = "Player";
 
         Debug.Log($"✅ Aktywowano: {name}");
+
+        // ============================================================
+        // WŁĄCZ TYLKO ODPOWIEDNIE IKONY
+        // ============================================================
+        HideAllIcons();
+
+        if (name == "Góral" || name == "Goral")
+        {
+            if (goralSpecialIcon != null) goralSpecialIcon.SetActive(true);
+            if (goralUltimateIcon != null) goralUltimateIcon.SetActive(true);
+            if (goralSpecialCD != null) goralSpecialCD.gameObject.SetActive(true);
+            if (goralUltimateCD != null) goralUltimateCD.gameObject.SetActive(true);
+        }
+        else if (name == "Seraphim")
+        {
+            if (seraphimSpecialIcon != null) seraphimSpecialIcon.SetActive(true);
+            if (seraphimUltimateIcon != null) seraphimUltimateIcon.SetActive(true);
+            if (seraphimSpecialCD != null) seraphimSpecialCD.gameObject.SetActive(true);
+            if (seraphimUltimateCD != null) seraphimUltimateCD.gameObject.SetActive(true);
+        }
+        else if (name == "Pasterz" || name == "Shepherd")
+        {
+            if (shepherdSpecialIcon != null) shepherdSpecialIcon.SetActive(true);
+            if (shepherdUltimateIcon != null) shepherdUltimateIcon.SetActive(true);
+            if (shepherdSpecialCD != null) shepherdSpecialCD.gameObject.SetActive(true);
+            if (shepherdUltimateCD != null) shepherdUltimateCD.gameObject.SetActive(true);
+        }
 
         if (characterSelectionPanel != null)
             characterSelectionPanel.SetActive(false);
@@ -114,9 +174,6 @@ public class CharacterSelector : MonoBehaviour
 
         hasSelected = true;
 
-        // ============================================================
-        // KURSOR ZAWSZE OD BLOKOWANY!
-        // ============================================================
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -151,6 +208,7 @@ public class CharacterSelector : MonoBehaviour
     {
         hasSelected = false;
         SetActiveAll(false);
+        HideAllIcons();
         if (characterSelectionPanel != null)
             characterSelectionPanel.SetActive(true);
         Cursor.lockState = CursorLockMode.None;

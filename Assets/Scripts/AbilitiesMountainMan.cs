@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class AbilitiesMountainMan : MonoBehaviour
 {
@@ -35,7 +37,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     [Header("═══════════════ FIRE POINT ═══════════════")]
     public Transform firePoint;
 
-    [Header("═══════════════ WSKAŹNIK ZASIĘGU (PREFAB) ═══════════════")]
+    [Header("═══════════════ WSKAŹNIK ZASIĘGU ═══════════════")]
     public GameObject rangeIndicatorPrefab;
     public Vector3 indicatorOffset = new Vector3(0f, 0.1f, 0f);
     public Vector3 indicatorRotation = Vector3.zero;
@@ -60,6 +62,14 @@ public class AbilitiesMountainMan : MonoBehaviour
     public float visualDuration = 0.3f;
     public float visualLineWidth = 0.08f;
 
+    [Header("═══════════════ UI UMIEJĘTNOŚCI ═══════════════")]
+    public GameObject specialIconObject;
+    public GameObject ultimateIconObject;
+    public TextMeshProUGUI specialCDText;
+    public TextMeshProUGUI ultimateCDText;
+    public Color readyColor = Color.white;
+    public Color cooldownColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+
     private float attackTimer = 0f;
     private float stompTimer = 0f;
     private float ultimateTimer = 0f;
@@ -68,12 +78,18 @@ public class AbilitiesMountainMan : MonoBehaviour
     private bool canAttack = true;
 
     private PlayerMovement playerMovement;
-
     private GameObject visualObj;
     private LineRenderer visualLine;
-
     private GameObject rangeIndicator;
     private SpriteRenderer rangeSprite;
+
+    private Image specialIcon;
+    private Image ultimateIcon;
+
+    // ============================================================
+    // REFERENCJA DO AudioMountainMan
+    // ============================================================
+    private AudioMountainMan audioMountainMan;
 
     void Start()
     {
@@ -84,13 +100,20 @@ public class AbilitiesMountainMan : MonoBehaviour
             playerMovement = playerObj.GetComponent<PlayerMovement>();
         }
 
+        // ============================================================
+        // POBRZ AudioMountainMan
+        // ============================================================
+        audioMountainMan = GetComponent<AudioMountainMan>();
+        if (audioMountainMan == null)
+        {
+            Debug.LogWarning("⚠️ AudioMountainMan nie znaleziony! Dźwięki nie będą odtwarzane.");
+        }
+
         ultimateTimer = ultimateCooldown;
         specialTimer = specialCooldown;
+        stompTimer = stompCooldown;
 
-        if (firePoint == null)
-        {
-            firePoint = transform;
-        }
+        if (firePoint == null) firePoint = transform;
 
         CreateRangeIndicator();
 
@@ -105,6 +128,22 @@ public class AbilitiesMountainMan : MonoBehaviour
         visualLine.startColor = visualColor;
         visualLine.endColor = new Color(visualColor.r, visualColor.g, visualColor.b, 0f);
         visualObj.SetActive(false);
+
+        // ============================================================
+        // WŁĄCZ IKONY GÓRALA
+        // ============================================================
+        if (specialIconObject != null)
+        {
+            specialIconObject.SetActive(true);
+            specialIcon = specialIconObject.GetComponent<Image>();
+        }
+        if (ultimateIconObject != null)
+        {
+            ultimateIconObject.SetActive(true);
+            ultimateIcon = ultimateIconObject.GetComponent<Image>();
+        }
+
+        UpdateAbilityUI();
     }
 
     void CreateRangeIndicator()
@@ -208,6 +247,10 @@ public class AbilitiesMountainMan : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
+        if (stompTimer < stompCooldown) stompTimer += Time.deltaTime;
+        if (ultimateTimer < ultimateCooldown) ultimateTimer += Time.deltaTime;
+        if (specialTimer < specialCooldown) specialTimer += Time.deltaTime;
+
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackRate && canAttack)
         {
@@ -215,32 +258,90 @@ public class AbilitiesMountainMan : MonoBehaviour
             MeleeAttack();
         }
 
-        stompTimer += Time.deltaTime;
         if (stompTimer >= stompCooldown && distance <= stompRange && Input.GetKeyDown(KeyCode.Q))
         {
             stompTimer = 0f;
             Stomp();
         }
 
-        ultimateTimer += Time.deltaTime;
         if (ultimateTimer >= ultimateCooldown && Input.GetKeyDown(KeyCode.R))
         {
             ultimateTimer = 0f;
             Ultimate();
         }
 
-        specialTimer += Time.deltaTime;
         if (specialTimer >= specialCooldown && Input.GetKeyDown(KeyCode.E))
         {
             specialTimer = 0f;
             SpecialAttack();
         }
 
-        if (canAttack)
+        if (canAttack) UpdateRangeIndicator(attackRange);
+        UpdateAbilityUI();
+    }
+
+    void UpdateAbilityUI()
+    {
+        if (specialIcon != null)
         {
-            UpdateRangeIndicator(attackRange);
+            bool ready = stompTimer >= stompCooldown;
+            specialIcon.color = ready ? readyColor : cooldownColor;
+        }
+        if (specialCDText != null)
+        {
+            float remaining = stompCooldown - stompTimer;
+            specialCDText.text = remaining > 0 ? Mathf.CeilToInt(remaining).ToString() : "";
+        }
+
+        if (ultimateIcon != null)
+        {
+            bool ready = ultimateTimer >= ultimateCooldown;
+            ultimateIcon.color = ready ? readyColor : cooldownColor;
+        }
+        if (ultimateCDText != null)
+        {
+            float remaining = ultimateCooldown - ultimateTimer;
+            ultimateCDText.text = remaining > 0 ? Mathf.CeilToInt(remaining).ToString() : "";
         }
     }
+
+    // ============================================================
+    // DŹWIĘKI – WYWOŁANIA AudioMountainMan
+    // ============================================================
+
+    void PlayAttackSound()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlayAttack();
+    }
+
+    void PlaySpecialSound()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlaySpecial();
+    }
+
+    void PlayUltimateSound()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlayUltimate();
+    }
+
+    void PlayHitSound()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlayHit();
+    }
+
+    void PlayDeathSound()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlayDeath();
+    }
+
+    void PlayFootstep()
+    {
+        if (audioMountainMan != null) audioMountainMan.PlayFootstep();
+    }
+
+    // ============================================================
+    // RESZTA METOD (ShowAttackVisual, SpawnEffect, MeleeAttack, Stomp, Ultimate, SpecialAttack, PushbackEnemy, itp.)
+    // ============================================================
 
     void ShowAttackVisual(float range, float angle)
     {
@@ -313,7 +414,6 @@ public class AbilitiesMountainMan : MonoBehaviour
         foreach (ParticleSystem ps in particleSystems)
         {
             var main = ps.main;
-
             main.loop = false;
             main.prewarm = false;
             main.playOnAwake = false;
@@ -336,6 +436,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     void MeleeAttack()
     {
         UpdateRangeIndicator(attackRange);
+        PlayAttackSound();
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRange);
         foreach (var hitCollider in hitColliders)
@@ -349,7 +450,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     baseEnemy.TakeDamage(attackDamage);
                     PushbackEnemy(baseEnemy);
-                    AudioManager.Instance?.PlayEnemyHit();
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale);
                 }
                 continue;
@@ -364,7 +465,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     bazyliszek.TakeDamage(attackDamage);
                     PushbackEnemy(bazyliszek);
-                    AudioManager.Instance?.PlayEnemyHit();
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale);
                 }
                 continue;
@@ -379,7 +480,7 @@ public class AbilitiesMountainMan : MonoBehaviour
                 {
                     leszy.TakeDamage(attackDamage);
                     PushbackEnemy(leszy);
-                    AudioManager.Instance?.PlayEnemyHit();
+                    PlayHitSound();
                     SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale);
                 }
                 continue;
@@ -393,6 +494,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     void Stomp()
     {
         UpdateRangeIndicator(stompRange);
+        PlaySpecialSound();
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, stompRange);
         foreach (var hitCollider in hitColliders)
@@ -402,7 +504,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(stompDamage);
                 PushbackEnemy(baseEnemy, 1.5f);
-                AudioManager.Instance?.PlayPerkSelect();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 1.2f);
                 continue;
             }
@@ -412,7 +514,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(stompDamage);
                 PushbackEnemy(bazyliszek, 1.5f);
-                AudioManager.Instance?.PlayPerkSelect();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 1.2f);
                 continue;
             }
@@ -422,7 +524,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(stompDamage);
                 PushbackEnemy(leszy, 1.5f);
-                AudioManager.Instance?.PlayPerkSelect();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 1.2f);
                 continue;
             }
@@ -436,6 +538,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     void Ultimate()
     {
         UpdateRangeIndicator(ultimateRadius);
+        PlayUltimateSound();
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, ultimateRadius);
         foreach (var hitCollider in hitColliders)
@@ -445,7 +548,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(ultimateDamage);
                 PushbackEnemy(baseEnemy, 2f);
-                AudioManager.Instance?.PlayVictory();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale * 1.5f);
                 continue;
             }
@@ -455,7 +558,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(ultimateDamage);
                 PushbackEnemy(bazyliszek, 2f);
-                AudioManager.Instance?.PlayVictory();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale * 1.5f);
                 continue;
             }
@@ -465,7 +568,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(ultimateDamage);
                 PushbackEnemy(leszy, 2f);
-                AudioManager.Instance?.PlayVictory();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale * 1.5f);
                 continue;
             }
@@ -479,6 +582,7 @@ public class AbilitiesMountainMan : MonoBehaviour
     void SpecialAttack()
     {
         UpdateRangeIndicator(specialRange);
+        PlaySpecialSound();
 
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, 0.5f, transform.forward, specialRange);
         foreach (var hit in hits)
@@ -488,7 +592,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 baseEnemy.TakeDamage(specialDamage);
                 PushbackEnemy(baseEnemy);
-                AudioManager.Instance?.PlayLaser();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, baseEnemy.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -498,7 +602,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 bazyliszek.TakeDamage(specialDamage);
                 PushbackEnemy(bazyliszek);
-                AudioManager.Instance?.PlayLaser();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, bazyliszek.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -508,7 +612,7 @@ public class AbilitiesMountainMan : MonoBehaviour
             {
                 leszy.TakeDamage(specialDamage);
                 PushbackEnemy(leszy);
-                AudioManager.Instance?.PlayLaser();
+                PlayHitSound();
                 SpawnEffect(hitEffectPrefab, leszy.transform.position + Vector3.up, effectScale);
                 continue;
             }
@@ -521,10 +625,7 @@ public class AbilitiesMountainMan : MonoBehaviour
 
     void ResetRangeIndicator()
     {
-        if (canAttack)
-        {
-            UpdateRangeIndicator(attackRange);
-        }
+        if (canAttack) UpdateRangeIndicator(attackRange);
     }
 
     void PushbackEnemy(object enemy, float forceMultiplier = 1f)
@@ -563,21 +664,17 @@ public class AbilitiesMountainMan : MonoBehaviour
     public void SetCanAttack(bool value)
     {
         canAttack = value;
-        if (canAttack)
-        {
-            UpdateRangeIndicator(attackRange);
-        }
-        else
-        {
-            if (rangeIndicator != null)
-                rangeIndicator.SetActive(false);
-        }
+        if (canAttack) UpdateRangeIndicator(attackRange);
+        else if (rangeIndicator != null) rangeIndicator.SetActive(false);
     }
 
     void OnDestroy()
     {
         if (visualObj != null) Destroy(visualObj);
         if (rangeIndicator != null) Destroy(rangeIndicator);
+        if (specialIconObject != null) specialIconObject.SetActive(false);
+        if (ultimateIconObject != null) ultimateIconObject.SetActive(false);
+        PlayDeathSound();
     }
 
     void OnDrawGizmosSelected()
@@ -613,10 +710,8 @@ public class AbilitiesMountainMan : MonoBehaviour
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, stompRange);
-
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, specialRange);
-
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, ultimateRadius);
 
